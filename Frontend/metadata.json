@@ -1,0 +1,6 @@
+{
+  "name": "Trainify Learning Portal",
+  "description": "A comprehensive corporate learning management system featuring AI-powered assistance, analytics dashboards, and course management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI Assistant", "Data Analytics", "Course Management"]
+}

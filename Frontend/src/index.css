@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: "Roboto", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", sans-serif;
+
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-on-primary-fixed: var(--on-primary-fixed);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-secondary-fixed: var(--secondary-fixed);
+
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline-variant: var(--outline-variant);
+  
+  /* Additional values that might be needed */
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+}
+
+@layer base {
+  :root {
+    --primary: #340d7b;
+    --primary-container: #4b2c92;
+    --primary-fixed: #e9ddff;
+    --on-primary-fixed: #22005c;
+    
+    --secondary: #6b5584;
+    --secondary-container: #e3c7fe;
+    --secondary-fixed: #efdbff;
+
+    --surface-bright: #f8f9fa;
+    --surface-container: #edeeef;
+    --surface-container-low: #f3f4f5;
+    --surface-container-lowest: #ffffff;
+    
+    --on-surface: #191c1d;
+    --on-surface-variant: #494552;
+    --outline-variant: #cbc4d3;
+    
+    --inverse-surface: #2e3132;
+    --inverse-on-surface: #f0f1f2;
+  }
+
+  .dark {
+    --primary: #d1bcff; /* Light, bright purple for text and highlights */
+    --primary-container: #8353e2; /* Brighter purple for primary buttons/fills so white text is readable */
+    --primary-fixed: #4b2c92; /* Darker purple for active item backgrounds */
+    --on-primary-fixed: #e9ddff;
+    
+    --secondary: #d0bce8;
+    --secondary-container: #4a3461;
+    --secondary-fixed: #6b5584;
+
+    --surface-bright: #141414;
+    --surface-container: #1e1e1e;
+    --surface-container-low: #262626;
+    --surface-container-lowest: #0a0a0a;
+    
+    --on-surface: #e6e0e9;
+    --on-surface-variant: #cac4d0;
+    --outline-variant: #49454f;
+    
+    --inverse-surface: #e6e0e9;
+    --inverse-on-surface: #313033;
+  }
+
+  body {
+    @apply bg-surface-bright text-on-surface font-sans transition-colors duration-200;
+  }
+
+  button, a, input, select, textarea {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-bright transition-shadow;
+  }
+
+  /* Custom Scrollbar Styles for aesthetic consistency */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--outline-variant);
+    border-radius: 9999px;
+    opacity: 0.5;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--on-surface-variant);
+  }
+}
+
+.markdown-body h1 { @apply text-2xl font-display font-bold mb-4 text-on-surface; }
+.markdown-body h2 { @apply text-xl font-display font-bold mb-3 text-on-surface; }
+.markdown-body p { @apply mb-4 leading-relaxed text-on-surface-variant; }
+.markdown-body ul { @apply list-disc pl-5 mb-4 text-on-surface-variant; }
+.markdown-body li { @apply mb-1; }
