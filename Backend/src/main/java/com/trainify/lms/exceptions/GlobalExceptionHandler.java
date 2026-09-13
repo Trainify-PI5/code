@@ -35,5 +35,14 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    // 403 com tipo proprio para o frontend distinguir de falta de permissao
+    @ExceptionHandler(LessonLockedException.class)
+    public ProblemDetail handleLessonLockedException(LessonLockedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problemDetail.setType(URI.create("urn:problem-type:lesson-locked"));
+        problemDetail.setTitle("Lesson Locked");
+        return problemDetail;
+    }
+
     // Outros handlers podem ser adicionados conforme a necessidade (ex: AccessDeniedException para 403)
 }
