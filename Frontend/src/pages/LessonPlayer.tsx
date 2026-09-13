@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Circle, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Lock, MessageSquare } from 'lucide-react';
 import api from '../services/api';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
@@ -28,11 +28,22 @@ function formatLessonMeta(lesson: any): string {
   return `${label} • ${duration}`;
 }
 
+interface LessonProgressItem {
+  lessonId: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  watchedSeconds: number;
+  locked: boolean;
+}
+
+function indexProgress(items: LessonProgressItem[]): Record<string, LessonProgressItem> {
+  return Object.fromEntries(items.map((item) => [item.lessonId, item]));
+}
+
 export default function LessonPlayer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  
+
   // Estados
   const [course, setCourse] = useState<any>(null);
   const [enrollment, setEnrollment] = useState<any>(null);
@@ -41,6 +52,8 @@ export default function LessonPlayer() {
   const [loading, setLoading] = useState(true);
   const [initialTime, setInitialTime] = useState(0);
   const [mediaUrl, setMediaUrl] = useState<string>('');
+  const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgressItem>>({});
+  const [completing, setCompleting] = useState(false);
 
   // Carregar dados (mock ou api)
   useEffect(() => {
@@ -49,19 +62,32 @@ export default function LessonPlayer() {
         setLoading(true);
         const courseRes = await api.get(`/courses/${id}`);
         setCourse(courseRes.data);
-        
+
         // Pega o enrollment do user atual para este curso
         const enrollmentRes = await api.get('/enrollments');
         const currentEnrollment = enrollmentRes.data.find((e: any) => e.course?.id === id);
         setEnrollment(currentEnrollment);
 
-        // Seleciona a primeira lesson do primeiro módulo por padrão
-        if (courseRes.data.modules && courseRes.data.modules.length > 0) {
-           const firstMod = courseRes.data.modules[0];
-           if (firstMod.lessons && firstMod.lessons.length > 0) {
-              setActiveLesson(firstMod.lessons[0]);
-           }
+        // Status e bloqueio de cada aula vem do backend. Sem matricula (ex.: preview
+        // do instrutor) nao ha progresso e nenhuma aula e bloqueada.
+        let progressById: Record<string, LessonProgressItem> = {};
+        if (currentEnrollment?.id) {
+          try {
+            const progressRes = await api.get(`/progress/enrollments/${currentEnrollment.id}/lessons`);
+            progressById = indexProgress(progressRes.data);
+          } catch (e) {
+            console.error(e);
+          }
         }
+        setLessonProgress(progressById);
+
+        // Retoma de onde o aluno parou: primeira aula liberada ainda nao concluida
+        const lessons = (courseRes.data.modules || []).flatMap((mod: any) => mod.lessons || []);
+        const resumeLesson = lessons.find((lesson: any) => {
+          const progress = progressById[lesson.id];
+          return progress && !progress.locked && progress.status !== 'COMPLETED';
+        });
+        setActiveLesson(resumeLesson || lessons[0] || null);
       } catch (e) {
         console.error(e);
       } finally {
@@ -118,25 +144,59 @@ export default function LessonPlayer() {
     enabled: !!enrollment && !!activeLesson
   });
 
+  const refreshProgress = useCallback(async () => {
+    if (!enrollment?.id) return;
+    try {
+      const progressRes = await api.get(`/progress/enrollments/${enrollment.id}/lessons`);
+      setLessonProgress(indexProgress(progressRes.data));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [enrollment?.id]);
+
   const handleVideoProgress = (time: number) => {
     setWatchedSeconds(time);
   };
 
-  const handleVideoEnded = () => {
-    setIsCompleted(true);
+  const handleVideoEnded = async () => {
+    // Atualiza a lista so depois que o backend registrou, liberando a proxima aula
+    await setIsCompleted(true);
+    await refreshProgress();
     // Aqui poderíamos avançar pra próxima aula automaticamente
+  };
+
+  // Texto e documento nao tem evento de fim, entao a conclusao e feita pelo aluno
+  const handleMarkAsCompleted = async () => {
+    setCompleting(true);
+    try {
+      await setIsCompleted(true);
+      await refreshProgress();
+    } finally {
+      setCompleting(false);
+    }
   };
 
   if (loading) return <div className="p-8">Carregando player...</div>;
   if (!course) return <div className="p-8">Curso não encontrado.</div>;
 
+  const allLessons = (course.modules || []).flatMap((mod: any) => mod.lessons || []);
+  const progressItems = Object.values(lessonProgress);
+  // Mesmo calculo do backend (aulas concluidas / total). O percentual da matricula
+  // e recalculado de forma assincrona e chegaria desatualizado logo apos concluir.
+  const progressPercentage = progressItems.length > 0 && allLessons.length > 0
+    ? Math.round((progressItems.filter((p) => p.status === 'COMPLETED').length / allLessons.length) * 100)
+    : (enrollment?.progressPercentage || 0);
+  const activeCompleted = !!activeLesson && lessonProgress[activeLesson.id]?.status === 'COMPLETED';
+  const canMarkAsCompleted = !!enrollment
+    && (activeLesson?.lessonType === 'ARTICLE' || activeLesson?.lessonType === 'DOCUMENT');
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-800">
-      
+
       {/* Cabeçalho do Player */}
       <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 shrink-0">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
           >
@@ -146,9 +206,9 @@ export default function LessonPlayer() {
             {course.title}
           </h1>
         </div>
-        
+
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={() => setShowChat(!showChat)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               showChat ? 'bg-primary text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
@@ -162,7 +222,7 @@ export default function LessonPlayer() {
 
       {/* Área de Conteúdo Principal */}
       <div className="flex flex-1 overflow-hidden">
-        
+
         {/* Vídeo e Descrição */}
         <div className="flex-1 overflow-y-auto flex flex-col relative">
            {activeLesson ? (
@@ -170,7 +230,7 @@ export default function LessonPlayer() {
                 {activeLesson.lessonType === 'VIDEO' && mediaUrl ? (
                   <div className="w-full bg-black shrink-0">
                      <div className="max-w-5xl mx-auto w-full">
-                       <VideoPlayer 
+                       <VideoPlayer
                          videoUrl={mediaUrl}
                          initialTime={initialTime}
                          onProgress={handleVideoProgress}
@@ -181,7 +241,7 @@ export default function LessonPlayer() {
                   </div>
                 ) : activeLesson.lessonType === 'DOCUMENT' && mediaUrl ? (
                   <div className="w-full h-[600px] shrink-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-                     <iframe 
+                     <iframe
                         src={mediaUrl.includes('docs.google.com') ? `${mediaUrl}?embedded=true` : mediaUrl}
                         className="w-full h-full border-none"
                         title="Documento da Aula"
@@ -200,7 +260,7 @@ export default function LessonPlayer() {
                      </button>
                   </div>
                 ) : null}
-                
+
                 <div className="p-8 max-w-5xl mx-auto w-full flex-1">
                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
                      {activeLesson.title}
@@ -208,6 +268,16 @@ export default function LessonPlayer() {
                    <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300">
                      {activeLesson.content || 'Nenhuma descrição fornecida para esta aula.'}
                    </div>
+                   {canMarkAsCompleted && (
+                     <button
+                       onClick={handleMarkAsCompleted}
+                       disabled={activeCompleted || completing}
+                       className="mt-8 flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                     >
+                       <CheckCircle2 className="w-4 h-4" />
+                       {activeCompleted ? 'Aula concluída' : completing ? 'Salvando...' : 'Marcar como concluída'}
+                     </button>
+                   )}
                 </div>
              </>
            ) : (
@@ -234,9 +304,9 @@ export default function LessonPlayer() {
                  </div>
                  <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                     <div className="flex gap-2">
-                       <input 
-                         type="text" 
-                         placeholder="Faça uma pergunta..." 
+                       <input
+                         type="text"
+                         placeholder="Faça uma pergunta..."
                          className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                        />
                        <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
@@ -252,9 +322,9 @@ export default function LessonPlayer() {
         <div className="w-80 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 overflow-y-auto hidden lg:block">
            <div className="p-4 border-b border-slate-200 dark:border-slate-800">
               <h3 className="font-semibold text-slate-800 dark:text-slate-200">Conteúdo do Curso</h3>
-              <p className="text-xs text-slate-500 mt-1">{enrollment?.progressPercentage || 0}% concluído</p>
+              <p className="text-xs text-slate-500 mt-1">{progressPercentage}% concluído</p>
            </div>
-           
+
            <div className="p-2 flex flex-col gap-4 mt-2">
               {course.modules?.map((mod: any) => (
                 <div key={mod.id}>
@@ -262,32 +332,45 @@ export default function LessonPlayer() {
                      {mod.title}
                    </h4>
                    <div className="flex flex-col gap-1">
-                      {mod.lessons?.map((lesson: any) => (
-                         <button 
-                           key={lesson.id}
-                           onClick={() => setActiveLesson(lesson)}
-                           className={`flex items-start gap-3 p-3 text-left rounded-lg transition-colors ${
-                             activeLesson?.id === lesson.id 
-                               ? 'bg-primary/10 text-primary dark:bg-primary/20' 
-                               : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400'
-                           }`}
-                         >
-                            <div className="shrink-0 mt-0.5">
-                               {/* Na real, checaríamos o lesson_progress aqui */}
-                               {activeLesson?.id === lesson.id ? (
-                                 <Circle className="w-4 h-4 fill-primary/20" />
-                               ) : (
-                                 <Circle className="w-4 h-4" />
-                               )}
-                            </div>
-                            <div>
-                               <p className="text-sm font-medium line-clamp-2 leading-tight">
-                                 {lesson.title}
-                               </p>
-                               <p className="text-xs opacity-70 mt-1">{formatLessonMeta(lesson)}</p>
-                            </div>
-                         </button>
-                      ))}
+                      {mod.lessons?.map((lesson: any) => {
+                         const progress = lessonProgress[lesson.id];
+                         const locked = !!progress?.locked;
+                         const completed = progress?.status === 'COMPLETED';
+
+                         return (
+                           <button
+                             key={lesson.id}
+                             onClick={() => { if (!locked) setActiveLesson(lesson); }}
+                             disabled={locked}
+                             title={locked ? 'Conclua a aula anterior para liberar' : undefined}
+                             className={`flex items-start gap-3 p-3 text-left rounded-lg transition-colors ${
+                               locked
+                                 ? 'opacity-50 cursor-not-allowed text-slate-400 dark:text-slate-500'
+                                 : activeLesson?.id === lesson.id
+                                   ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                                   : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400'
+                             }`}
+                           >
+                              <div className="shrink-0 mt-0.5">
+                                 {locked ? (
+                                   <Lock className="w-4 h-4" />
+                                 ) : completed ? (
+                                   <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                 ) : activeLesson?.id === lesson.id ? (
+                                   <Circle className="w-4 h-4 fill-primary/20" />
+                                 ) : (
+                                   <Circle className="w-4 h-4" />
+                                 )}
+                              </div>
+                              <div>
+                                 <p className="text-sm font-medium line-clamp-2 leading-tight">
+                                   {lesson.title}
+                                 </p>
+                                 <p className="text-xs opacity-70 mt-1">{formatLessonMeta(lesson)}</p>
+                              </div>
+                           </button>
+                         );
+                      })}
                    </div>
                 </div>
               ))}

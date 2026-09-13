@@ -28,7 +28,7 @@ export function useHeartbeat({
   const watchedSecondsRef = useRef(0);
   const isCompletedRef = useRef(false);
   const lastSentRef = useRef<HeartbeatPayload | null>(null);
-  const flushRef = useRef<(() => void) | null>(null);
+  const flushRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (!enabled || !enrollmentId || !lessonId) return;
@@ -41,7 +41,7 @@ export function useHeartbeat({
     setWatchedSecondsState(0);
     setIsCompletedState(false);
 
-    const flush = () => {
+    const flush = (): Promise<void> => {
       const payload: HeartbeatPayload = {
         watchedSeconds: watchedSecondsRef.current,
         isCompleted: isCompletedRef.current
@@ -52,10 +52,11 @@ export function useHeartbeat({
       const unchanged = !!last
         && last.watchedSeconds === payload.watchedSeconds
         && last.isCompleted === payload.isCompleted;
-      if (nothingWatched || unchanged) return;
+      if (nothingWatched || unchanged) return Promise.resolve();
 
       lastSentRef.current = payload;
-      api.post(`/progress/enrollments/${enrollmentId}/lessons/${lessonId}/heartbeat`, payload)
+      return api.post(`/progress/enrollments/${enrollmentId}/lessons/${lessonId}/heartbeat`, payload)
+        .then(() => undefined)
         .catch((error) => {
           // Libera o reenvio do mesmo payload no proximo ciclo
           if (lastSentRef.current === payload) {
@@ -82,14 +83,16 @@ export function useHeartbeat({
     setWatchedSecondsState(seconds);
   }, []);
 
-  const setIsCompleted = useCallback((completed: boolean) => {
+  const setIsCompleted = useCallback((completed: boolean): Promise<void> => {
     isCompletedRef.current = completed;
     setIsCompletedState(completed);
     // A conclusao vai na hora: esperar o proximo intervalo perdia o evento
-    // quando o aluno trocava de aula antes dos 10s.
-    if (completed) {
-      flushRef.current?.();
+    // quando o aluno trocava de aula antes dos 10s. A Promise deixa quem chama
+    // atualizar a tela so depois que o backend registrou.
+    if (completed && flushRef.current) {
+      return flushRef.current();
     }
+    return Promise.resolve();
   }, []);
 
   return {
