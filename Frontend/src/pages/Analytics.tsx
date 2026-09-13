@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   AreaChart,
   Area,
@@ -6,6 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -23,26 +24,76 @@ import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
 
-const COLORS = ["#4b2c92", "#6b5584", "#b3aac0", "#edeeef"];
+type EngagementPeriod = "LAST_30_DAYS" | "LAST_QUARTER" | "YEAR_TO_DATE";
+
+interface EngagementPoint {
+  periodStart: string;
+  enrollments: number;
+  completions: number;
+}
+
+interface StatusCount {
+  status: string;
+  count: number;
+}
+
+interface CourseCompletion {
+  courseId: string;
+  title: string;
+  enrollments: number;
+  completed: number;
+  completionRate: number;
+}
+
+// Cor fixa por status, para a pizza e a legenda nao trocarem de cor entre cargas
+const STATUS_STYLE: Record<string, { labelKey: string; color: string }> = {
+  IN_PROGRESS: { labelKey: "analytics.statusInProgress", color: "#4b2c92" },
+  COMPLETED: { labelKey: "analytics.statusCompleted", color: "#16a34a" },
+  CANCELLED: { labelKey: "analytics.statusCancelled", color: "#b3aac0" },
+};
+
+const LOCALES: Record<string, string> = { en: "en-US", es: "es-ES", "pt-BR": "pt-BR" };
+
+// Busca de um grafico: data fica null enquanto carrega. Respostas de uma requisicao
+// anterior (ex.: troca rapida de periodo) sao descartadas para nao sobrescrever a atual.
+function useAnalyticsData<T>(url: string, params?: Record<string, string>) {
+  const [state, setState] = useState<{ data: T | null; error: boolean }>({ data: null, error: false });
+  const paramsKey = JSON.stringify(params ?? {});
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ data: null, error: false });
+
+    api.get(url, { params })
+      .then((res) => {
+        if (!cancelled) setState({ data: res.data, error: false });
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) setState({ data: null, error: true });
+      });
+
+    return () => { cancelled = true; };
+  }, [url, paramsKey]);
+
+  return state;
+}
+
+function ChartMessage({ children }: { children: ReactNode }) {
+  return (
+    <div className="h-full min-h-[120px] w-full flex items-center justify-center text-sm text-on-surface-variant">
+      {children}
+    </div>
+  );
+}
 
 export default function Analytics() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [period, setPeriod] = useState<EngagementPeriod>("LAST_30_DAYS");
 
-  const engagementData = [
-    { name: t("analytics.week1"), value: 4000 },
-    { name: t("analytics.week2"), value: 3000 },
-    { name: t("analytics.week3"), value: 6000 },
-    { name: t("analytics.week4"), value: 5000 },
-    { name: t("analytics.week5"), value: 8000 },
-    { name: t("analytics.week6"), value: 7500 },
-  ];
-
-  const distributionData = [
-    { name: t("analytics.leadership"), value: 45 },
-    { name: t("analytics.technical"), value: 30 },
-    { name: t("analytics.compliance"), value: 15 },
-    { name: t("analytics.softSkills"), value: 10 },
-  ];
+  const engagement = useAnalyticsData<EngagementPoint[]>("/analytics/engagement", { period });
+  const statusDistribution = useAnalyticsData<StatusCount[]>("/analytics/enrollment-status");
+  const courseCompletion = useAnalyticsData<CourseCompletion[]>("/analytics/course-completion");
 
   const [kpis, setKpis] = useState<{
     totalUsers: number;
@@ -86,12 +137,31 @@ export default function Analytics() {
     },
   ];
 
-  const departments = [
-    { dept: t("analytics.deptEngineering"), value: 92 },
-    { dept: t("analytics.deptSales"), value: 85 },
-    { dept: t("analytics.deptMarketing"), value: 78 },
-    { dept: t("analytics.deptHR"), value: 95 },
-  ];
+  // Semanas aparecem como dia/mes e o ano ate hoje como mes abreviado, no idioma do app
+  const formatPeriodLabel = (periodStart: string) => {
+    const date = new Date(`${periodStart}T00:00:00Z`);
+    const locale = LOCALES[language] || "pt-BR";
+    return period === "YEAR_TO_DATE"
+      ? date.toLocaleDateString(locale, { month: "short", timeZone: "UTC" })
+      : date.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+  };
+
+  const engagementChart = (engagement.data ?? []).map((point) => ({
+    name: formatPeriodLabel(point.periodStart),
+    enrollments: point.enrollments,
+    completions: point.completions,
+  }));
+
+  const statusItems = (statusDistribution.data ?? []).map((item) => ({
+    status: item.status,
+    name: t(STATUS_STYLE[item.status]?.labelKey ?? item.status),
+    value: item.count,
+    color: STATUS_STYLE[item.status]?.color ?? "#edeeef",
+  }));
+  const statusTotal = statusItems.reduce((sum, item) => sum + item.value, 0);
+  const statusPieData = statusItems.filter((item) => item.value > 0);
+
+  const topCourses = (courseCompletion.data ?? []).slice(0, 5);
 
   const [learners, setLearners] = useState<any[]>([]);
 
@@ -169,115 +239,148 @@ export default function Analytics() {
             <h3 className="text-xl font-display font-bold">
               {t("analytics.engagementOverTime")}
             </h3>
-            <select className="bg-surface-bright border border-outline-variant rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-primary">
-              <option>{t("analytics.last30Days")}</option>
-              <option>{t("analytics.lastQuarter")}</option>
-              <option>{t("analytics.yearToDate")}</option>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as EngagementPeriod)}
+              className="bg-surface-bright border border-outline-variant rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-primary"
+            >
+              <option value="LAST_30_DAYS">{t("analytics.last30Days")}</option>
+              <option value="LAST_QUARTER">{t("analytics.lastQuarter")}</option>
+              <option value="YEAR_TO_DATE">{t("analytics.yearToDate")}</option>
             </select>
           </div>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={engagementData}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4b2c92" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#4b2c92" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#edeeef"
-                />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: "#494552" }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: "#494552" }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    borderRadius: "12px",
-                    borderColor: "#cbc4d3",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
-                  itemStyle={{ color: "#4b2c92", fontWeight: 600 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#4b2c92"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorValue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {engagement.error ? (
+              <ChartMessage>{t("analytics.loadError")}</ChartMessage>
+            ) : !engagement.data ? (
+              <ChartMessage>{t("analytics.loading")}</ChartMessage>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={engagementChart}>
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4b2c92" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#4b2c92" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorCompletions" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#16a34a" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#edeeef"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: "#494552" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: "#494552" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      borderRadius: "12px",
+                      borderColor: "#cbc4d3",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    }}
+                    itemStyle={{ fontWeight: 600 }}
+                  />
+                  <Legend verticalAlign="top" height={32} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                  <Area
+                    type="monotone"
+                    dataKey="enrollments"
+                    name={t("analytics.newEnrollments")}
+                    stroke="#4b2c92"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorValue)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="completions"
+                    name={t("analytics.completions")}
+                    stroke="#16a34a"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorCompletions)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 shadow-sm flex flex-col">
           <div className="mb-6">
             <h3 className="text-xl font-display font-bold">
-              {t("analytics.courseDistribution")}
+              {t("analytics.enrollmentStatus")}
             </h3>
             <p className="text-sm text-on-surface-variant">
-              {t("analytics.enrollmentsByCategory")}
+              {t("analytics.enrollmentsByStatus")}
             </p>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center gap-6">
-            <div className="h-[200px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={distributionData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {distributionData.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
+            {statusDistribution.error ? (
+              <ChartMessage>{t("analytics.loadError")}</ChartMessage>
+            ) : !statusDistribution.data ? (
+              <ChartMessage>{t("analytics.loading")}</ChartMessage>
+            ) : statusTotal === 0 ? (
+              <ChartMessage>{t("analytics.noEnrollments")}</ChartMessage>
+            ) : (
+              <>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusPieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {statusPieData.map((item) => (
+                          <Cell key={item.status} fill={item.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "12px",
+                          border: "none",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        }}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: "12px",
-                      border: "none",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="w-full space-y-3">
-              {distributionData.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: COLORS[idx] }}
-                    />
-                    <span className="text-on-surface-variant">{item.name}</span>
-                  </div>
-                  <span className="font-bold">{item.value}%</span>
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+                <div className="w-full space-y-3">
+                  {statusItems.map((item) => (
+                    <div
+                      key={item.status}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-on-surface-variant">{item.name}</span>
+                      </div>
+                      <span className="font-bold">{Math.round((item.value * 100) / statusTotal)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -286,23 +389,33 @@ export default function Analytics() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-8">
         <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 shadow-sm flex flex-col">
           <h3 className="text-xl font-display font-bold mb-6">
-            {t("analytics.deptPerformance")}
+            {t("analytics.courseCompletion")}
           </h3>
           <div className="space-y-5 flex-1">
-            {departments.map((d, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="font-medium">{d.dept}</span>
-                  <span className="text-on-surface-variant">{d.value}%</span>
+            {courseCompletion.error ? (
+              <ChartMessage>{t("analytics.loadError")}</ChartMessage>
+            ) : !courseCompletion.data ? (
+              <ChartMessage>{t("analytics.loading")}</ChartMessage>
+            ) : topCourses.length === 0 ? (
+              <ChartMessage>{t("analytics.noEnrollments")}</ChartMessage>
+            ) : (
+              topCourses.map((course) => (
+                <div key={course.courseId}>
+                  <div className="flex justify-between text-sm mb-2 gap-3">
+                    <span className="font-medium truncate" title={course.title}>{course.title}</span>
+                    <span className="text-on-surface-variant shrink-0">
+                      {course.completionRate}% ({course.completed}/{course.enrollments})
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-primary-container h-full rounded-full transition-all duration-1000"
+                      style={{ width: `${course.completionRate}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary-container h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${d.value}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
