@@ -12,8 +12,6 @@ import {
   Cell,
 } from "recharts";
 import {
-  TrendingUp,
-  TrendingDown,
   Clock,
   Users,
   Star,
@@ -23,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
+import api from "../services/api";
 
 const COLORS = ["#4b2c92", "#6b5584", "#b3aac0", "#edeeef"];
 
@@ -53,44 +52,34 @@ export default function Analytics() {
   } | null>(null);
 
   useEffect(() => {
-    import("../services/api").then(api => {
-      api.default.get('/analytics/kpis').then(res => setKpis(res.data)).catch(console.error);
-    });
+    api.get('/analytics/kpis').then(res => setKpis(res.data)).catch(console.error);
   }, []);
 
   const stats = [
     {
       label: t("analytics.totalLearners"),
-      value: kpis ? kpis.totalUsers.toString() : "12,450",
-      change: "+14.5%",
-      isPositive: true,
+      value: kpis ? kpis.totalUsers.toString() : "—",
       icon: Users,
       bgColor: "bg-primary-fixed",
       iconColor: "text-primary",
     },
     {
-      label: "Total Cursos", // fallback
-      value: kpis ? kpis.totalCourses.toString() : "84.2%",
-      change: "+2.1%",
-      isPositive: true,
+      label: t("analytics.totalCourses"),
+      value: kpis ? kpis.totalCourses.toString() : "—",
       icon: Star,
       bgColor: "bg-secondary-fixed",
       iconColor: "text-secondary",
     },
     {
-      label: "Matrículas Ativas", // fallback
-      value: kpis ? kpis.activeEnrollments.toString() : "14h 30m",
-      change: "-1.5h",
-      isPositive: false,
+      label: t("analytics.activeEnrollments"),
+      value: kpis ? kpis.activeEnrollments.toString() : "—",
       icon: Clock,
       bgColor: "bg-surface-container",
       iconColor: "text-on-surface-variant",
     },
     {
-      label: "Matrículas Concluídas", // fallback
-      value: kpis ? kpis.completedEnrollments.toString() : "68%",
-      change: "+5.4%",
-      isPositive: true,
+      label: t("analytics.completedEnrollments"),
+      value: kpis ? kpis.completedEnrollments.toString() : "—",
       icon: ShieldCheck,
       bgColor: "bg-green-100",
       iconColor: "text-green-700",
@@ -107,10 +96,7 @@ export default function Analytics() {
   const [learners, setLearners] = useState<any[]>([]);
 
   useEffect(() => {
-    import("../services/api").then(api => {
-      api.default.get('/analytics/kpis').then(res => setKpis(res.data)).catch(console.error);
-      
-      api.default.get('/enrollments/all').then(res => {
+    api.get('/enrollments/all').then(res => {
          const fetchedLearners = res.data.map((enrollment: any) => {
              const prog = enrollment.progressPercentage || 0;
              return {
@@ -124,8 +110,7 @@ export default function Analytics() {
              };
          });
          setLearners(fetchedLearners);
-      }).catch(console.error);
-    });
+    }).catch(console.error);
   }, [t]);
 
   return (
@@ -171,22 +156,6 @@ export default function Analytics() {
             <div>
               <div className="text-3xl font-display font-bold text-on-surface">
                 {stat.value}
-              </div>
-              <div
-                className={cn(
-                  "flex items-center gap-1 mt-2 text-xs font-semibold",
-                  stat.isPositive ? "text-green-600" : "text-red-500",
-                )}
-              >
-                {stat.isPositive ? (
-                  <TrendingUp className="w-3 h-3" />
-                ) : (
-                  <TrendingDown className="w-3 h-3" />
-                )}
-                {stat.change}
-                <span className="text-on-surface-variant font-normal ml-1">
-                  {t("analytics.vsLastMonth")}
-                </span>
               </div>
             </div>
           </div>
