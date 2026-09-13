@@ -1,15 +1,21 @@
 package com.trainify.lms.services;
 
+import com.trainify.lms.domain.entities.Assessment;
 import com.trainify.lms.domain.entities.Course;
 import com.trainify.lms.domain.entities.Lesson;
+import com.trainify.lms.domain.entities.MediaAsset;
 import com.trainify.lms.domain.entities.Module;
 import com.trainify.lms.domain.entities.Tenant;
 import com.trainify.lms.domain.entities.User;
 import com.trainify.lms.domain.enums.CourseStatus;
+import com.trainify.lms.domain.enums.MediaProvider;
 import com.trainify.lms.dto.CourseDto;
 import com.trainify.lms.dto.CreateCourseRequest;
+import com.trainify.lms.dto.LessonDto;
+import com.trainify.lms.repositories.AssessmentRepository;
 import com.trainify.lms.repositories.CourseRepository;
 import com.trainify.lms.repositories.LessonRepository;
+import com.trainify.lms.repositories.MediaAssetRepository;
 import com.trainify.lms.repositories.ModuleRepository;
 import com.trainify.lms.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -43,6 +49,12 @@ public class CourseServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private MediaAssetRepository mediaAssetRepository;
+
+    @Mock
+    private AssessmentRepository assessmentRepository;
 
     @InjectMocks
     private CourseService courseService;
@@ -174,5 +186,119 @@ public class CourseServiceTest {
                 () -> courseService.publishCourse(courseId));
         assertEquals("Cannot publish course: module 'Empty Module' has no lessons", exception.getMessage());
         verify(courseRepository, never()).save(any(Course.class));
+    }
+
+    @Test
+    void getCourseById_MapsLessonStructureFromMediaAndAssessments() {
+        // Arrange
+        Module module = new Module();
+        module.setId(UUID.randomUUID());
+        module.setTitle("Module 1");
+
+        MediaAsset s3Video = mediaAsset(MediaProvider.S3, "video/mp4", 300);
+        MediaAsset s3Pdf = mediaAsset(MediaProvider.S3, "application/pdf", null);
+        MediaAsset youtube = mediaAsset(MediaProvider.YOUTUBE, "application/vnd.trainify.external", null);
+        MediaAsset googleDocs = mediaAsset(MediaProvider.GOOGLE_DOCS, "application/vnd.trainify.external", null);
+        MediaAsset quizVideo = mediaAsset(MediaProvider.S3, "video/mp4", 120);
+
+        Lesson videoLesson = lesson(s3Video);
+        Lesson pdfLesson = lesson(s3Pdf);
+        Lesson youtubeLesson = lesson(youtube);
+        Lesson docsLesson = lesson(googleDocs);
+        Lesson textLesson = lesson(null);
+        Lesson quizLesson = lesson(quizVideo);
+
+        Assessment assessment = new Assessment();
+        assessment.setLesson(quizLesson);
+
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(mockCourse));
+        when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)).thenReturn(List.of(module));
+        when(lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())).thenReturn(
+                List.of(videoLesson, pdfLesson, youtubeLesson, docsLesson, textLesson, quizLesson));
+        when(mediaAssetRepository.findAllById(anyIterable()))
+                .thenReturn(List.of(s3Video, s3Pdf, youtube, googleDocs, quizVideo));
+        when(assessmentRepository.findByLessonIdIn(anyCollection())).thenReturn(List.of(assessment));
+
+        // Act
+        List<LessonDto> lessons = courseService.getCourseById(courseId).getModules().get(0).getLessons();
+
+        // Assert
+        assertEquals("VIDEO", lessons.get(0).getLessonType());
+        assertEquals(s3Video.getId(), lessons.get(0).getVideoAssetId());
+        assertEquals(300, lessons.get(0).getDurationSeconds());
+
+        assertEquals("DOCUMENT", lessons.get(1).getLessonType());
+        assertNull(lessons.get(1).getDurationSeconds());
+
+        assertEquals("VIDEO", lessons.get(2).getLessonType());
+        assertEquals("DOCUMENT", lessons.get(3).getLessonType());
+
+        assertEquals("ARTICLE", lessons.get(4).getLessonType());
+        assertNull(lessons.get(4).getVideoAssetId());
+
+        // Avaliacao tem precedencia mesmo quando a aula tambem tem video
+        assertEquals("QUIZ", lessons.get(5).getLessonType());
+        assertEquals(120, lessons.get(5).getDurationSeconds());
+
+        // Uma query por modulo para midias e avaliacoes, nao uma por aula
+        verify(mediaAssetRepository, times(1)).findAllById(anyIterable());
+        verify(assessmentRepository, times(1)).findByLessonIdIn(anyCollection());
+    }
+
+    @Test
+    void getCourseById_LessonWithMissingMediaAsset_DoesNotFail() {
+        // Arrange
+        Module module = new Module();
+        module.setId(UUID.randomUUID());
+
+        MediaAsset deletedAsset = mediaAsset(MediaProvider.S3, "video/mp4", 60);
+        Lesson orphanLesson = lesson(deletedAsset);
+
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(mockCourse));
+        when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)).thenReturn(List.of(module));
+        when(lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())).thenReturn(List.of(orphanLesson));
+        when(mediaAssetRepository.findAllById(anyIterable())).thenReturn(Collections.emptyList());
+
+        // Act
+        LessonDto dto = courseService.getCourseById(courseId).getModules().get(0).getLessons().get(0);
+
+        // Assert
+        assertEquals(deletedAsset.getId(), dto.getVideoAssetId());
+        assertNull(dto.getDurationSeconds());
+        assertEquals("ARTICLE", dto.getLessonType());
+    }
+
+    @Test
+    void getCourseById_ModuleWithoutLessons_SkipsMediaAndAssessmentQueries() {
+        // Arrange
+        Module module = new Module();
+        module.setId(UUID.randomUUID());
+
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(mockCourse));
+        when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)).thenReturn(List.of(module));
+        when(lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())).thenReturn(Collections.emptyList());
+
+        // Act
+        courseService.getCourseById(courseId);
+
+        // Assert
+        verifyNoInteractions(mediaAssetRepository, assessmentRepository);
+    }
+
+    private MediaAsset mediaAsset(MediaProvider provider, String mimeType, Integer durationSeconds) {
+        MediaAsset media = new MediaAsset();
+        media.setId(UUID.randomUUID());
+        media.setProvider(provider);
+        media.setMimeType(mimeType);
+        media.setDurationSeconds(durationSeconds);
+        return media;
+    }
+
+    private Lesson lesson(MediaAsset videoAsset) {
+        Lesson lesson = new Lesson();
+        lesson.setId(UUID.randomUUID());
+        lesson.setTitle("Lesson");
+        lesson.setVideoAsset(videoAsset);
+        return lesson;
     }
 }

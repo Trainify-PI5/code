@@ -6,6 +6,28 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
 
+const LESSON_TYPE_LABEL: Record<string, string> = {
+  VIDEO: 'Vídeo',
+  DOCUMENT: 'Documento',
+  QUIZ: 'Avaliação',
+  ARTICLE: 'Texto',
+};
+
+// Monta o subtitulo da aula na barra lateral a partir do que a API devolve.
+// Aula sem duracao (texto, quiz, video ainda sem transcodificar) mostra so o tipo.
+function formatLessonMeta(lesson: any): string {
+  const label = LESSON_TYPE_LABEL[lesson?.lessonType] || LESSON_TYPE_LABEL.ARTICLE;
+  const seconds = lesson?.durationSeconds;
+
+  if (!seconds || seconds <= 0) return label;
+
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  const duration = minutes === 0 ? `${rest}s` : rest === 0 ? `${minutes}m` : `${minutes}m ${rest}s`;
+
+  return `${label} • ${duration}`;
+}
+
 export default function LessonPlayer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -50,37 +72,43 @@ export default function LessonPlayer() {
   }, [id]);
 
   useEffect(() => {
+    // Limpa a midia da aula anterior e descarta respostas que chegarem depois de
+    // uma nova troca, senao a aula atual exibe o video/documento de outra.
+    let cancelled = false;
+    setMediaUrl('');
+
     const fetchMedia = async () => {
-      if (activeLesson?.videoAssetId) {
-        try {
-          const res = await api.get(`/media/${activeLesson.videoAssetId}/play`);
-          setMediaUrl(res.data.url);
-        } catch (e) {
-          setMediaUrl('');
-        }
-      } else {
-        setMediaUrl('');
+      if (!activeLesson?.videoAssetId) return;
+      try {
+        const res = await api.get(`/media/${activeLesson.videoAssetId}/play`);
+        if (!cancelled) setMediaUrl(res.data.url);
+      } catch (e) {
+        if (!cancelled) setMediaUrl('');
       }
     };
     fetchMedia();
+
+    return () => { cancelled = true; };
   }, [activeLesson?.id, activeLesson?.videoAssetId]);
 
   useEffect(() => {
+    // Mesmo cuidado da midia: o progresso salvo da aula anterior nao pode
+    // reposicionar o video da aula atual.
+    let cancelled = false;
+    setInitialTime(0);
+
     const fetchProgress = async () => {
-      if (enrollment?.id && activeLesson?.id) {
-        try {
-          const progressRes = await api.get(`/progress/enrollments/${enrollment.id}/lessons/${activeLesson.id}`);
-          if (progressRes.data && progressRes.data.watchedSeconds) {
-            setInitialTime(progressRes.data.watchedSeconds);
-          } else {
-            setInitialTime(0);
-          }
-        } catch (e) {
-          setInitialTime(0);
-        }
+      if (!enrollment?.id || !activeLesson?.id) return;
+      try {
+        const progressRes = await api.get(`/progress/enrollments/${enrollment.id}/lessons/${activeLesson.id}`);
+        if (!cancelled) setInitialTime(progressRes.data?.watchedSeconds || 0);
+      } catch (e) {
+        if (!cancelled) setInitialTime(0);
       }
     };
     fetchProgress();
+
+    return () => { cancelled = true; };
   }, [enrollment?.id, activeLesson?.id]);
 
   // Hook de Heartbeat
@@ -139,7 +167,7 @@ export default function LessonPlayer() {
         <div className="flex-1 overflow-y-auto flex flex-col relative">
            {activeLesson ? (
              <>
-                {(activeLesson.lessonType === 'VIDEO' || activeLesson.videoAssetId) && mediaUrl ? (
+                {activeLesson.lessonType === 'VIDEO' && mediaUrl ? (
                   <div className="w-full bg-black shrink-0">
                      <div className="max-w-5xl mx-auto w-full">
                        <VideoPlayer 
@@ -256,7 +284,7 @@ export default function LessonPlayer() {
                                <p className="text-sm font-medium line-clamp-2 leading-tight">
                                  {lesson.title}
                                </p>
-                               <p className="text-xs opacity-70 mt-1">Vídeo • 5m</p>
+                               <p className="text-xs opacity-70 mt-1">{formatLessonMeta(lesson)}</p>
                             </div>
                          </button>
                       ))}

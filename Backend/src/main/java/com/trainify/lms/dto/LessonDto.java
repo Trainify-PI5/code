@@ -10,4 +10,7 @@ public class LessonDto {
     private String title;
     private String content;
     private Integer orderIndex;
+    private UUID videoAssetId;
+    private Integer durationSeconds;
+    private String lessonType;
 }
