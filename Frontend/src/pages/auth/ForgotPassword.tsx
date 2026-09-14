@@ -33,8 +33,12 @@ export default function ForgotPassword({ onNavigate }: ForgotPasswordProps) {
     e.preventDefault();
     setTouched(true);
     if (!emailValid) return;
-    await forgotPassword(email);
-    if (!error) setSent(true);
+    try {
+      await forgotPassword(email);
+      setSent(true);
+    } catch {
+      // The store exposes the API error in the form above.
+    }
   };
 
   return (

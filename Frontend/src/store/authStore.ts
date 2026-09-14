@@ -23,6 +23,7 @@ interface AuthState {
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (data: any) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => void;
   refreshSession: () => Promise<boolean>;
   clearError: () => void;
@@ -61,6 +62,11 @@ function readStoredAuth() {
 
     try {
       const { accessToken, refreshToken } = JSON.parse(stored);
+      const decodedToken = jwtDecode<{ exp?: number }>(accessToken);
+      if (decodedToken.exp && decodedToken.exp * 1000 <= Date.now() && !refreshToken) {
+        storage.removeItem(AUTH_STORAGE_KEY);
+        continue;
+      }
       const user = userFromToken(accessToken, "");
       return { user, token: accessToken, refreshToken };
     } catch {
@@ -80,13 +86,17 @@ function persistAuth(accessToken: string, refreshToken: string | null, rememberM
 
 function getErrorMessage(error: any) {
   const status = error.response?.status;
-  const detail = error.response?.data?.detail;
+  const responseData = error.response?.data;
+  const detail = responseData?.detail || responseData?.message;
 
   if (status === 401) return "E-mail ou senha incorretos.";
   if (status === 403) return "Usuário sem permissão para acessar a plataforma.";
+  if (status === 404) return "Serviço de autenticação não encontrado.";
+  if (status === 409) return "Não foi possível concluir o login com esta conta.";
   if (status === 422) return "Confira os dados informados.";
   if (typeof detail === "string") return detail;
   if (status >= 500) return "Não foi possível concluir o login. Tente novamente mais tarde.";
+  if (!error.response) return "Não foi possível conectar ao servidor. Verifique a API e tente novamente.";
   return "Não foi possível conectar ao servidor. Tente novamente.";
 }
 
@@ -161,16 +171,30 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   forgotPassword: async (email: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Mock since Backend.md doesn't list a forgot-password endpoint yet, or we assume it exists
-      await new Promise((r) => setTimeout(r, 600));
+      await api.post("/auth/forgot-password", { email: email.trim() });
       set({ isLoading: false });
     } catch (err: any) {
-      set({ isLoading: false, error: "Erro ao recuperar senha." });
+      set({ isLoading: false, error: getErrorMessage(err) });
+      throw err;
+    }
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post("/auth/reset-password", { token, password });
+      set({ isLoading: false });
+    } catch (err: any) {
+      set({ isLoading: false, error: getErrorMessage(err) });
       throw err;
     }
   },
 
   logout: () => {
+    const currentToken = get().token;
+    if (currentToken) {
+      void api.post("/auth/logout").catch(() => undefined);
+    }
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(AUTH_STORAGE_KEY);
       window.sessionStorage.removeItem(AUTH_STORAGE_KEY);

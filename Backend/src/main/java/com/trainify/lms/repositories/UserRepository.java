@@ -12,6 +12,8 @@ import com.trainify.lms.domain.entities.User;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmailAndIsActiveTrue(String email);
     Optional<User> findByEmailIgnoreCaseAndIsActiveTrue(String email);
+        Optional<User> findByPasswordResetTokenHashAndPasswordResetTokenExpiresAtAfterAndIsActiveTrue(
+            String tokenHash, java.time.Instant now);
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByEmail(String email);
     

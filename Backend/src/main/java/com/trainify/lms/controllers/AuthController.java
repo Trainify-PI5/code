@@ -3,6 +3,8 @@ package com.trainify.lms.controllers;
 import com.trainify.lms.dto.LoginRequest;
 import com.trainify.lms.dto.LoginResponse;
 import com.trainify.lms.dto.RefreshTokenRequest;
+import com.trainify.lms.dto.ForgotPasswordRequest;
+import com.trainify.lms.dto.ResetPasswordRequest;
 import com.trainify.lms.services.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,18 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.requestPasswordReset(request);
+        return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/refresh")

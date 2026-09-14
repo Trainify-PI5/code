@@ -11,3 +11,5 @@ databaseChangeLog:
       file: db/changelog/05-add-missing-columns.sql
   - include:
       file: db/changelog/06-fix-roles-constraint.sql
+  - include:
+      file: db/changelog/07-add-password-reset.sql

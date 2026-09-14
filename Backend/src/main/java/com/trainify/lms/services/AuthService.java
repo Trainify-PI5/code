@@ -2,18 +2,28 @@ package com.trainify.lms.services;
 
 import java.util.Date;
 import java.util.Locale;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.trainify.lms.dto.ForgotPasswordRequest;
 import com.trainify.lms.dto.LoginRequest;
 import com.trainify.lms.dto.LoginResponse;
+import com.trainify.lms.dto.ResetPasswordRequest;
 import com.trainify.lms.security.CustomUserDetails;
 import com.trainify.lms.security.JwtUtil;
 
@@ -32,6 +42,15 @@ public class AuthService {
     private final com.trainify.lms.repositories.UserRepository userRepository;
     private final com.trainify.lms.repositories.TenantRepository tenantRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final JavaMailSender mailSender;
+
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
+
+    @Value("${spring.mail.username:no-reply@trainify.local}")
+    private String mailFrom;
+
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public LoginResponse register(com.trainify.lms.dto.RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
@@ -81,8 +100,62 @@ public class AuthService {
         return new LoginResponse(accessToken, refreshToken);
     }
 
+    @Transactional
+    public void requestPasswordReset(ForgotPasswordRequest request) {
+        String email = normalizeEmail(request.getEmail());
+        var user = userRepository.findByEmailIgnoreCaseAndIsActiveTrue(email).orElse(null);
+        if (user == null) {
+            log.info("AUTH_PASSWORD_RESET_REQUEST result=accepted emailDomain={}", emailDomain(email));
+            return;
+        }
+
+        byte[] tokenBytes = new byte[32];
+        secureRandom.nextBytes(tokenBytes);
+        String token = java.util.HexFormat.of().formatHex(tokenBytes);
+        user.setPasswordResetTokenHash(hashToken(token));
+        user.setPasswordResetTokenExpiresAt(Instant.now().plusSeconds(30 * 60));
+        userRepository.save(user);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailFrom);
+        message.setTo(user.getEmail());
+        message.setSubject("Redefinição de senha Trainify");
+        message.setText("Use este link para redefinir sua senha (válido por 30 minutos):\n"
+                + frontendUrl + "/reset-password?token=" + token);
+        mailSender.send(message);
+        log.info("AUTH_PASSWORD_RESET_REQUEST result=sent emailDomain={}", emailDomain(email));
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        String tokenHash = hashToken(request.getToken());
+        var user = userRepository.findByPasswordResetTokenHashAndPasswordResetTokenExpiresAtAfterAndIsActiveTrue(
+                tokenHash, Instant.now())
+                .orElseThrow(() -> new IllegalArgumentException("Token de recuperação inválido ou expirado."));
+
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setPasswordResetTokenHash(null);
+        user.setPasswordResetTokenExpiresAt(null);
+        userRepository.save(user);
+        log.info("AUTH_PASSWORD_RESET result=success emailDomain={}", emailDomain(user.getEmail()));
+    }
+
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String emailDomain(String email) {
+        int atIndex = email.indexOf('@');
+        return atIndex >= 0 ? email.substring(atIndex + 1) : "invalid";
+    }
+
+    private String hashToken(String token) {
+        try {
+            return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 indisponível", ex);
+        }
     }
 
     public LoginResponse refresh(String refreshToken) {
