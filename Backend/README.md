@@ -4,7 +4,7 @@ Back-end acadêmico em Java (cadastro e login) com testes unitários (JUnit 5). 
 
 ## Pré-requisitos
 
-- **Java 25** (JDK)
+- **Java 17** (JDK)
 - **Maven 3.3+** instalado e disponível no `PATH` (comando `mvn`)
 
 Para conferir:
