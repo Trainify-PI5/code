@@ -38,6 +38,12 @@ public class User extends BaseEntity {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
+    @Column(name = "password_reset_token_hash", length = 64)
+    private String passwordResetTokenHash;
+
+    @Column(name = "password_reset_token_expires_at")
+    private java.time.Instant passwordResetTokenExpiresAt;
+
     @Version
     @Column(name = "version_id", nullable = false)
     private Integer versionId;

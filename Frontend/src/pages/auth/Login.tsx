@@ -18,6 +18,7 @@ export default function Login({ onNavigate }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -27,7 +28,7 @@ export default function Login({ onNavigate }: LoginProps) {
     e.preventDefault();
     setTouched({ email: true, password: true });
     if (!emailValid || !passwordValid) return;
-    await login(email, password);
+    await login(email, password, rememberMe);
   };
 
   return (
@@ -233,7 +234,12 @@ export default function Login({ onNavigate }: LoginProps) {
 
               <label className="flex items-center gap-3 cursor-pointer select-none group">
                 <div className="relative">
-                  <input type="checkbox" className="sr-only peer" />
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="sr-only peer"
+                  />
                   <div className="w-4 h-4 border-2 border-outline-variant rounded peer-checked:bg-primary peer-checked:border-primary transition-colors group-hover:border-primary" />
                   <svg
                     className="absolute top-0.5 left-0.5 w-3 h-3 text-white hidden peer-checked:block pointer-events-none"

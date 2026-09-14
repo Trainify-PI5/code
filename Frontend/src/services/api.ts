@@ -51,8 +51,12 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Login and refresh errors must reach the caller instead of triggering another refresh.
+    const isAuthRequest = originalRequest?.url?.includes('/auth/');
+    if (isAuthRequest) return Promise.reject(error);
+
     // Se não é 401 ou já tentou retry, propaga o erro
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (error.response?.status !== 401 || originalRequest?._retry) {
       // Tratar 409 (Conflito / Optimistic Lock) — toast seria disparado por quem consume
       return Promise.reject(error);
     }

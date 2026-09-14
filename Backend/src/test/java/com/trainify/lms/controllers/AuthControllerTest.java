@@ -3,6 +3,8 @@ package com.trainify.lms.controllers;
 import com.trainify.lms.dto.LoginRequest;
 import com.trainify.lms.dto.LoginResponse;
 import com.trainify.lms.dto.RefreshTokenRequest;
+import com.trainify.lms.dto.ForgotPasswordRequest;
+import com.trainify.lms.dto.ResetPasswordRequest;
 import com.trainify.lms.services.AuthService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,5 +66,25 @@ public class AuthControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("new-access-token", response.getBody().getAccessToken());
         verify(authService).refresh("old-refresh-token");
+    }
+
+    @Test
+    void forgotPassword_ReturnsAcceptedResponse() {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+
+        ResponseEntity<Void> response = authController.forgotPassword(request);
+
+        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+        verify(authService).requestPasswordReset(request);
+    }
+
+    @Test
+    void resetPassword_ReturnsNoContentResponse() {
+        ResetPasswordRequest request = new ResetPasswordRequest();
+
+        ResponseEntity<Void> response = authController.resetPassword(request);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(authService).resetPassword(request);
     }
 }

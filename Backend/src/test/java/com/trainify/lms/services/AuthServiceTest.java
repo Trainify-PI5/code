@@ -2,6 +2,8 @@ package com.trainify.lms.services;
 
 import com.trainify.lms.dto.LoginRequest;
 import com.trainify.lms.dto.LoginResponse;
+import com.trainify.lms.dto.ForgotPasswordRequest;
+import com.trainify.lms.dto.ResetPasswordRequest;
 import com.trainify.lms.security.CustomUserDetails;
 import com.trainify.lms.security.JwtUtil;
 import org.junit.jupiter.api.Test;
@@ -11,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -41,6 +44,12 @@ public class AuthServiceTest {
 
     @Mock
     private ValueOperations<String, String> valueOperations;
+
+    @Mock
+    private com.trainify.lms.repositories.UserRepository userRepository;
+
+    @Mock
+    private JavaMailSender mailSender;
 
     @InjectMocks
     private AuthService authService;
@@ -142,5 +151,30 @@ public class AuthServiceTest {
 
         verify(jwtUtil).validateToken(oldRefreshToken, userDetails);
         verify(redisTemplate, never()).opsForValue();
+    }
+
+    @Test
+    void requestPasswordReset_UnknownEmail_ReturnsWithoutSendingMail() {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("unknown@example.com");
+        when(userRepository.findByEmailIgnoreCaseAndIsActiveTrue("unknown@example.com"))
+                .thenReturn(java.util.Optional.empty());
+
+        assertDoesNotThrow(() -> authService.requestPasswordReset(request));
+        verify(mailSender, never()).send(any(org.springframework.mail.SimpleMailMessage.class));
+    }
+
+    @Test
+    void resetPassword_InvalidToken_ThrowsBadRequest() {
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken("invalid-token");
+        request.setPassword("new-password");
+        when(userRepository.findByPasswordResetTokenHashAndPasswordResetTokenExpiresAtAfterAndIsActiveTrue(
+                anyString(), any(java.time.Instant.class))).thenReturn(java.util.Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> authService.resetPassword(request));
+
+        assertEquals("Token de recuperação inválido ou expirado.", exception.getMessage());
     }
 }
