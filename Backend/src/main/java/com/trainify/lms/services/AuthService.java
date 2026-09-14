@@ -1,21 +1,28 @@
 package com.trainify.lms.services;
 
+import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.stereotype.Service;
+
 import com.trainify.lms.dto.LoginRequest;
 import com.trainify.lms.dto.LoginResponse;
 import com.trainify.lms.security.CustomUserDetails;
 import com.trainify.lms.security.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import java.util.concurrent.TimeUnit;
-import java.util.Date;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
@@ -27,7 +34,8 @@ public class AuthService {
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public LoginResponse register(com.trainify.lms.dto.RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = normalizeEmail(request.getEmail());
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new RuntimeException("Email already exists");
         }
 
@@ -37,28 +45,44 @@ public class AuthService {
         com.trainify.lms.domain.entities.User user = new com.trainify.lms.domain.entities.User();
         user.setTenant(tenant);
         user.setName(request.getName());
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(com.trainify.lms.domain.enums.Role.STUDENT);
         user.setIsActive(true);
         userRepository.save(user);
 
         LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail(request.getEmail());
+        loginRequest.setEmail(email);
         loginRequest.setPassword(request.getPassword());
         return login(loginRequest);
     }
 
     public LoginResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        String email = normalizeEmail(request.getEmail());
+        log.info("AUTH_LOGIN_START emailDomain={}", email.substring(email.indexOf('@') + 1));
+
+        final Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+            );
+        } catch (AuthenticationException ex) {
+            log.info("AUTH_LOGIN_FAILED reason=INVALID_CREDENTIALS emailDomain={}",
+                    email.substring(email.indexOf('@') + 1));
+            throw ex;
+        }
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        log.info("AUTH_PASSWORD_VALIDATION result=success");
         String accessToken = jwtUtil.generateToken(userDetails);
         String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+        log.info("AUTH_TOKEN_GENERATION result=success");
 
         return new LoginResponse(accessToken, refreshToken);
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
     public LoginResponse refresh(String refreshToken) {

@@ -1,14 +1,16 @@
 package com.trainify.lms.exceptions;
 
+import java.net.URI;
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.net.URI;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -32,6 +34,26 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
         problemDetail.setType(URI.create("urn:problem-type:bad-request"));
         problemDetail.setTitle("Bad Request");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleAuthenticationException(AuthenticationException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, "E-mail ou senha incorretos.");
+        problemDetail.setType(URI.create("urn:problem-type:invalid-credentials"));
+        problemDetail.setTitle("Authentication Failed");
+        problemDetail.setProperty("code", "INVALID_CREDENTIALS");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDeniedException(AccessDeniedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN, "Usuário sem permissão para acessar a plataforma.");
+        problemDetail.setType(URI.create("urn:problem-type:access-denied"));
+        problemDetail.setTitle("Access Denied");
+        problemDetail.setProperty("code", "ACCESS_DENIED");
         return problemDetail;
     }
 
