@@ -61,7 +61,6 @@ app:
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
   ai:
     service-url: ${AI_SERVICE_URL:http://localhost:8000}
-    service-token: ${AI_SERVICE_TOKEN}
   s3:
     bucket: ${AWS_S3_BUCKET:trainify-media}
     region: ${AWS_S3_REGION:us-east-1}
