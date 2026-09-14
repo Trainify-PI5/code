@@ -3,7 +3,9 @@ package com.trainify.lms.services;
 import com.trainify.lms.domain.entities.*;
 import com.trainify.lms.domain.entities.Module;
 import com.trainify.lms.domain.enums.CourseStatus;
+import com.trainify.lms.domain.enums.MediaProvider;
 import com.trainify.lms.dto.*;
+import com.trainify.lms.repositories.AssessmentRepository;
 import com.trainify.lms.repositories.CourseRepository;
 import com.trainify.lms.repositories.LessonRepository;
 import com.trainify.lms.repositories.MediaAssetRepository;
@@ -18,7 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
 import com.trainify.lms.security.CustomUserDetails;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,6 +36,7 @@ public class CourseService {
     private final ModuleRepository moduleRepository;
     private final LessonRepository lessonRepository;
     private final MediaAssetRepository mediaAssetRepository;
+    private final AssessmentRepository assessmentRepository;
     private final UserRepository userRepository;
 
     private CustomUserDetails getCurrentUser() {
@@ -273,17 +280,99 @@ public class CourseService {
         dto.setOrderIndex(module.getOrderIndex());
 
         List<Lesson> lessons = lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId());
-        dto.setLessons(lessons.stream().map(this::mapLessonToDto).collect(Collectors.toList()));
+        Map<UUID, MediaAsset> mediaByAssetId = loadMediaAssets(lessons);
+        Set<UUID> lessonsWithAssessment = findLessonsWithAssessment(lessons);
+
+        dto.setLessons(lessons.stream()
+                .map(lesson -> mapLessonToDto(lesson, mediaByAssetId, lessonsWithAssessment))
+                .collect(Collectors.toList()));
 
         return dto;
     }
 
     private LessonDto mapLessonToDto(Lesson lesson) {
+        List<Lesson> single = List.of(lesson);
+        return mapLessonToDto(lesson, loadMediaAssets(single), findLessonsWithAssessment(single));
+    }
+
+    private LessonDto mapLessonToDto(Lesson lesson,
+                                     Map<UUID, MediaAsset> mediaByAssetId,
+                                     Set<UUID> lessonsWithAssessment) {
         LessonDto dto = new LessonDto();
         dto.setId(lesson.getId());
         dto.setTitle(lesson.getTitle());
         dto.setContent(lesson.getContent());
         dto.setOrderIndex(lesson.getOrderIndex());
+
+        UUID videoAssetId = lesson.getVideoAsset() != null ? lesson.getVideoAsset().getId() : null;
+        dto.setVideoAssetId(videoAssetId);
+
+        MediaAsset media = videoAssetId != null ? mediaByAssetId.get(videoAssetId) : null;
+        if (media != null) {
+            dto.setDurationSeconds(media.getDurationSeconds());
+        }
+        dto.setLessonType(resolveLessonType(media, lessonsWithAssessment.contains(lesson.getId())));
+
         return dto;
+    }
+
+    /**
+     * Carrega os media assets das aulas em uma unica query. Sem isso, ler
+     * duracao ou mime type dispararia um SELECT por aula, ja que
+     * Lesson.videoAsset e uma associacao lazy.
+     */
+    private Map<UUID, MediaAsset> loadMediaAssets(List<Lesson> lessons) {
+        List<UUID> assetIds = lessons.stream()
+                .map(Lesson::getVideoAsset)
+                .filter(Objects::nonNull)
+                .map(MediaAsset::getId)
+                .collect(Collectors.toList());
+
+        if (assetIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return mediaAssetRepository.findAllById(assetIds).stream()
+                .collect(Collectors.toMap(MediaAsset::getId, media -> media));
+    }
+
+    private Set<UUID> findLessonsWithAssessment(List<Lesson> lessons) {
+        List<UUID> lessonIds = lessons.stream()
+                .map(Lesson::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (lessonIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return assessmentRepository.findByLessonIdIn(lessonIds).stream()
+                .map(assessment -> assessment.getLesson().getId())
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Deriva o tipo da aula, ja que nao existe coluna lesson_type no schema.
+     * QUIZ tem precedencia por ser o unico tipo que muda o fluxo do player,
+     * levando o aluno para a avaliacao em vez do conteudo.
+     */
+    private String resolveLessonType(MediaAsset media, boolean hasAssessment) {
+        if (hasAssessment) {
+            return "QUIZ";
+        }
+        if (media == null) {
+            return "ARTICLE";
+        }
+        if (media.getProvider() == MediaProvider.YOUTUBE) {
+            return "VIDEO";
+        }
+        if (media.getProvider() == MediaProvider.GOOGLE_DOCS) {
+            return "DOCUMENT";
+        }
+        String mimeType = media.getMimeType();
+        if (mimeType != null && mimeType.startsWith("video/")) {
+            return "VIDEO";
+        }
+        return "DOCUMENT";
     }
 }

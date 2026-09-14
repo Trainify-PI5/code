@@ -53,7 +53,8 @@ export const CourseBuilder: React.FC = () => {
           title: l.title,
           description: l.content || '',
           content: l.content || '',
-          lessonType: l.videoAssetId ? 'VIDEO' : 'ARTICLE',
+          // A API agora informa o tipo; a inferencia antiga fica como fallback
+          lessonType: l.lessonType || (l.videoAssetId ? 'VIDEO' : 'ARTICLE'),
           videoAssetId: l.videoAssetId
         }))
       }));

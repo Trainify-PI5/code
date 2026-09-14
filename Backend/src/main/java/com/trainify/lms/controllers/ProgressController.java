@@ -1,6 +1,7 @@
 package com.trainify.lms.controllers;
 
 import com.trainify.lms.dto.HeartbeatRequest;
+import com.trainify.lms.dto.LessonProgressDto;
 import com.trainify.lms.services.ProgressService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -29,6 +31,15 @@ public class ProgressController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(progress);
+    }
+
+    @GetMapping("/enrollments/{enrollmentId}/lessons")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<LessonProgressDto>> getCourseProgress(
+            @PathVariable UUID enrollmentId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.trainify.lms.security.CustomUserDetails principal) {
+
+        return ResponseEntity.ok(progressService.getCourseProgress(enrollmentId, principal.getId()));
     }
 
     @PostMapping("/enrollments/{enrollmentId}/lessons/{lessonId}/heartbeat")

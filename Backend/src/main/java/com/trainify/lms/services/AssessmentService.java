@@ -21,6 +21,7 @@ public class AssessmentService {
     private final LessonRepository lessonRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final UserAssessmentAnswerRepository answerRepository;
+    private final ProgressService progressService;
 
     @Transactional(readOnly = true)
     public AssessmentDto getAssessmentByLessonId(UUID lessonId) {
@@ -85,6 +86,9 @@ public class AssessmentService {
         Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, assessment.getLesson().getModule().getCourse().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Enrollment not found"));
 
+        // Avaliacao de aula bloqueada e recusada antes de gravar qualquer resposta
+        progressService.assertLessonUnlocked(enrollment, assessment.getLesson());
+
         int correctAnswers = 0;
         int totalQuestions = assessment.getQuestions().size();
 
@@ -114,6 +118,12 @@ public class AssessmentService {
 
         int score = totalQuestions > 0 ? (correctAnswers * 100) / totalQuestions : 0;
         boolean passed = score >= assessment.getPassingScore();
+
+        // Passar na avaliacao conclui a aula; sem isso o quiz nunca contava para o
+        // progresso do curso, nao liberava a aula seguinte e impedia o certificado
+        if (passed) {
+            progressService.completeLesson(enrollment, assessment.getLesson());
+        }
 
         AssessmentResultDto result = new AssessmentResultDto();
         result.setScore(score);

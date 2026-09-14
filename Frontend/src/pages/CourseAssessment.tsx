@@ -70,8 +70,13 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
         });
         setResult(res.data);
         setIsFinished(true);
-      } catch (e) {
-        alert("Erro ao enviar avaliação.");
+      } catch (e: any) {
+        // O backend recusa avaliacao de aula bloqueada com um tipo proprio (403)
+        if (e?.response?.data?.type === "urn:problem-type:lesson-locked") {
+          alert("Conclua a aula anterior para liberar esta avaliação.");
+        } else {
+          alert("Erro ao enviar avaliação.");
+        }
       } finally {
         setSubmitting(false);
       }
