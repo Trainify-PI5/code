@@ -21,6 +21,11 @@
       ]
     },
     "allowImportingTsExtensions": true,
+    "types": [
+      "node",
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ],
     "noEmit": true
   }
 }
