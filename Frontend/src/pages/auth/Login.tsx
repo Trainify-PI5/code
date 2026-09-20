@@ -48,7 +48,7 @@ export default function Login({ onNavigate }: LoginProps) {
           <img
             src={logotipoDark}
             alt="Trainify"
-            className="h-23 w-auto object-contain"
+            className="h-28 w-auto object-contain"
           />
         </div>
 
