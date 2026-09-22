@@ -367,18 +367,39 @@ export const CourseBuilder: React.FC = () => {
                       </div>
                     ) : less.lessonType === 'DOCUMENT' ? (
                       <div className="pt-2 space-y-3">
-                         <label className="block text-xs font-medium text-slate-500">Documento (Google Docs)</label>
-                         <p className="text-xs text-slate-400">Insira o link público do Google Docs.</p>
-                         <input 
-                             type="text" 
+                        <label className="block text-xs font-medium text-slate-500">Documento</label>
+
+                        <div className="flex gap-4 mb-2">
+                           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                             <input type="radio" checked={less.provider !== 'GOOGLE_DOCS'} onChange={() => { handleLessonChange(modIdx, lessIdx, 'provider', 'S3'); handleLessonChange(modIdx, lessIdx, 'externalUrl', ''); }} />
+                             Enviar arquivo (PDF)
+                           </label>
+                           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                             <input type="radio" checked={less.provider === 'GOOGLE_DOCS'} onChange={() => { handleLessonChange(modIdx, lessIdx, 'provider', 'GOOGLE_DOCS'); handleLessonChange(modIdx, lessIdx, 'videoAssetId', ''); }} />
+                             Link do Google Docs
+                           </label>
+                        </div>
+
+                        {less.provider === 'GOOGLE_DOCS' ? (
+                           <input
+                             type="text"
                              value={less.externalUrl || ''}
-                             onChange={(e) => {
-                                handleLessonChange(modIdx, lessIdx, 'externalUrl', e.target.value);
-                                handleLessonChange(modIdx, lessIdx, 'provider', 'GOOGLE_DOCS');
-                             }}
+                             onChange={(e) => handleLessonChange(modIdx, lessIdx, 'externalUrl', e.target.value)}
                              placeholder="Ex: https://docs.google.com/document/d/..."
                              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                            />
+                        ) : less.videoAssetId ? (
+                           <div className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-500/20 px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2">
+                             <CheckCircle2 className="w-4 h-4" /> Documento salvo e associado com sucesso.
+                             <button className="ml-auto text-xs underline" onClick={() => handleLessonChange(modIdx, lessIdx, 'videoAssetId', '')}>Remover</button>
+                           </div>
+                        ) : (
+                           <UploadMedia
+                             accept="application/pdf"
+                             maxSizeMB={50}
+                             onUploadComplete={(id) => handleLessonChange(modIdx, lessIdx, 'videoAssetId', id)}
+                           />
+                        )}
                       </div>
                     ) : less.lessonType === 'QUIZ' ? (
                       <div className="pt-2 space-y-3">
