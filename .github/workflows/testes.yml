@@ -1,0 +1,57 @@
+name: Testes
+
+# Roda a cada push na main e em toda pull request, para um erro aparecer antes
+# de chegar em producao.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend (Java 21)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala o Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Testes do backend
+        working-directory: Backend
+        # O contextLoads precisa de banco e nao roda aqui; os demais precisam passar
+        run: ./mvnw -B test -Dtest='!TrainifyBackendApplicationTests'
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Instala as dependencias
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Verificacao de tipos
+        working-directory: Frontend
+        run: npm run lint
+
+      - name: Testes do frontend
+        working-directory: Frontend
+        run: npm run test
+
+      - name: Build
+        working-directory: Frontend
+        run: npm run build
