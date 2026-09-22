@@ -14,4 +14,9 @@ public class EnrollmentDto {
     private EnrollmentStatus status;
     private Instant enrolledAt;
     private Instant completedAt;
+
+    // Progresso do aluno no curso, usado na lista de cursos e no dashboard
+    private int totalLessons;
+    private int completedLessons;
+    private int progressPercent;
 }

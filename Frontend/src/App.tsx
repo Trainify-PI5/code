@@ -127,7 +127,7 @@ export default function App() {
                       path="/courses"
                       element={
                         <ProtectedRoute>
-                          <Courses onSelectCourse={() => navigate("/content")} />
+                          <Courses />
                         </ProtectedRoute>
                       }
                     />

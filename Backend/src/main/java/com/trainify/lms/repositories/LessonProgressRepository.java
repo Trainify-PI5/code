@@ -13,4 +13,6 @@ public interface LessonProgressRepository extends JpaRepository<LessonProgress, 
     Optional<LessonProgress> findByEnrollmentIdAndLessonId(UUID enrollmentId, UUID lessonId);
     
     List<LessonProgress> findByEnrollmentId(UUID enrollmentId);
+
+    long countByEnrollmentIdAndStatus(UUID enrollmentId, com.trainify.lms.domain.enums.ProgressStatus status);
 }

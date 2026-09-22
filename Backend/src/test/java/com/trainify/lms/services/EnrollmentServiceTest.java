@@ -37,6 +37,12 @@ public class EnrollmentServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private com.trainify.lms.repositories.LessonRepository lessonRepository;
+
+    @Mock
+    private com.trainify.lms.repositories.LessonProgressRepository lessonProgressRepository;
+
     @InjectMocks
     private EnrollmentService enrollmentService;
 

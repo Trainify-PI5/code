@@ -27,6 +27,8 @@ public class EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final com.trainify.lms.repositories.LessonRepository lessonRepository;
+    private final com.trainify.lms.repositories.LessonProgressRepository lessonProgressRepository;
 
     @Transactional
     public EnrollmentDto enrollUser(UUID courseId, UUID userId, Tenant tenant) {
@@ -89,8 +91,24 @@ public class EnrollmentService {
             courseDto.setId(enrollment.getCourse().getId());
             courseDto.setTitle(enrollment.getCourse().getTitle());
             dto.setCourse(courseDto);
+
+            fillProgress(dto, enrollment);
         }
 
         return dto;
+    }
+
+    /**
+     * Percentual de aulas concluidas no curso. Sem aulas cadastradas o progresso e
+     * zero, em vez de dividir por zero.
+     */
+    private void fillProgress(EnrollmentDto dto, com.trainify.lms.domain.entities.Enrollment enrollment) {
+        int total = (int) lessonRepository.countByModuleCourseId(enrollment.getCourse().getId());
+        int completed = (int) lessonProgressRepository.countByEnrollmentIdAndStatus(
+                enrollment.getId(), com.trainify.lms.domain.enums.ProgressStatus.COMPLETED);
+
+        dto.setTotalLessons(total);
+        dto.setCompletedLessons(Math.min(completed, total));
+        dto.setProgressPercent(total == 0 ? 0 : (int) Math.round((double) dto.getCompletedLessons() * 100 / total));
     }
 }
