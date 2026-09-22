@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config';
 
 export interface NotificationDto {
   id: string;
@@ -55,7 +56,7 @@ export function useNotifications() {
       // Vamos assumir que configuraremos o front para enviar na URL por simplicidade ou...
       // Vamos usar apenas EventSource padrão. Se der 401, falha.
       
-      const sseUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'}/notifications/stream?access_token=${token}`;
+      const sseUrl = `${API_BASE_URL}/notifications/stream?access_token=${token}`;
       
       eventSource = new EventSource(sseUrl);
 
