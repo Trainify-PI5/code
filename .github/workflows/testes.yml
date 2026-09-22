@@ -55,3 +55,20 @@ jobs:
       - name: Build
         working-directory: Frontend
         run: npm run build
+
+  deploy:
+    name: Publica no Render
+    # So publica se os testes passarem e apenas quando a mudanca entra na main
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispara o deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "Segredo RENDER_DEPLOY_HOOK nao configurado; nada a fazer."
+            exit 0
+          fi
+          curl -sS -o /dev/null -w 'Render respondeu %{http_code}\n' "$HOOK"
