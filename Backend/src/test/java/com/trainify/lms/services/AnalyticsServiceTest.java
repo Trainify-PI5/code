@@ -75,7 +75,7 @@ public class AnalyticsServiceTest {
     @Test
     void getTenantKpis_CountsCompletedInDatabaseWithoutLoadingEnrollments() {
         // Arrange
-        when(userRepository.countByTenantId(TENANT)).thenReturn(40L);
+        when(userRepository.countByTenantIdAndIsActiveTrue(TENANT)).thenReturn(40L);
         when(courseRepository.countByTenantId(TENANT)).thenReturn(6L);
         when(enrollmentRepository.countByTenantIdAndStatus(TENANT, EnrollmentStatus.IN_PROGRESS)).thenReturn(15L);
         when(enrollmentRepository.countByTenantIdAndStatus(TENANT, EnrollmentStatus.COMPLETED)).thenReturn(10L);
@@ -211,7 +211,7 @@ public class AnalyticsServiceTest {
         // Arrange: usuario de outra empresa
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(userDetails(OUTRA_EMPRESA), null, List.of()));
-        when(userRepository.countByTenantId(OUTRA_EMPRESA)).thenReturn(2L);
+        when(userRepository.countByTenantIdAndIsActiveTrue(OUTRA_EMPRESA)).thenReturn(2L);
         when(courseRepository.countByTenantId(OUTRA_EMPRESA)).thenReturn(1L);
 
         // Act
@@ -223,7 +223,7 @@ public class AnalyticsServiceTest {
         verify(userRepository, never()).count();
         verify(courseRepository, never()).count();
         verify(enrollmentRepository, never()).count();
-        verify(userRepository, never()).countByTenantId(TENANT);
+        verify(userRepository, never()).countByTenantIdAndIsActiveTrue(TENANT);
     }
 
     private CustomUserDetails userDetails(UUID tenantId) {

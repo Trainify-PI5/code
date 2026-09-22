@@ -38,7 +38,8 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public KpiDto getTenantKpis() {
         UUID tenantId = currentTenantId();
-        long totalUsers = userRepository.countByTenantId(tenantId);
+        // Contas desativadas nao sao alunos ativos
+        long totalUsers = userRepository.countByTenantIdAndIsActiveTrue(tenantId);
         long totalCourses = courseRepository.countByTenantId(tenantId);
 
         // Contagem feita no banco; antes todas as matriculas eram carregadas em memoria
