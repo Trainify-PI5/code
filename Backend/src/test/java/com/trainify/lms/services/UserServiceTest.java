@@ -96,6 +96,9 @@ public class UserServiceTest {
         lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
         lenient().when(authentication.getPrincipal()).thenReturn(mockUserDetails);
         lenient().when(mockUserDetails.getTenantId()).thenReturn(tenantId);
+        // Quem cria e edita usuarios aqui e um administrador
+        lenient().doReturn(java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN")))
+                .when(mockUserDetails).getAuthorities();
     }
 
     @Test
@@ -149,7 +152,7 @@ public class UserServiceTest {
         request.setPassword("password");
         request.setRole(Role.STUDENT);
 
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(request.getEmail())).thenReturn(false);
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
         when(passwordEncoder.encode(request.getPassword())).thenReturn("hashed-password");
         
@@ -171,7 +174,7 @@ public class UserServiceTest {
         assertEquals(request.getEmail(), result.getEmail());
         assertEquals(request.getName(), result.getName());
         
-        verify(userRepository).existsByEmail(request.getEmail());
+        verify(userRepository).existsByEmailIgnoreCase(request.getEmail());
         verify(tenantRepository).findById(tenantId);
         verify(passwordEncoder).encode(request.getPassword());
         verify(userRepository).save(any(User.class));
@@ -186,13 +189,13 @@ public class UserServiceTest {
         request.setEmail("existing@test.com");
         request.setPassword("password");
         request.setRole(Role.STUDENT);
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
+        when(userRepository.existsByEmailIgnoreCase(request.getEmail())).thenReturn(true);
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> userService.createUser(request));
         assertEquals("Email already exists", exception.getMessage());
 
-        verify(userRepository).existsByEmail(request.getEmail());
+        verify(userRepository).existsByEmailIgnoreCase(request.getEmail());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -205,7 +208,7 @@ public class UserServiceTest {
         request.setRole(Role.ADMIN);
         request.setIsActive(false);
         when(userRepository.findByIdAndTenantId(userId, tenantId)).thenReturn(Optional.of(mockUser));
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(request.getEmail())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -219,7 +222,7 @@ public class UserServiceTest {
         assertFalse(result.getIsActive());
 
         verify(userRepository).findByIdAndTenantId(userId, tenantId);
-        verify(userRepository).existsByEmail(request.getEmail());
+        verify(userRepository).existsByEmailIgnoreCase(request.getEmail());
         verify(userRepository).save(any(User.class));
     }
 
