@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, CheckCircle2, Play, BookOpenCheck, Pencil, FileText, Loader2 } from "lucide-react";
+import { Clock, CheckCircle2, Play, BookOpenCheck, Pencil, FileText, Loader2, BarChart3 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuthStore } from "../store/authStore";
@@ -311,6 +311,15 @@ export default function Courses() {
                     t("courses.startCourse")
                   )}
                 </button>
+
+                {isStaff && (
+                  <button
+                    onClick={() => navigate(`/courses/${course.id}/results`)}
+                    className="w-full py-2 px-4 rounded-xl text-sm font-medium border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
+                  >
+                    <BarChart3 className="w-4 h-4" /> {t("courses.seeResults")}
+                  </button>
+                )}
               </div>
             </div>
           </div>

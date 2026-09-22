@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Save, CheckCircle } from "lucide-react";
+import { PlusCircle, Trash2, Save, CheckCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import api from "../../services/api";
 
 interface Option {
@@ -17,7 +17,10 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("Avaliação do Módulo");
   const [passingScore, setPassingScore] = useState(70);
+  const [maxAttempts, setMaxAttempts] = useState(3);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     // Load assessment if exists
@@ -26,6 +29,7 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
         if (res.data) {
           setTitle(res.data.title);
           setPassingScore(res.data.passingScore);
+          setMaxAttempts(res.data.maxAttempts || 3);
           setQuestions(res.data.questions || []);
         }
       })
@@ -66,18 +70,47 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
     setQuestions(newQs);
   };
 
+  /** Mesmas regras do backend, mas avisando antes de tentar salvar. */
+  const validate = () => {
+    if (!title.trim()) return "Dê um título para a avaliação.";
+    if (questions.length === 0) return "Adicione pelo menos uma pergunta.";
+    if (passingScore < 0 || passingScore > 100) return "A nota mínima precisa ficar entre 0 e 100.";
+
+    for (let i = 0; i < questions.length; i++) {
+      const numero = i + 1;
+      const question = questions[i];
+
+      if (!question.text.trim()) return `Escreva o texto da pergunta ${numero}.`;
+      if (question.options.length < 2) return `A pergunta ${numero} precisa de pelo menos duas alternativas.`;
+      if (question.options.some((o) => !o.text.trim())) return `A pergunta ${numero} tem alternativa em branco.`;
+
+      const corretas = question.options.filter((o) => o.isCorrect).length;
+      if (corretas !== 1) return `Marque exatamente uma alternativa correta na pergunta ${numero}.`;
+    }
+
+    return null;
+  };
+
   const handleSave = async () => {
-    if (questions.length === 0) return alert("Adicione pelo menos uma pergunta");
+    const problema = validate();
+    setSaved(false);
+    if (problema) {
+      setError(problema);
+      return;
+    }
+
+    setError(null);
     setSaving(true);
     try {
       await api.post(`/assessments/lessons/${lessonId}`, {
         title,
         passingScore,
+        maxAttempts,
         questions
       });
-      alert("Avaliação salva com sucesso!");
-    } catch (error) {
-      alert("Erro ao salvar avaliação");
+      setSaved(true);
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || "Não foi possível salvar a avaliação. Tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -99,7 +132,7 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-xs font-bold uppercase text-on-surface-variant block mb-1">Título</label>
           <input
@@ -120,7 +153,35 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
             className="w-full bg-surface-container border border-outline-variant px-3 py-2 rounded-lg text-sm"
           />
         </div>
+        <div>
+          <label className="text-xs font-bold uppercase text-on-surface-variant block mb-1">Tentativas permitidas</label>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={maxAttempts}
+            onChange={(e) => setMaxAttempts(Number(e.target.value))}
+            className="w-full bg-surface-container border border-outline-variant px-3 py-2 rounded-lg text-sm"
+          />
+          <p className="text-xs text-on-surface-variant mt-1">
+            Depois disso a aula fica bloqueada até o instrutor liberar.
+          </p>
+        </div>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          {error}
+        </div>
+      )}
+
+      {saved && (
+        <div className="rounded-lg border border-green-200 bg-green-50 text-green-700 px-4 py-3 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          Avaliação salva.
+        </div>
+      )}
 
       <div className="space-y-6">
         {questions.map((q, qIndex) => (

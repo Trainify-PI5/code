@@ -29,6 +29,7 @@ const LessonPlayer = lazy(() => import("./pages/LessonPlayer"));
 const Forum = lazy(() => import("./pages/Forum"));
 const TenantSettings = lazy(() => import("./pages/TenantSettings"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const CourseResults = lazy(() => import("./pages/CourseResults"));
 import { useAuthStore } from "./store/authStore";
 import { useThemeStore } from "./store/themeStore";
 import AIChatWidget from "./components/AIChatWidget";
@@ -171,6 +172,14 @@ export default function App() {
                       element={
                         <ProtectedRoute>
                           <LessonPlayer />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/courses/:id/results"
+                      element={
+                        <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "INSTRUCTOR"]}>
+                          <CourseResults />
                         </ProtectedRoute>
                       }
                     />

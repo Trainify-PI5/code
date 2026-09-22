@@ -30,9 +30,12 @@ export const CourseBuilder: React.FC = () => {
   const [courseTitle, setCourseTitle] = useState('');
   const [courseDesc, setCourseDesc] = useState('');
   const [modules, setModules] = useState<Module[]>([]);
+  const [savedCourseId, setSavedCourseId] = useState<string | undefined>(id);
+  const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (id) {
+      setSavedCourseId(id);
       loadCourse(id);
     }
   }, [id]);
@@ -122,11 +125,15 @@ export const CourseBuilder: React.FC = () => {
   };
 
   const saveCourse = async (publish: boolean) => {
-    if (!courseTitle) return alert('Título do curso é obrigatório.');
+    if (!courseTitle) {
+      setMessage({ type: 'error', text: 'Dê um título ao curso antes de salvar.' });
+      return;
+    }
 
     try {
       setLoading(true);
-      let courseId = id;
+      setMessage(null);
+      let courseId = savedCourseId;
       
       // 1. Criar ou Atualizar Curso
       if (courseId) {
@@ -177,17 +184,29 @@ export const CourseBuilder: React.FC = () => {
         }
       }
 
-      // 3. Publicar ou Despublicar
+      // 3. Publicar ou apenas guardar o rascunho
       if (publish) {
         await api.patch(`/courses/${courseId}/publish`);
-        alert('Curso publicado com sucesso!');
-      } else {
-        alert('Rascunho salvo com sucesso!');
+        navigate('/courses');
+        return;
       }
-      navigate('/courses');
+
+      // Continua na tela: recarregar traz os IDs das aulas recem-criadas, que sao
+      // o que o construtor de quiz precisa para cadastrar as perguntas
+      setSavedCourseId(courseId);
+      if (courseId && courseId !== id) {
+        navigate(`/courses/builder/${courseId}`, { replace: true });
+      }
+      if (courseId) {
+        await loadCourse(courseId);
+      }
+      setMessage({ type: 'ok', text: 'Rascunho salvo. As aulas de quiz já podem receber perguntas.' });
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar curso: ' + (err.response?.data?.message || err.message));
+      setMessage({
+        type: 'error',
+        text: 'Erro ao salvar curso: ' + (err.response?.data?.detail || err.response?.data?.message || err.message),
+      });
     } finally {
       setLoading(false);
     }
@@ -222,6 +241,18 @@ export const CourseBuilder: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {message && (
+        <div
+          className={
+            message.type === 'ok'
+              ? 'rounded-xl border border-green-200 bg-green-50 text-green-700 px-4 py-3 text-sm'
+              : 'rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm'
+          }
+        >
+          {message.text}
+        </div>
+      )}
 
       <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2">1. Informações Básicas</h2>
@@ -354,8 +385,18 @@ export const CourseBuilder: React.FC = () => {
                         {less.id ? (
                            <AssessmentBuilder lessonId={less.id} />
                         ) : (
-                           <div className="p-4 bg-yellow-50 text-yellow-800 text-sm rounded-lg border border-yellow-200">
-                             ⚠️ Você precisa salvar o rascunho do curso (para gerar o ID da lição) antes de adicionar as perguntas deste Quiz.
+                           <div className="p-4 bg-surface-container text-sm rounded-lg border border-outline-variant space-y-3">
+                             <p className="text-on-surface-variant">
+                               As perguntas ficam guardadas junto com a aula. Salve o rascunho para começar a montar o quiz.
+                             </p>
+                             <button
+                               type="button"
+                               onClick={() => saveCourse(false)}
+                               disabled={loading}
+                               className="bg-primary-container text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+                             >
+                               {loading ? 'Salvando...' : 'Salvar rascunho e montar quiz'}
+                             </button>
                            </div>
                         )}
                       </div>
