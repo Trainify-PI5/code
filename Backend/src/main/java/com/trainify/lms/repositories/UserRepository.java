@@ -18,5 +18,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmail(String email);
     
     java.util.List<User> findByTenantIdAndIsActiveTrue(UUID tenantId);
+    long countByTenantId(UUID tenantId);
     Optional<User> findByIdAndTenantId(UUID id, UUID tenantId);
 }

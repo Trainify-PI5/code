@@ -20,7 +20,7 @@ public class ModuleController {
     private final CourseService courseService;
 
     @PostMapping("/{moduleId}/lessons")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<LessonDto> addLesson(
             @PathVariable UUID moduleId,
             @Valid @RequestBody CreateLessonRequest request
@@ -30,7 +30,7 @@ public class ModuleController {
     }
 
     @PutMapping("/{moduleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<com.trainify.lms.dto.ModuleDto> updateModule(
             @PathVariable UUID moduleId,
             @Valid @RequestBody com.trainify.lms.dto.CreateModuleRequest request
@@ -39,7 +39,7 @@ public class ModuleController {
     }
 
     @DeleteMapping("/{moduleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Void> deleteModule(@PathVariable UUID moduleId) {
         courseService.deleteModule(moduleId);
         return ResponseEntity.noContent().build();

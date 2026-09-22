@@ -30,7 +30,7 @@ public class MediaController {
     private final IaServiceClient iaServiceClient;
 
     @PostMapping("/upload-url")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Map<String, String>> generateUploadUrl(
             @Valid @RequestBody GenerateUploadUrlRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -47,7 +47,7 @@ public class MediaController {
     }
 
     @PostMapping("/upload-complete")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Map<String, UUID>> uploadComplete(
             @Valid @RequestBody UploadCompleteRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -80,7 +80,7 @@ public class MediaController {
     }
 
     @PostMapping("/external")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Map<String, UUID>> createExternalMedia(
             @Valid @RequestBody com.trainify.lms.dto.CreateExternalMediaRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails

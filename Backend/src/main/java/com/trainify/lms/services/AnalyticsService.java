@@ -10,7 +10,10 @@ import com.trainify.lms.dto.StatusCountDto;
 import com.trainify.lms.repositories.CourseRepository;
 import com.trainify.lms.repositories.EnrollmentRepository;
 import com.trainify.lms.repositories.UserRepository;
+import com.trainify.lms.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -32,14 +36,14 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public KpiDto getTenantKpis() {
-        // As repositórios já estão filtrados pelo TenantAspect usando RLS
-        long totalUsers = userRepository.count();
-        long totalCourses = courseRepository.count();
-        long totalEnrollments = enrollmentRepository.count();
+        UUID tenantId = currentTenantId();
+        long totalUsers = userRepository.countByTenantId(tenantId);
+        long totalCourses = courseRepository.countByTenantId(tenantId);
 
         // Contagem feita no banco; antes todas as matriculas eram carregadas em memoria
-        long completed = enrollmentRepository.countByStatus(EnrollmentStatus.COMPLETED);
-        long active = totalEnrollments - completed;
+        long completed = enrollmentRepository.countByTenantIdAndStatus(tenantId, EnrollmentStatus.COMPLETED);
+        // Matriculas canceladas nao contam como ativas
+        long active = enrollmentRepository.countByTenantIdAndStatus(tenantId, EnrollmentStatus.IN_PROGRESS);
 
         return KpiDto.builder()
                 .totalUsers(totalUsers)
@@ -60,6 +64,7 @@ public class AnalyticsService {
     }
 
     List<EngagementPointDto> getEngagement(EngagementPeriod period, LocalDate today) {
+        UUID tenantId = currentTenantId();
         LocalDate end = today.plusDays(1);
         LocalDate bucketStart = switch (period) {
             case LAST_30_DAYS -> today.minusDays(29);
@@ -79,8 +84,8 @@ public class AnalyticsService {
 
             points.add(new EngagementPointDto(
                     bucketStart,
-                    enrollmentRepository.countByEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(from, to),
-                    enrollmentRepository.countByCompletedAtGreaterThanEqualAndCompletedAtLessThan(from, to)));
+                    enrollmentRepository.countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(tenantId, from, to),
+                    enrollmentRepository.countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(tenantId, from, to)));
 
             bucketStart = next;
         }
@@ -90,8 +95,9 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public List<StatusCountDto> getEnrollmentStatusDistribution() {
+        UUID tenantId = currentTenantId();
         return Arrays.stream(EnrollmentStatus.values())
-                .map(status -> new StatusCountDto(status, enrollmentRepository.countByStatus(status)))
+                .map(status -> new StatusCountDto(status, enrollmentRepository.countByTenantIdAndStatus(tenantId, status)))
                 .toList();
     }
 
@@ -101,15 +107,17 @@ public class AnalyticsService {
      */
     @Transactional(readOnly = true)
     public List<CourseCompletionDto> getCourseCompletion() {
+        UUID tenantId = currentTenantId();
         List<CourseCompletionDto> result = new ArrayList<>();
 
-        for (Course course : courseRepository.findAll()) {
-            long enrollments = enrollmentRepository.countByCourseId(course.getId());
+        for (Course course : courseRepository.findByTenantId(tenantId)) {
+            long enrollments = enrollmentRepository.countByTenantIdAndCourseId(tenantId, course.getId());
             if (enrollments == 0) {
                 continue;
             }
 
-            long completed = enrollmentRepository.countByCourseIdAndStatus(course.getId(), EnrollmentStatus.COMPLETED);
+            long completed = enrollmentRepository.countByTenantIdAndCourseIdAndStatus(
+                    tenantId, course.getId(), EnrollmentStatus.COMPLETED);
             int completionRate = (int) Math.round((double) completed * 100 / enrollments);
 
             result.add(new CourseCompletionDto(course.getId(), course.getTitle(), enrollments, completed, completionRate));
@@ -118,6 +126,18 @@ public class AnalyticsService {
         result.sort(Comparator.comparingInt(CourseCompletionDto::getCompletionRate).reversed()
                 .thenComparing(CourseCompletionDto::getTitle));
         return result;
+    }
+
+    /**
+     * Empresa do usuario logado. O isolamento por empresa e feito aqui, na aplicacao:
+     * as policies de RLS do banco nao filtram o usuario usado pela aplicacao.
+     */
+    private UUID currentTenantId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            throw new IllegalStateException("Nenhum usuario autenticado na requisicao");
+        }
+        return userDetails.getTenantId();
     }
 
     private Instant startOfDay(LocalDate date) {

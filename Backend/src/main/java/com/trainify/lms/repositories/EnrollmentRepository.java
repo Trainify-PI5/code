@@ -15,10 +15,12 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
     boolean existsByCourseIdAndUserId(UUID courseId, UUID userId);
     java.util.List<Enrollment> findByUserId(UUID userId);
 
-    // Contagens usadas pelos graficos do dashboard (AnalyticsService)
-    long countByStatus(EnrollmentStatus status);
-    long countByCourseId(UUID courseId);
-    long countByCourseIdAndStatus(UUID courseId, EnrollmentStatus status);
-    long countByEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(Instant from, Instant to);
-    long countByCompletedAtGreaterThanEqualAndCompletedAtLessThan(Instant from, Instant to);
+    // Contagens usadas pelos graficos do dashboard (AnalyticsService).
+    // Todas filtram pela empresa: o isolamento por tenant e feito na aplicacao.
+    long countByTenantId(UUID tenantId);
+    long countByTenantIdAndStatus(UUID tenantId, EnrollmentStatus status);
+    long countByTenantIdAndCourseId(UUID tenantId, UUID courseId);
+    long countByTenantIdAndCourseIdAndStatus(UUID tenantId, UUID courseId, EnrollmentStatus status);
+    long countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(UUID tenantId, Instant from, Instant to);
+    long countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(UUID tenantId, Instant from, Instant to);
 }

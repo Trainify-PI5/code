@@ -10,13 +10,21 @@ import com.trainify.lms.dto.KpiDto;
 import com.trainify.lms.dto.StatusCountDto;
 import com.trainify.lms.repositories.CourseRepository;
 import com.trainify.lms.repositories.EnrollmentRepository;
+import com.trainify.lms.domain.entities.Tenant;
+import com.trainify.lms.domain.entities.User;
+import com.trainify.lms.domain.enums.Role;
 import com.trainify.lms.repositories.UserRepository;
+import com.trainify.lms.security.CustomUserDetails;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.repository.query.parser.PartTree;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,6 +43,8 @@ import static org.mockito.Mockito.when;
 public class AnalyticsServiceTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 13);
+    private static final UUID TENANT = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID OUTRA_EMPRESA = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
     @Mock
     private UserRepository userRepository;
@@ -48,18 +58,29 @@ public class AnalyticsServiceTest {
     @InjectMocks
     private AnalyticsService analyticsService;
 
+    @BeforeEach
+    void autenticaUsuarioDaEmpresa() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(userDetails(TENANT), null, List.of()));
+    }
+
+    @AfterEach
+    void limpaContexto() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void getTenantKpis_CountsCompletedInDatabaseWithoutLoadingEnrollments() {
         // Arrange
-        when(userRepository.count()).thenReturn(40L);
-        when(courseRepository.count()).thenReturn(6L);
-        when(enrollmentRepository.count()).thenReturn(25L);
-        when(enrollmentRepository.countByStatus(EnrollmentStatus.COMPLETED)).thenReturn(10L);
+        when(userRepository.countByTenantId(TENANT)).thenReturn(40L);
+        when(courseRepository.countByTenantId(TENANT)).thenReturn(6L);
+        when(enrollmentRepository.countByTenantIdAndStatus(TENANT, EnrollmentStatus.IN_PROGRESS)).thenReturn(15L);
+        when(enrollmentRepository.countByTenantIdAndStatus(TENANT, EnrollmentStatus.COMPLETED)).thenReturn(10L);
 
         // Act
         KpiDto kpis = analyticsService.getTenantKpis();
 
-        // Assert: mesmo calculo de antes (ativas = total - concluidas)
+        // Assert: matriculas canceladas nao entram no numero de ativas
         assertEquals(40, kpis.getTotalUsers());
         assertEquals(6, kpis.getTotalCourses());
         assertEquals(15, kpis.getActiveEnrollments());
@@ -70,9 +91,9 @@ public class AnalyticsServiceTest {
     @Test
     void getEnrollmentStatusDistribution_ReturnsEveryStatusIncludingZero() {
         // Arrange
-        when(enrollmentRepository.countByStatus(EnrollmentStatus.IN_PROGRESS)).thenReturn(7L);
-        when(enrollmentRepository.countByStatus(EnrollmentStatus.COMPLETED)).thenReturn(3L);
-        when(enrollmentRepository.countByStatus(EnrollmentStatus.CANCELLED)).thenReturn(0L);
+        when(enrollmentRepository.countByTenantIdAndStatus(TENANT, EnrollmentStatus.IN_PROGRESS)).thenReturn(7L);
+        when(enrollmentRepository.countByTenantIdAndStatus(TENANT, EnrollmentStatus.COMPLETED)).thenReturn(3L);
+        when(enrollmentRepository.countByTenantIdAndStatus(TENANT, EnrollmentStatus.CANCELLED)).thenReturn(0L);
 
         // Act
         List<StatusCountDto> result = analyticsService.getEnrollmentStatusDistribution();
@@ -91,12 +112,12 @@ public class AnalyticsServiceTest {
         Course sql = course("SQL");
         Course empty = course("Sem alunos");
 
-        when(courseRepository.findAll()).thenReturn(List.of(java, sql, empty));
-        when(enrollmentRepository.countByCourseId(java.getId())).thenReturn(3L);
-        when(enrollmentRepository.countByCourseIdAndStatus(java.getId(), EnrollmentStatus.COMPLETED)).thenReturn(1L);
-        when(enrollmentRepository.countByCourseId(sql.getId())).thenReturn(4L);
-        when(enrollmentRepository.countByCourseIdAndStatus(sql.getId(), EnrollmentStatus.COMPLETED)).thenReturn(3L);
-        when(enrollmentRepository.countByCourseId(empty.getId())).thenReturn(0L);
+        when(courseRepository.findByTenantId(TENANT)).thenReturn(List.of(java, sql, empty));
+        when(enrollmentRepository.countByTenantIdAndCourseId(TENANT, java.getId())).thenReturn(3L);
+        when(enrollmentRepository.countByTenantIdAndCourseIdAndStatus(TENANT, java.getId(), EnrollmentStatus.COMPLETED)).thenReturn(1L);
+        when(enrollmentRepository.countByTenantIdAndCourseId(TENANT, sql.getId())).thenReturn(4L);
+        when(enrollmentRepository.countByTenantIdAndCourseIdAndStatus(TENANT, sql.getId(), EnrollmentStatus.COMPLETED)).thenReturn(3L);
+        when(enrollmentRepository.countByTenantIdAndCourseId(TENANT, empty.getId())).thenReturn(0L);
 
         // Act
         List<CourseCompletionDto> result = analyticsService.getCourseCompletion();
@@ -113,14 +134,14 @@ public class AnalyticsServiceTest {
         assertEquals(1, result.get(1).getCompleted());
         assertEquals(33, result.get(1).getCompletionRate());
 
-        verify(enrollmentRepository, never()).countByCourseIdAndStatus(empty.getId(), EnrollmentStatus.COMPLETED);
+        verify(enrollmentRepository, never()).countByTenantIdAndCourseIdAndStatus(TENANT, empty.getId(), EnrollmentStatus.COMPLETED);
     }
 
     @Test
     void getEngagement_Last30Days_SplitsIntoWeeklyBucketsEndingToday() {
         // Arrange
-        when(enrollmentRepository.countByEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(any(), any())).thenReturn(2L);
-        when(enrollmentRepository.countByCompletedAtGreaterThanEqualAndCompletedAtLessThan(any(), any())).thenReturn(1L);
+        when(enrollmentRepository.countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(any(), any(), any())).thenReturn(2L);
+        when(enrollmentRepository.countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(any(), any(), any())).thenReturn(1L);
 
         // Act
         List<EngagementPointDto> points = analyticsService.getEngagement(EngagementPeriod.LAST_30_DAYS, TODAY);
@@ -134,9 +155,9 @@ public class AnalyticsServiceTest {
         assertEquals(1, points.get(0).getCompletions());
 
         // O primeiro bloco comeca no inicio do dia e o ultimo termina no fim de hoje (exclusivo)
-        verify(enrollmentRepository).countByEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(utc(2026, 8, 15), utc(2026, 8, 22));
-        verify(enrollmentRepository).countByEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(utc(2026, 9, 12), utc(2026, 9, 14));
-        verify(enrollmentRepository).countByCompletedAtGreaterThanEqualAndCompletedAtLessThan(utc(2026, 9, 12), utc(2026, 9, 14));
+        verify(enrollmentRepository).countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(TENANT, utc(2026, 8, 15), utc(2026, 8, 22));
+        verify(enrollmentRepository).countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(TENANT, utc(2026, 9, 12), utc(2026, 9, 14));
+        verify(enrollmentRepository).countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(TENANT, utc(2026, 9, 12), utc(2026, 9, 14));
     }
 
     @Test
@@ -147,7 +168,7 @@ public class AnalyticsServiceTest {
         // Assert
         assertEquals(13, points.size());
         assertEquals(TODAY.minusDays(89), points.get(0).getPeriodStart());
-        verify(enrollmentRepository).countByEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(utc(2026, 9, 8), utc(2026, 9, 14));
+        verify(enrollmentRepository).countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan(TENANT, utc(2026, 9, 8), utc(2026, 9, 14));
     }
 
     @Test
@@ -159,8 +180,8 @@ public class AnalyticsServiceTest {
         assertEquals(9, points.size());
         assertEquals(LocalDate.of(2026, 1, 1), points.get(0).getPeriodStart());
         assertEquals(LocalDate.of(2026, 9, 1), points.get(8).getPeriodStart());
-        verify(enrollmentRepository).countByCompletedAtGreaterThanEqualAndCompletedAtLessThan(utc(2026, 1, 1), utc(2026, 2, 1));
-        verify(enrollmentRepository).countByCompletedAtGreaterThanEqualAndCompletedAtLessThan(utc(2026, 9, 1), utc(2026, 9, 14));
+        verify(enrollmentRepository).countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(TENANT, utc(2026, 1, 1), utc(2026, 2, 1));
+        verify(enrollmentRepository).countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan(TENANT, utc(2026, 9, 1), utc(2026, 9, 14));
     }
 
     @Test
@@ -168,17 +189,53 @@ public class AnalyticsServiceTest {
         // Queries derivadas so sao validadas quando o Spring sobe com banco; o PartTree
         // faz a mesma leitura do nome do metodo contra a entidade, sem precisar de banco
         for (String method : List.of(
-                "countByStatus",
-                "countByCourseId",
-                "countByCourseIdAndStatus",
-                "countByEnrolledAtGreaterThanEqualAndEnrolledAtLessThan",
-                "countByCompletedAtGreaterThanEqualAndCompletedAtLessThan")) {
+                "countByTenantId",
+                "countByTenantIdAndStatus",
+                "countByTenantIdAndCourseId",
+                "countByTenantIdAndCourseIdAndStatus",
+                "countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan",
+                "countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan")) {
             assertDoesNotThrow(() -> new PartTree(method, Enrollment.class), method);
         }
 
         // Controle: propriedade inexistente precisa falhar, senao o teste acima nao prova nada
         org.junit.jupiter.api.Assertions.assertThrows(org.springframework.data.mapping.PropertyReferenceException.class,
                 () -> new PartTree("countByEnroledAt", Enrollment.class));
+    }
+
+    @Test
+    void getTenantKpis_UsaApenasOsDadosDaEmpresaDoUsuarioLogado() {
+        // Arrange: usuario de outra empresa
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(userDetails(OUTRA_EMPRESA), null, List.of()));
+        when(userRepository.countByTenantId(OUTRA_EMPRESA)).thenReturn(2L);
+        when(courseRepository.countByTenantId(OUTRA_EMPRESA)).thenReturn(1L);
+
+        // Act
+        KpiDto kpis = analyticsService.getTenantKpis();
+
+        // Assert: conta apenas a empresa do usuario logado, nunca o total geral
+        assertEquals(2, kpis.getTotalUsers());
+        assertEquals(1, kpis.getTotalCourses());
+        verify(userRepository, never()).count();
+        verify(courseRepository, never()).count();
+        verify(enrollmentRepository, never()).count();
+        verify(userRepository, never()).countByTenantId(TENANT);
+    }
+
+    private CustomUserDetails userDetails(UUID tenantId) {
+        Tenant tenant = new Tenant();
+        tenant.setId(tenantId);
+
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setTenant(tenant);
+        user.setEmail("gestor@empresa.com");
+        user.setName("Gestor");
+        user.setPasswordHash("hash");
+        user.setRole(Role.MANAGER);
+        user.setIsActive(true);
+        return new CustomUserDetails(user);
     }
 
     private Course course(String title) {

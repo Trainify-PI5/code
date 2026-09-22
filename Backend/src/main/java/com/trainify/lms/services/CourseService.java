@@ -46,7 +46,9 @@ public class CourseService {
     private void checkInstructorAccess(Course course) {
         CustomUserDetails currentUser = getCurrentUser();
         boolean isAdmin = currentUser.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_MANAGER"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN")
+                        || a.getAuthority().equals("ROLE_ADMIN")
+                        || a.getAuthority().equals("ROLE_MANAGER"));
         
         if (!isAdmin && !course.getInstructor().getId().equals(currentUser.getId())) {
             throw new org.springframework.security.access.AccessDeniedException("User is not the instructor of this course");

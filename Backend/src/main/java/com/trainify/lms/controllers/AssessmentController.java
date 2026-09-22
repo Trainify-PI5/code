@@ -26,7 +26,7 @@ public class AssessmentController {
     }
 
     @PostMapping("/lessons/{lessonId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<AssessmentDto> createOrUpdateAssessment(
             @PathVariable UUID lessonId,
             @Valid @RequestBody CreateAssessmentRequest request,

@@ -30,7 +30,7 @@ public class CourseController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'INSTRUCTOR')")
     public ResponseEntity<List<CourseDto>> getAllCourses(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(courseService.getAllCoursesByTenant(userDetails.getTenantId()));
     }
@@ -41,7 +41,7 @@ public class CourseController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<CourseDto> createCourse(
             @Valid @RequestBody CreateCourseRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -53,7 +53,7 @@ public class CourseController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<CourseDto> updateCourse(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateCourseRequest request
@@ -62,14 +62,14 @@ public class CourseController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Void> deleteCourse(@PathVariable UUID id) {
         courseService.deleteCourse(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/publish")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<CourseDto> publishCourse(@PathVariable UUID id) {
         return ResponseEntity.ok(courseService.publishCourse(id));
     }
@@ -86,7 +86,7 @@ public class CourseController {
     }
 
     @PostMapping("/{courseId}/modules")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ModuleDto> addModule(
             @PathVariable UUID courseId,
             @Valid @RequestBody CreateModuleRequest request

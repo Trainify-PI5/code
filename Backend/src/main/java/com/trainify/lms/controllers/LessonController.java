@@ -19,7 +19,7 @@ public class LessonController {
     private final CourseService courseService;
 
     @PutMapping("/{lessonId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<LessonDto> updateLesson(
             @PathVariable UUID lessonId,
             @Valid @RequestBody CreateLessonRequest request
@@ -28,7 +28,7 @@ public class LessonController {
     }
 
     @DeleteMapping("/{lessonId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Void> deleteLesson(@PathVariable UUID lessonId) {
         courseService.deleteLesson(lessonId);
         return ResponseEntity.noContent().build();

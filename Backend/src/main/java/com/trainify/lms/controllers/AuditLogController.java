@@ -21,7 +21,7 @@ public class AuditLogController {
     private final ActivityLogRepository repository;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<Page<ActivityLog>> getLogs(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Pageable pageable

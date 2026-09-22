@@ -148,7 +148,7 @@ export default function Home() {
         {/* Coluna Direita */}
         <div className="lg:col-span-4 space-y-6">
           {/* FIX 3: Métricas de equipe visíveis apenas para ADMIN e MANAGER */}
-          {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+          {(user?.role === "SUPER_ADMIN" || user?.role === "ADMIN" || user?.role === "MANAGER") && (
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-2 text-on-surface-variant">
