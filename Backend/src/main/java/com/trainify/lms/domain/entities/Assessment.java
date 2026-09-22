@@ -24,6 +24,9 @@ public class Assessment extends BaseEntity {
     @Column(name = "passing_score", nullable = false)
     private Integer passingScore = 70;
 
+    @Column(name = "max_attempts", nullable = false)
+    private Integer maxAttempts = 3;
+
     @OneToMany(mappedBy = "assessment", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<AssessmentQuestion> questions = new java.util.ArrayList<>();
 }

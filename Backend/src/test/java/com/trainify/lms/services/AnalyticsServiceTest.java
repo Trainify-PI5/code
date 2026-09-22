@@ -55,6 +55,9 @@ public class AnalyticsServiceTest {
     @Mock
     private EnrollmentRepository enrollmentRepository;
 
+    @Mock
+    private com.trainify.lms.repositories.AssessmentAttemptRepository attemptRepository;
+
     @InjectMocks
     private AnalyticsService analyticsService;
 

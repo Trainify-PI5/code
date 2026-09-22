@@ -66,5 +66,13 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(AssessmentAttemptsExhaustedException.class)
+    public ProblemDetail handleAssessmentAttemptsExhausted(AssessmentAttemptsExhaustedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problemDetail.setType(URI.create("urn:problem-type:assessment-attempts-exhausted"));
+        problemDetail.setTitle("Assessment Attempts Exhausted");
+        return problemDetail;
+    }
+
     // Outros handlers podem ser adicionados conforme a necessidade (ex: AccessDeniedException para 403)
 }

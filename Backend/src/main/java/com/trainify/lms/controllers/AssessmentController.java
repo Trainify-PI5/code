@@ -21,8 +21,11 @@ public class AssessmentController {
 
     @GetMapping("/lessons/{lessonId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<AssessmentDto> getAssessmentByLessonId(@PathVariable UUID lessonId) {
-        return ResponseEntity.ok(assessmentService.getAssessmentByLessonId(lessonId));
+    public ResponseEntity<AssessmentDto> getAssessmentByLessonId(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(assessmentService.getAssessmentByLessonId(lessonId, userDetails.getId()));
     }
 
     @PostMapping("/lessons/{lessonId}")
@@ -43,5 +46,12 @@ public class AssessmentController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ResponseEntity.ok(assessmentService.submitAssessment(lessonId, userDetails.getId(), request));
+    }
+
+    /** Resultados das avaliacoes de um curso, para acompanhar a turma. */
+    @GetMapping("/courses/{courseId}/results")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'INSTRUCTOR')")
+    public ResponseEntity<java.util.List<AssessmentAttemptDto>> getCourseResults(@PathVariable UUID courseId) {
+        return ResponseEntity.ok(assessmentService.getCourseResults(courseId));
     }
 }

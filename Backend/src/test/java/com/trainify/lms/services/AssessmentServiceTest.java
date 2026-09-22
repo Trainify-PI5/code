@@ -38,6 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 public class AssessmentServiceTest {
 
     @Mock
@@ -53,10 +54,19 @@ public class AssessmentServiceTest {
     private UserAssessmentAnswerRepository answerRepository;
 
     @Mock
+    private com.trainify.lms.repositories.AssessmentAttemptRepository attemptRepository;
+
+    @Mock
     private ProgressService progressService;
 
     @InjectMocks
     private AssessmentService assessmentService;
+
+    private void devolveTentativaSalva() {
+        when(attemptRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(attemptRepository.findByEnrollmentIdAndAssessmentIdOrderByAttemptNumberAsc(any(), any()))
+                .thenReturn(List.of());
+    }
 
     private UUID userId;
     private UUID lessonId;
@@ -145,6 +155,7 @@ public class AssessmentServiceTest {
     private void stubAssessmentAndEnrollment() {
         when(assessmentRepository.findByLessonId(lessonId)).thenReturn(Optional.of(assessment));
         when(enrollmentRepository.findByUserIdAndCourseId(userId, courseId)).thenReturn(Optional.of(enrollment));
+        devolveTentativaSalva();
     }
 
     private SubmitAssessmentRequest answer(AssessmentOption selected) {

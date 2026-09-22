@@ -33,6 +33,7 @@ public class AnalyticsService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final com.trainify.lms.repositories.AssessmentAttemptRepository attemptRepository;
 
     @Transactional(readOnly = true)
     public KpiDto getTenantKpis() {
@@ -46,6 +47,7 @@ public class AnalyticsService {
         long active = enrollmentRepository.countByTenantIdAndStatus(tenantId, EnrollmentStatus.IN_PROGRESS);
 
         return KpiDto.builder()
+                .averageScore(averageScore(tenantId))
                 .totalUsers(totalUsers)
                 .totalCourses(totalCourses)
                 .activeEnrollments(active)
@@ -138,6 +140,24 @@ public class AnalyticsService {
             throw new IllegalStateException("Nenhum usuario autenticado na requisicao");
         }
         return userDetails.getTenantId();
+    }
+
+    /**
+     * Media considerando a melhor nota de cada aluno em cada avaliacao: repetir a
+     * prova nao deve puxar a media da empresa para baixo. Sem tentativas devolve -1,
+     * para a tela mostrar um traco em vez de fingir que a media e zero.
+     */
+    private int averageScore(UUID tenantId) {
+        var melhores = new java.util.HashMap<String, Integer>();
+        for (var attempt : attemptRepository.findByTenantId(tenantId)) {
+            String chave = attempt.getEnrollment().getId() + ":" + attempt.getAssessment().getId();
+            melhores.merge(chave, attempt.getScore(), Math::max);
+        }
+
+        if (melhores.isEmpty()) {
+            return -1;
+        }
+        return (int) Math.round(melhores.values().stream().mapToInt(Integer::intValue).average().orElse(0));
     }
 
     private Instant startOfDay(LocalDate date) {

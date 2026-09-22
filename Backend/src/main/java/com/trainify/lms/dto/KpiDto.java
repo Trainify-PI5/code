@@ -10,4 +10,7 @@ public class KpiDto {
     private long totalCourses;
     private long activeEnrollments;
     private long completedEnrollments;
+
+    // Media da melhor nota de cada aluno nas avaliacoes da empresa; -1 sem tentativas
+    private int averageScore;
 }

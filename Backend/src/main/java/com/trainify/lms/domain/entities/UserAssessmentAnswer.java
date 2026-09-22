@@ -28,6 +28,10 @@ public class UserAssessmentAnswer extends BaseEntity {
     @JoinColumn(name = "selected_option_id")
     private AssessmentOption selectedOption;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "attempt_id")
+    private AssessmentAttempt attempt;
+
     @Column(name = "is_correct", nullable = false)
     private Boolean isCorrect;
 

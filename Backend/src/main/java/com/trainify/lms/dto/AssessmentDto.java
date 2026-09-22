@@ -9,6 +9,14 @@ public class AssessmentDto {
     private UUID id;
     private String title;
     private Integer passingScore;
+    private Integer maxAttempts;
+
+    // Situacao do aluno nesta avaliacao
+    private int attemptsUsed;
+    private int attemptsRemaining;
+    private boolean alreadyPassed;
+    private Integer bestScore;
+
     private List<QuestionDto> questions;
 
     @Data

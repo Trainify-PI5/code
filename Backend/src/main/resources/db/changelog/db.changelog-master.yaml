@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/06-fix-roles-constraint.sql
   - include:
       file: db/changelog/07-add-password-reset.sql
+  - include:
+      file: db/changelog/08-assessment-attempts.sql
