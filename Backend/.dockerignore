@@ -1,0 +1,8 @@
+target
+.mvn
+mvnw
+mvnw.cmd
+*.md
+Test*.java
+.env
+.env.*
