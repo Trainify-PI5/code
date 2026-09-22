@@ -6,7 +6,9 @@ const BASE_URL = API_BASE_URL;
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  // O backend no plano gratuito do Render hiberna e leva ate ~4 minutos para
+  // acordar. Com um tempo curto o site mostrava "nao foi possivel conectar".
+  timeout: 240000,
   headers: {
     'Content-Type': 'application/json',
   },

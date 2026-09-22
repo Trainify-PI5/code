@@ -1,0 +1,15 @@
+name: Mantem a API acordada
+
+# O plano gratuito do Render hiberna o servico apos 15 minutos sem uso, e
+# acordar leva cerca de 4 minutos. Este ping a cada 10 minutos evita isso.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chama o endpoint de health
+        run: curl -sS -m 300 -o /dev/null -w "HTTP %{http_code} em %{time_total}s\n" https://trainify-api-p2ka.onrender.com/api/v1/health
