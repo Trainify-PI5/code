@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
+import { Badge, Button, Card, Input } from '../components/ui';
 
 interface User {
   id: string;
@@ -124,28 +125,25 @@ export const Users: React.FC = () => {
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Gestão de Usuários</h1>
-          <p className="text-slate-500 mt-2">Administre os acessos e permissões da plataforma.</p>
+          <h1 className="text-3xl font-display font-bold text-on-surface">Gestão de Usuários</h1>
+          <p className="text-on-surface-variant mt-2">Administre os acessos e permissões da plataforma.</p>
         </div>
-        <button 
-          onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-container text-white rounded-lg hover:opacity-90 transition-colors"
-        >
+        <Button onClick={openCreateModal}>
           <Plus className="w-4 h-4" />
           <span>Novo Usuário</span>
-        </button>
+        </Button>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center gap-4 bg-slate-50 dark:bg-slate-800/50">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar por nome ou email..." 
+      <Card padding="none" className="overflow-hidden">
+        <div className="p-4 border-b border-outline-variant bg-surface-container-low">
+          <div className="max-w-md">
+            <Input
+              type="text"
+              placeholder="Buscar por nome ou email..."
+              aria-label="Buscar usuários"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white"
+              icon={<Search className="w-4 h-4" />}
             />
           </div>
         </div>
@@ -153,17 +151,17 @@ export const Users: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm font-medium">
+              <tr className="bg-surface-container-low border-b border-outline-variant text-on-surface-variant text-sm font-medium">
                 <th className="p-4">Usuário</th>
                 <th className="p-4">Função</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+            <tbody className="divide-y divide-outline-variant">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-500">
+                  <td colSpan={4} className="p-8 text-center text-on-surface-variant">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                       Carregando usuários...
@@ -172,16 +170,16 @@ export const Users: React.FC = () => {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-500">
+                  <td colSpan={4} className="p-8 text-center text-on-surface-variant">
                     Nenhum usuário encontrado.
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <tr key={user.id} className="hover:bg-surface-container-low transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <div className="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold overflow-hidden border border-outline-variant">
                           {user.avatar ? (
                             <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                           ) : (
@@ -189,47 +187,43 @@ export const Users: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                          <p className="text-sm text-slate-500">{user.email}</p>
+                          <p className="font-medium text-on-surface">{user.name}</p>
+                          <p className="text-sm text-on-surface-variant">{user.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         {getRoleIcon(user.role)}
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <span className="text-sm font-medium text-on-surface-variant">
                           {user.role}
                         </span>
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.isActive 
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        {user.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
+                      <Badge tone={user.isActive ? "success" : "neutral"}>
+                        {user.isActive ? "Ativo" : "Inativo"}
+                      </Badge>
                     </td>
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleToggleStatus(user)}
-                          className="p-2 text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="p-2 text-on-surface-variant hover:text-green-600 dark:hover:text-green-400 transition-colors rounded-lg hover:bg-surface-container"
                           title={user.isActive ? "Desativar usuário" : "Ativar usuário"}
                         >
                           {user.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                         </button>
-                        <button 
+                        <button
                           onClick={() => openEditModal(user)}
-                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container"
                           title="Editar"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteUser(user.id)}
-                          className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="p-2 text-on-surface-variant hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-surface-container"
                           title="Excluir"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -242,58 +236,58 @@ export const Users: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                {isEditMode ? 'Editar Usuário' : 'Criar Novo Usuário'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <Card
+            padding="none"
+            className="w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-6 border-b border-outline-variant">
+              <h2 className="text-xl font-display font-bold text-on-surface">
+                {isEditMode ? "Editar Usuário" : "Criar Novo Usuário"}
               </h2>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome Completo</label>
-                <input 
-                  type="text" 
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
-                <input 
-                  type="email" 
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                />
-              </div>
-              
+              <Input
+                label="Nome Completo"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Input
+                label="Email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
               {!isEditMode && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Senha Inicial</label>
-                  <input 
-                    type="password" 
-                    required={!isEditMode}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                  />
-                </div>
+                <Input
+                  label="Senha Inicial"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Função (Role)</label>
-                <select 
+              <div className="space-y-2">
+                <label
+                  htmlFor="user-role"
+                  className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+                >
+                  Função (Role)
+                </label>
+                <select
+                  id="user-role"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary"
                 >
                   <option value="STUDENT">Aluno (Student)</option>
                   <option value="INSTRUCTOR">Instrutor (Instructor)</option>
@@ -304,36 +298,29 @@ export const Users: React.FC = () => {
 
               {isEditMode && (
                 <div className="flex items-center gap-2 pt-2">
-                  <input 
+                  <input
                     type="checkbox"
                     id="isActive"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
                     className="w-4 h-4 rounded text-primary focus:ring-primary"
                   />
-                  <label htmlFor="isActive" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="isActive" className="text-sm font-medium text-on-surface-variant">
                     Usuário Ativo
                   </label>
                 </div>
               )}
 
               <div className="pt-4 flex justify-end gap-3">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
+                <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
                   Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 rounded-lg font-medium bg-primary-container text-white hover:opacity-90 transition-colors"
-                >
-                  {isEditMode ? 'Salvar Alterações' : 'Criar Usuário'}
-                </button>
+                </Button>
+                <Button type="submit">
+                  {isEditMode ? "Salvar Alterações" : "Criar Usuário"}
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>
@@ -341,4 +328,3 @@ export const Users: React.FC = () => {
 };
 
 export default Users;
-
