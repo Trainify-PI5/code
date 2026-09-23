@@ -215,15 +215,15 @@ export const CourseBuilder: React.FC = () => {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-24">
-      <div className="flex justify-between items-center bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-on-surface flex items-center gap-3">
-            <BookOpen className="text-primary w-8 h-8" /> 
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-display font-bold tracking-tight text-on-surface flex items-center gap-3">
+            <BookOpen className="text-primary w-8 h-8 shrink-0" />
             {id ? 'Editar Curso' : 'Construtor de Curso'}
           </h1>
           <p className="text-on-surface-variant mt-2">Crie ou edite a estrutura do seu curso.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 sm:shrink-0">
           <Button
             variant="secondary"
             disabled={loading}

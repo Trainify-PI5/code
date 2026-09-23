@@ -7,7 +7,7 @@ describe("Button", () => {
   it("usa a variante primária e o tamanho médio por padrão", () => {
     render(<Button>Salvar</Button>);
     const btn = screen.getByRole("button", { name: "Salvar" });
-    expect(btn).toHaveClass("bg-primary-container", "text-white", "px-4", "py-2.5");
+    expect(btn).toHaveClass("bg-primary-container", "text-white", "px-4", "py-2");
   });
 
   it('nasce com type="button" para não submeter formulários sem querer', () => {

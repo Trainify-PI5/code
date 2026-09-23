@@ -18,13 +18,13 @@ export default function AuditLogs() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto">
+    <div className="w-full min-w-0 space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 border-b border-outline-variant pb-6">
-        <div className="space-y-1 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center text-primary shadow-sm">
+        <div className="space-y-1 flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 shrink-0 rounded-xl bg-primary-container flex items-center justify-center text-primary shadow-sm">
              <Activity className="w-6 h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
              <h1 className="text-3xl font-display font-bold text-on-surface">
                Logs de Auditoria
              </h1>

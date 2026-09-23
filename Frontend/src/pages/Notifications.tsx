@@ -34,14 +34,14 @@ export default function Notifications() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-end border-b border-outline-variant pb-6">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end border-b border-outline-variant pb-6">
+        <div className="min-w-0">
           <h1 className="text-3xl font-display font-bold text-on-surface">
             {t("notif.title")}
           </h1>
           <p className="text-on-surface-variant">{t("notif.subtitle")}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 shrink-0">
           <button className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-all px-3 py-2 rounded-lg hover:bg-surface-container uppercase tracking-widest">
             <CheckCircle className="w-4 h-4" /> {t("notif.markAllRead")}
           </button>

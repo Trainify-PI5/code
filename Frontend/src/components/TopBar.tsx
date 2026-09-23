@@ -101,7 +101,7 @@ export default function TopBar({
           </div>
 
           {/* Centro (Busca) */}
-          <div className="hidden md:flex justify-center flex-1 max-w-2xl px-4">
+          <div className="hidden md:flex justify-center flex-1 min-w-0 max-w-2xl px-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-4 h-4" />
               <input
@@ -113,7 +113,7 @@ export default function TopBar({
           </div>
 
           {/* Lado Direito */}
-          <div className="flex items-center justify-end gap-1 sm:gap-2 w-auto md:w-1/3 shrink-0 ml-auto">
+          <div className="flex items-center justify-end gap-1 sm:gap-2 w-auto shrink-0 ml-auto">
             {/* Botão de busca mobile */}
             <button
               onClick={() => setSearchOpen(true)}
