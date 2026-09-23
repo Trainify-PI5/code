@@ -129,7 +129,7 @@ export const Users: React.FC = () => {
         </div>
         <button 
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-container text-white rounded-lg hover:opacity-90 transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Novo Usuário</span>
@@ -145,7 +145,7 @@ export const Users: React.FC = () => {
               placeholder="Buscar por nome ou email..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-slate-900 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white"
             />
           </div>
         </div>
@@ -165,7 +165,7 @@ export const Users: React.FC = () => {
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-slate-500">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                       Carregando usuários...
                     </div>
                   </td>
@@ -181,7 +181,7 @@ export const Users: React.FC = () => {
                   <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <div className="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold overflow-hidden border border-slate-200 dark:border-slate-700">
                           {user.avatar ? (
                             <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                           ) : (
@@ -222,7 +222,7 @@ export const Users: React.FC = () => {
                         </button>
                         <button 
                           onClick={() => openEditModal(user)}
-                          className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                           title="Editar"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -261,7 +261,7 @@ export const Users: React.FC = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 />
               </div>
               <div>
@@ -271,7 +271,7 @@ export const Users: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 />
               </div>
               
@@ -283,7 +283,7 @@ export const Users: React.FC = () => {
                     required={!isEditMode}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   />
                 </div>
               )}
@@ -293,7 +293,7 @@ export const Users: React.FC = () => {
                 <select 
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 >
                   <option value="STUDENT">Aluno (Student)</option>
                   <option value="INSTRUCTOR">Instrutor (Instructor)</option>
@@ -309,7 +309,7 @@ export const Users: React.FC = () => {
                     id="isActive"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded text-primary focus:ring-primary"
                   />
                   <label htmlFor="isActive" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Usuário Ativo
@@ -327,7 +327,7 @@ export const Users: React.FC = () => {
                 </button>
                 <button 
                   type="submit"
-                  className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 rounded-lg font-medium bg-primary-container text-white hover:opacity-90 transition-colors"
                 >
                   {isEditMode ? 'Salvar Alterações' : 'Criar Usuário'}
                 </button>

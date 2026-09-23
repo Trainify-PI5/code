@@ -62,10 +62,10 @@ export default function Home() {
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 relative overflow-hidden flex flex-col justify-between min-h-[280px] shadow-sm">
             <div className="absolute right-0 top-0 w-64 h-64 bg-primary-fixed rounded-full blur-3xl opacity-40 -translate-y-1/2 translate-x-1/3"></div>
             <div className="relative z-10 space-y-2">
-              <h2 className="text-3xl font-display font-bold text-on-surface">
+              <h1 className="text-3xl font-display font-bold text-on-surface">
                 {t("home.welcomePrefix")}{" "}
                 {user?.name?.split(" ")[0] || "Usuário"}
-              </h2>
+              </h1>
               <p className="text-lg text-on-surface-variant max-w-xl">
                 {t("home.subtitle")}
               </p>

@@ -183,7 +183,7 @@ export default function Courses() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-outline-variant pb-8">
         <div className="space-y-2">
-          <h2 className="text-3xl font-display font-bold text-on-surface">{t("courses.title")}</h2>
+          <h1 className="text-3xl font-display font-bold text-on-surface">{t("courses.title")}</h1>
           <p className="text-on-surface-variant max-w-xl">{t("courses.subtitle")}</p>
         </div>
 

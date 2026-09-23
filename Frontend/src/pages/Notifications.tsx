@@ -45,7 +45,7 @@ export default function Notifications() {
           <button className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-all px-3 py-2 rounded-lg hover:bg-surface-container uppercase tracking-widest">
             <CheckCircle className="w-4 h-4" /> {t("notif.markAllRead")}
           </button>
-          <button className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-red-500 transition-all px-3 py-2 rounded-lg hover:bg-red-50 uppercase tracking-widest">
+          <button className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-red-500 transition-all px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 uppercase tracking-widest">
             <Trash2 className="w-4 h-4" /> {t("notif.clearAll")}
           </button>
         </div>
@@ -66,9 +66,9 @@ export default function Notifications() {
               className={cn(
                 "w-12 h-12 rounded-full flex items-center justify-center shrink-0 border",
                 notif.type === "success"
-                  ? "bg-green-50 border-green-100 text-green-600"
+                  ? "bg-green-50 border-green-100 text-green-600 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-400"
                   : notif.type === "info"
-                    ? "bg-blue-50 border-blue-100 text-blue-600"
+                    ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400"
                     : "bg-primary-fixed border-outline-variant text-primary",
               )}
             >
