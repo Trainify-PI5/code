@@ -7,6 +7,8 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   icon?: ReactNode;
   /** Mensagem de erro: destaca a borda e e anunciada por leitores de tela. */
   error?: string;
+  /** Classe do wrapper — util quando o campo entra numa linha flex. */
+  wrapperClassName?: string;
 }
 
 export default function Input({
@@ -15,6 +17,7 @@ export default function Input({
   error,
   id,
   className,
+  wrapperClassName,
   ...props
 }: InputProps) {
   // useId garante o vinculo label/input mesmo sem id explicito — sem isso o
@@ -24,7 +27,7 @@ export default function Input({
   const erroId = `${inputId}-erro`;
 
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", wrapperClassName)}>
       {label && (
         <label
           htmlFor={inputId}

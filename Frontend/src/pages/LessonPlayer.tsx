@@ -5,6 +5,7 @@ import api from '../services/api';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
+import { Button, Input } from '../components/ui';
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   VIDEO: 'Vídeo',
@@ -191,18 +192,18 @@ export default function LessonPlayer() {
     && (activeLesson?.lessonType === 'ARTICLE' || activeLesson?.lessonType === 'DOCUMENT');
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-800">
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant">
 
       {/* Cabeçalho do Player */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-outline-variant bg-surface-container-low shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
+            className="p-2 hover:bg-surface-container rounded-full transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            <ArrowLeft className="w-5 h-5 text-on-surface-variant" />
           </button>
-          <h1 className="font-semibold text-slate-800 dark:text-slate-100">
+          <h1 className="font-semibold text-on-surface">
             {course.title}
           </h1>
         </div>
@@ -211,7 +212,7 @@ export default function LessonPlayer() {
           <button
             onClick={() => setShowChat(!showChat)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              showChat ? 'bg-primary text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+              showChat ? 'bg-primary-container text-white' : 'bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface-variant'
             }`}
           >
             <MessageSquare className="w-4 h-4" />
@@ -240,7 +241,7 @@ export default function LessonPlayer() {
                      </div>
                   </div>
                 ) : activeLesson.lessonType === 'DOCUMENT' && mediaUrl ? (
-                  <div className="w-full h-[600px] shrink-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <div className="w-full h-[600px] shrink-0 bg-surface-container border-b border-outline-variant">
                      <iframe
                         src={mediaUrl.includes('docs.google.com') ? `${mediaUrl}?embedded=true` : mediaUrl}
                         className="w-full h-full border-none"
@@ -249,69 +250,69 @@ export default function LessonPlayer() {
                      />
                   </div>
                 ) : activeLesson.lessonType === 'QUIZ' ? (
-                  <div className="w-full shrink-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center py-24">
-                     <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6">
+                  <div className="w-full shrink-0 bg-surface-container border-b border-outline-variant flex flex-col items-center justify-center py-24">
+                     <div className="w-20 h-20 bg-primary-fixed text-primary rounded-full flex items-center justify-center mb-6">
                         <CheckCircle2 className="w-10 h-10" />
                      </div>
                      <h3 className="text-2xl font-bold mb-2">Avaliação de Conhecimento</h3>
-                     <p className="text-slate-500 mb-8 max-w-md text-center">Responda a este questionário para testar seus conhecimentos e pontuar no curso.</p>
-                     <button onClick={() => navigate(`/lessons/${activeLesson.id}/assessment`)} className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity">
+                     <p className="text-on-surface-variant mb-8 max-w-md text-center">Responda a este questionário para testar seus conhecimentos e pontuar no curso.</p>
+                     <Button size="lg" onClick={() => navigate(`/lessons/${activeLesson.id}/assessment`)}>
                         Iniciar Avaliação
-                     </button>
+                     </Button>
                   </div>
                 ) : null}
 
                 <div className="p-8 max-w-5xl mx-auto w-full flex-1">
-                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                   <h2 className="text-2xl font-bold text-on-surface mb-4">
                      {activeLesson.title}
                    </h2>
-                   <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300">
+                   <div className="prose dark:prose-invert max-w-none text-on-surface-variant">
                      {activeLesson.content || 'Nenhuma descrição fornecida para esta aula.'}
                    </div>
                    {canMarkAsCompleted && (
-                     <button
+                     <Button
+                       className="mt-8"
                        onClick={handleMarkAsCompleted}
                        disabled={activeCompleted || completing}
-                       className="mt-8 flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
                      >
                        <CheckCircle2 className="w-4 h-4" />
                        {activeCompleted ? 'Aula concluída' : completing ? 'Salvando...' : 'Marcar como concluída'}
-                     </button>
+                     </Button>
                    )}
                 </div>
              </>
            ) : (
-             <div className="flex items-center justify-center h-full text-slate-500">
+             <div className="flex items-center justify-center h-full text-on-surface-variant">
                 Selecione uma aula no menu lateral.
              </div>
            )}
 
            {/* Gaveta do Assistente IA */}
            {showChat && (
-              <div className="absolute top-0 right-0 h-full w-96 bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col z-10 animate-in slide-in-from-right-8 duration-300">
-                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <div className="absolute top-0 right-0 h-full w-96 bg-surface-container-lowest shadow-2xl border-l border-outline-variant flex flex-col z-10 animate-in slide-in-from-right-8 duration-300">
+                 <div className="p-4 border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+                    <h3 className="font-semibold text-on-surface flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-primary" />
                       Assistente do Curso
                     </h3>
-                    <button onClick={() => setShowChat(false)} className="text-slate-400 hover:text-slate-600">×</button>
+                    <button onClick={() => setShowChat(false)} className="text-on-surface-variant hover:text-on-surface">×</button>
                  </div>
                  <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
                     {/* Aqui renderizaríamos as mensagens. Para simplificar, vou usar um state local ou conectar ao endpoint diretamente. */}
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-sm text-slate-700 dark:text-slate-300 max-w-[85%]">
+                    <div className="bg-surface-container p-3 rounded-xl text-sm text-on-surface-variant max-w-[85%]">
                        Olá! Estou aqui para ajudar com qualquer dúvida sobre "{course.title}". O que você gostaria de saber?
                     </div>
                  </div>
-                 <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                 <div className="p-4 border-t border-outline-variant bg-surface-container-low">
                     <div className="flex gap-2">
-                       <input
+                       <Input
                          type="text"
+                         aria-label="Pergunta para o assistente"
                          placeholder="Faça uma pergunta..."
-                         className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                         className="py-2"
+                         wrapperClassName="flex-1"
                        />
-                       <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-                         Enviar
-                       </button>
+                       <Button>Enviar</Button>
                     </div>
                  </div>
               </div>
@@ -319,16 +320,16 @@ export default function LessonPlayer() {
         </div>
 
         {/* Barra Lateral de Aulas */}
-        <div className="w-80 shrink-0 border-l border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 overflow-y-auto hidden lg:block">
-           <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-semibold text-slate-800 dark:text-slate-200">Conteúdo do Curso</h3>
-              <p className="text-xs text-slate-500 mt-1">{progressPercentage}% concluído</p>
+        <div className="w-80 shrink-0 border-l border-outline-variant bg-surface-container-low overflow-y-auto hidden lg:block">
+           <div className="p-4 border-b border-outline-variant">
+              <h3 className="font-semibold text-on-surface">Conteúdo do Curso</h3>
+              <p className="text-xs text-on-surface-variant mt-1">{progressPercentage}% concluído</p>
            </div>
 
            <div className="p-2 flex flex-col gap-4 mt-2">
               {course.modules?.map((mod: any) => (
                 <div key={mod.id}>
-                   <h4 className="px-2 mb-2 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                   <h4 className="px-2 mb-2 text-sm font-bold text-on-surface-variant uppercase tracking-wider">
                      {mod.title}
                    </h4>
                    <div className="flex flex-col gap-1">
@@ -345,10 +346,10 @@ export default function LessonPlayer() {
                              title={locked ? 'Conclua a aula anterior para liberar' : undefined}
                              className={`flex items-start gap-3 p-3 text-left rounded-lg transition-colors ${
                                locked
-                                 ? 'opacity-50 cursor-not-allowed text-slate-400 dark:text-slate-500'
+                                 ? 'opacity-50 cursor-not-allowed text-outline-variant'
                                  : activeLesson?.id === lesson.id
-                                   ? 'bg-primary/10 text-primary dark:bg-primary/20'
-                                   : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400'
+                                   ? 'bg-primary-fixed text-primary'
+                                   : 'hover:bg-surface-container-low text-on-surface-variant'
                              }`}
                            >
                               <div className="shrink-0 mt-0.5">

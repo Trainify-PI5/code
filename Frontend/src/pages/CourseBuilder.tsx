@@ -4,6 +4,7 @@ import { UploadMedia } from '../components/UploadMedia';
 import AssessmentBuilder from '../components/Course/AssessmentBuilder';
 import api from '../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Alert, Button } from '../components/ui';
 
 interface Lesson {
   id?: string;
@@ -214,80 +215,70 @@ export const CourseBuilder: React.FC = () => {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-24">
-      <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="flex justify-between items-center bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-on-surface flex items-center gap-3">
             <BookOpen className="text-primary w-8 h-8" /> 
             {id ? 'Editar Curso' : 'Construtor de Curso'}
           </h1>
-          <p className="text-slate-500 mt-2">Crie ou edite a estrutura do seu curso.</p>
+          <p className="text-on-surface-variant mt-2">Crie ou edite a estrutura do seu curso.</p>
         </div>
         <div className="flex gap-3">
-          <button 
+          <Button
+            variant="secondary"
             disabled={loading}
             onClick={() => saveCourse(false)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 rounded-lg transition-colors font-medium disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             Salvar Rascunho
-          </button>
-          <button 
-            disabled={loading}
-            onClick={() => saveCourse(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-lg transition-colors font-medium shadow-md shadow-primary/20 disabled:opacity-50"
-          >
+          </Button>
+          <Button disabled={loading} onClick={() => saveCourse(true)}>
             <Send className="w-4 h-4" />
             Publicar Curso
-          </button>
+          </Button>
         </div>
       </div>
 
       {message && (
-        <div
-          className={
-            message.type === 'ok'
-              ? 'rounded-xl border border-green-200 bg-green-50 text-green-700 px-4 py-3 text-sm'
-              : 'rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm'
-          }
-        >
+        <Alert tone={message.type === 'ok' ? 'success' : 'error'}>
           {message.text}
-        </div>
+        </Alert>
       )}
 
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2">1. Informações Básicas</h2>
+      <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant space-y-4">
+        <h2 className="text-xl font-bold text-on-surface border-b border-outline-variant pb-2">1. Informações Básicas</h2>
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Título do Curso</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">Título do Curso</label>
           <input 
             type="text" 
             value={courseTitle}
             onChange={(e) => setCourseTitle(e.target.value)}
             placeholder="Ex: Introdução à Programação"
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+            className="w-full px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descrição</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-1">Descrição</label>
           <textarea 
             value={courseDesc}
             onChange={(e) => setCourseDesc(e.target.value)}
             placeholder="O que os alunos vão aprender..."
             rows={3}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
+            className="w-full px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
           />
         </div>
       </div>
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
             <Layers className="w-5 h-5" />
             2. Estrutura do Curso (Módulos)
           </h2>
         </div>
 
         {modules.map((mod, modIdx) => (
-          <div key={modIdx} className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-200 dark:border-slate-700 animate-in slide-in-from-bottom-2 duration-300">
+          <div key={modIdx} className="bg-surface-container-low p-6 rounded-xl border border-outline-variant animate-in slide-in-from-bottom-2 duration-300">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1 mr-4">
                 <input 
@@ -295,7 +286,7 @@ export const CourseBuilder: React.FC = () => {
                   value={mod.title}
                   onChange={(e) => handleModuleChange(modIdx, 'title', e.target.value)}
                   placeholder={`Módulo ${modIdx + 1}: Título do Módulo`}
-                  className="w-full text-lg font-bold px-3 py-2 bg-transparent border-b-2 border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-primary focus:bg-white dark:focus:bg-slate-900 outline-none transition-all rounded-t-md text-slate-900 dark:text-white"
+                  className="w-full text-lg font-bold px-3 py-2 bg-transparent border-b-2 border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-container-lowest outline-none transition-all rounded-t-md text-on-surface"
                 />
               </div>
               <button onClick={() => handleRemoveModule(modIdx)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 p-2 rounded-lg transition-colors">
@@ -303,10 +294,10 @@ export const CourseBuilder: React.FC = () => {
               </button>
             </div>
 
-            <div className="pl-4 border-l-2 border-slate-200 dark:border-slate-700 space-y-4">
+            <div className="pl-4 border-l-2 border-outline-variant space-y-4">
               {mod.lessons.map((less, lessIdx) => (
-                <div key={lessIdx} className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700 flex gap-4 animate-in slide-in-from-bottom-2 duration-300">
-                  <div className="mt-2 text-slate-400">
+                <div key={lessIdx} className="bg-surface-container-lowest p-4 rounded-lg border border-outline-variant flex gap-4 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="mt-2 text-on-surface-variant">
                     {less.lessonType === 'VIDEO' ? <Video className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
                   </div>
                   <div className="flex-1 space-y-3">
@@ -314,7 +305,7 @@ export const CourseBuilder: React.FC = () => {
                       <select 
                         value={less.lessonType}
                         onChange={(e) => handleLessonChange(modIdx, lessIdx, 'lessonType', e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-sm font-medium outline-none text-slate-900 dark:text-white"
+                        className="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-low text-sm font-medium outline-none text-on-surface"
                       >
                         <option value="VIDEO">Vídeo</option>
                         <option value="DOCUMENT">Documento (Docs/PDF)</option>
@@ -326,7 +317,7 @@ export const CourseBuilder: React.FC = () => {
                         value={less.title}
                         onChange={(e) => handleLessonChange(modIdx, lessIdx, 'title', e.target.value)}
                         placeholder="Título da Lição"
-                        className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50"
+                        className="flex-1 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface outline-none focus:ring-2 focus:ring-primary/50"
                       />
                       <button onClick={() => handleRemoveLesson(modIdx, lessIdx)} className="text-red-400 hover:text-red-500 p-1.5 rounded-lg">
                         <Trash2 className="w-4 h-4" />
@@ -335,14 +326,14 @@ export const CourseBuilder: React.FC = () => {
                     
                     {less.lessonType === 'VIDEO' ? (
                       <div className="pt-2 space-y-3">
-                        <label className="block text-xs font-medium text-slate-500">Mídia do Vídeo</label>
+                        <label className="block text-xs font-medium text-on-surface-variant">Mídia do Vídeo</label>
                         
                         <div className="flex gap-4 mb-2">
-                           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                           <label className="flex items-center gap-2 text-sm text-on-surface-variant">
                              <input type="radio" checked={less.provider !== 'YOUTUBE'} onChange={() => { handleLessonChange(modIdx, lessIdx, 'provider', 'S3'); handleLessonChange(modIdx, lessIdx, 'externalUrl', ''); handleLessonChange(modIdx, lessIdx, 'videoAssetId', ''); }} />
                              Fazer Upload
                            </label>
-                           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                           <label className="flex items-center gap-2 text-sm text-on-surface-variant">
                              <input type="radio" checked={less.provider === 'YOUTUBE'} onChange={() => { handleLessonChange(modIdx, lessIdx, 'provider', 'YOUTUBE'); handleLessonChange(modIdx, lessIdx, 'videoAssetId', ''); }} />
                              Link do YouTube
                            </label>
@@ -359,7 +350,7 @@ export const CourseBuilder: React.FC = () => {
                              value={less.externalUrl || ''}
                              onChange={(e) => handleLessonChange(modIdx, lessIdx, 'externalUrl', e.target.value)}
                              placeholder="Ex: https://www.youtube.com/watch?v=..."
-                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                             className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                            />
                         ) : (
                           <UploadMedia onUploadComplete={(id) => handleLessonChange(modIdx, lessIdx, 'videoAssetId', id)} />
@@ -367,14 +358,14 @@ export const CourseBuilder: React.FC = () => {
                       </div>
                     ) : less.lessonType === 'DOCUMENT' ? (
                       <div className="pt-2 space-y-3">
-                        <label className="block text-xs font-medium text-slate-500">Documento</label>
+                        <label className="block text-xs font-medium text-on-surface-variant">Documento</label>
 
                         <div className="flex gap-4 mb-2">
-                           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                           <label className="flex items-center gap-2 text-sm text-on-surface-variant">
                              <input type="radio" checked={less.provider !== 'GOOGLE_DOCS'} onChange={() => { handleLessonChange(modIdx, lessIdx, 'provider', 'S3'); handleLessonChange(modIdx, lessIdx, 'externalUrl', ''); }} />
                              Enviar arquivo (PDF)
                            </label>
-                           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                           <label className="flex items-center gap-2 text-sm text-on-surface-variant">
                              <input type="radio" checked={less.provider === 'GOOGLE_DOCS'} onChange={() => { handleLessonChange(modIdx, lessIdx, 'provider', 'GOOGLE_DOCS'); handleLessonChange(modIdx, lessIdx, 'videoAssetId', ''); }} />
                              Link do Google Docs
                            </label>
@@ -386,7 +377,7 @@ export const CourseBuilder: React.FC = () => {
                              value={less.externalUrl || ''}
                              onChange={(e) => handleLessonChange(modIdx, lessIdx, 'externalUrl', e.target.value)}
                              placeholder="Ex: https://docs.google.com/document/d/..."
-                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                             className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                            />
                         ) : less.videoAssetId ? (
                            <div className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-500/20 px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2">
@@ -423,13 +414,13 @@ export const CourseBuilder: React.FC = () => {
                       </div>
                     ) : (
                       <div className="pt-2">
-                        <label className="block text-xs font-medium text-slate-500 mb-2">Conteúdo (Texto)</label>
+                        <label className="block text-xs font-medium text-on-surface-variant mb-2">Conteúdo (Texto)</label>
                         <textarea 
                           value={less.description}
                           onChange={(e) => handleLessonChange(modIdx, lessIdx, 'description', e.target.value)}
                           placeholder="Digite o conteúdo da lição..."
                           rows={3}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 resize-none text-sm"
+                          className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface outline-none focus:ring-2 focus:ring-primary/50 resize-none text-sm"
                         />
                       </div>
                     )}
@@ -439,7 +430,7 @@ export const CourseBuilder: React.FC = () => {
               
               <button 
                 onClick={() => handleAddLesson(modIdx)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary-fixed rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" /> Adicionar Lição
               </button>
@@ -449,7 +440,7 @@ export const CourseBuilder: React.FC = () => {
 
         <button 
           onClick={handleAddModule}
-          className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl text-slate-500 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2"
+          className="w-full py-4 border-2 border-dashed border-outline-variant rounded-xl text-on-surface-variant hover:text-primary hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2"
         >
           <Plus className="w-6 h-6" />
           <span className="font-medium">Adicionar Novo Módulo</span>
