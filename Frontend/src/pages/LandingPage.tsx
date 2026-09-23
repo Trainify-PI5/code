@@ -90,14 +90,14 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
       role: "Diretor de T&D · Ambev",
       text: "A IA do Trainify economiza horas da equipe gerando quizzes e sugerindo trilhas personalizadas. É uma virada de chave no setor.",
       avatar: "RM",
-      color: "bg-blue-100 text-blue-700",
+      color: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
     },
     {
       name: "Juliana Costa",
       role: "CHRO · iFood",
       text: "Implementamos em 3 dias. A plataforma é intuitiva para instrutores e alunos, e o suporte é excepcional. Recomendo sem hesitar.",
       avatar: "JC",
-      color: "bg-green-100 text-green-700",
+      color: "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-300",
     },
   ];
 

@@ -196,7 +196,7 @@ export default function CourseContent({
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border",
                     lesson.completed
-                      ? "bg-green-50 border-green-100 text-green-600"
+                      ? "bg-green-50 border-green-100 text-green-600 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-400"
                       : activeLesson.id === lesson.id
                         ? "bg-primary-container text-white"
                         : "bg-surface-container-lowest border-outline-variant text-on-surface-variant",

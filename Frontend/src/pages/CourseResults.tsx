@@ -122,7 +122,7 @@ export default function CourseResults() {
       )}
 
       {error && !loading && (
-        <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">{error}</div>
       )}
 
       {!loading && !error && rows.length === 0 && (
@@ -184,11 +184,11 @@ export default function CourseResults() {
                     </td>
                     <td className="px-6 py-4">
                       {row.passed ? (
-                        <span className="inline-flex items-center gap-1.5 text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full text-xs font-bold">
+                        <span className="inline-flex items-center gap-1.5 text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full text-xs font-bold dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Aprovado
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full text-xs font-bold">
+                        <span className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full text-xs font-bold dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400">
                           <XCircle className="w-3.5 h-3.5" /> Reprovado
                         </span>
                       )}

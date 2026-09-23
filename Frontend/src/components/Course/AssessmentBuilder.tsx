@@ -170,14 +170,14 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm flex items-start gap-2">
+        <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm flex items-start gap-2 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           {error}
         </div>
       )}
 
       {saved && (
-        <div className="rounded-lg border border-green-200 bg-green-50 text-green-700 px-4 py-3 text-sm flex items-center gap-2">
+        <div className="rounded-lg border border-green-200 bg-green-50 text-green-700 px-4 py-3 text-sm flex items-center gap-2 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           Avaliação salva.
         </div>

@@ -85,7 +85,7 @@ export default function Certifications() {
           </div>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-700">
+          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-700 dark:bg-green-500/10 dark:text-green-300">
             <Star className="w-6 h-6" />
           </div>
           <div>

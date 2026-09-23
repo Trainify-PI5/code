@@ -132,7 +132,7 @@ export default function Analytics() {
       label: t("analytics.completedEnrollments"),
       value: kpis ? kpis.completedEnrollments.toString() : "—",
       icon: ShieldCheck,
-      bgColor: "bg-green-100",
+      bgColor: "bg-green-100 dark:bg-green-500/10",
       iconColor: "text-green-700",
     },
   ];
@@ -176,7 +176,7 @@ export default function Analytics() {
                  progress: prog,
                  score: enrollment.score ? enrollment.score + "%" : "--",
                  status: enrollment.status === 'COMPLETED' ? t("analytics.statusCompleted") : (prog > 0 ? t("analytics.statusInProgress") : t("analytics.statusStarted")),
-                 color: enrollment.status === 'COMPLETED' ? "bg-green-100 text-green-700" : (prog > 0 ? "bg-primary-fixed text-primary" : "bg-surface-container text-on-surface-variant"),
+                 color: enrollment.status === 'COMPLETED' ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-300" : (prog > 0 ? "bg-primary-fixed text-primary" : "bg-surface-container text-on-surface-variant"),
              };
          });
          setLearners(fetchedLearners);
@@ -495,7 +495,7 @@ export default function Analytics() {
                         className={cn(
                           "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm",
                           row.status === t("analytics.statusCompleted")
-                            ? "bg-green-100 text-green-700"
+                            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-300"
                             : row.status === t("analytics.statusInProgress")
                               ? "bg-primary-fixed text-primary"
                               : "bg-surface-container text-on-surface-variant",

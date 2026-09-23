@@ -179,7 +179,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
           <div
             className={cn(
               "w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner",
-              result.passed ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+              result.passed ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400" : "bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400"
             )}
           >
             {result.passed ? <Trophy className="w-10 h-10" /> : <AlertTriangle className="w-10 h-10" />}
@@ -217,7 +217,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
               key={item.questionId}
               className={cn(
                 "border rounded-2xl p-5 space-y-3",
-                item.correct ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50"
+                item.correct ? "border-green-200 bg-green-50/50 dark:bg-green-500/10 dark:border-green-500/30" : "border-red-200 bg-red-50/50 dark:bg-red-500/10 dark:border-red-500/30"
               )}
             >
               <div className="flex items-start gap-3">
@@ -250,7 +250,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
         </div>
 
         {!result.passed && !canRetry && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300">
             {t("assessment.noAttemptsLeft")}
           </div>
         )}
@@ -318,20 +318,20 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
           </div>
 
           {quiz.alreadyPassed && (
-            <div className="rounded-xl border border-green-200 bg-green-50 text-green-800 px-4 py-3 text-sm flex items-center gap-2">
+            <div className="rounded-xl border border-green-200 bg-green-50 text-green-800 px-4 py-3 text-sm flex items-center gap-2 dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300">
               <CheckCircle2 className="w-4 h-4" />
               {t("assessment.alreadyPassed")} {quiz.bestScore != null && `(${quiz.bestScore}%)`}
             </div>
           )}
 
           {!quiz.alreadyPassed && quiz.attemptsRemaining <= 0 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300">
               {t("assessment.noAttemptsLeft")}
             </div>
           )}
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm">{error}</div>
+            <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">{error}</div>
           )}
 
           <button
@@ -415,7 +415,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm">{error}</div>
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">{error}</div>
       )}
 
       <div className="mt-8 flex justify-end shrink-0">

@@ -213,7 +213,7 @@ export default function Courses() {
       )}
 
       {error && !loading && (
-        <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">{error}</div>
       )}
 
       {!loading && !error && visibleCourses.length === 0 && (
@@ -231,12 +231,12 @@ export default function Courses() {
             <div className="h-32 w-full relative bg-primary-fixed flex items-center justify-center">
               <BookOpenCheck className="w-10 h-10 text-primary opacity-70" />
               {course.courseStatus === "DRAFT" && (
-                <div className="absolute top-4 left-4 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                <div className="absolute top-4 left-4 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest dark:bg-amber-500/10 dark:text-amber-300">
                   {t("courses.badgeDraft")}
                 </div>
               )}
               {course.completed && (
-                <div className="absolute top-4 right-4 bg-green-100 text-green-700 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm font-bold text-xs uppercase">
+                <div className="absolute top-4 right-4 bg-green-100 text-green-700 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm font-bold text-xs uppercase dark:bg-green-500/10 dark:text-green-300">
                   <CheckCircle2 className="w-3 h-3" /> {t("courses.statusCompleted")}
                 </div>
               )}
