@@ -10,7 +10,7 @@ import api from "../services/api";
 type Tab = "profile" | "security";
 
 export default function Settings() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const { t } = useLanguage();
   const toast = useToast();
   const seletorFoto = useRef<HTMLInputElement>(null);
@@ -44,8 +44,12 @@ export default function Settings() {
       });
       if (!envio.ok) throw new Error(`Storage respondeu ${envio.status}`);
 
-      await api.patch(`/users/${user?.id}/avatar`, { avatarKey: assinada.key });
-      toast.success("Foto atualizada. Ela aparece no próximo acesso.");
+      const { data: atualizado } = await api.patch(`/users/${user?.id}/avatar`, {
+        avatarKey: assinada.key,
+      });
+      // A resposta ja traz a URL assinada da foto; reflete na hora.
+      updateUser({ avatar: atualizado.avatar });
+      toast.success("Foto atualizada.");
     } catch (err) {
       console.error("Erro ao trocar a foto", err);
       toast.error("Não foi possível enviar a foto.");
@@ -106,13 +110,21 @@ export default function Settings() {
 
               <div className="flex items-center gap-6">
                 <div className="relative group">
-                  <div className="w-20 h-20 rounded-full bg-primary-container flex items-center justify-center text-white text-2xl font-bold">
-                    {user?.name
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase() || "U"}
+                  <div className="w-20 h-20 rounded-full bg-primary-container flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={`Foto de ${user.name}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      user?.name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "U"
+                    )}
                   </div>
                   <input
                     ref={seletorFoto}

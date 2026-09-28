@@ -28,6 +28,8 @@ interface AuthState {
   refreshSession: () => Promise<boolean>;
   clearError: () => void;
   getToken: () => string | null;
+  /** Atualiza campos do usuario em memoria (ex.: avatar recem-enviado). */
+  updateUser: (dados: Partial<User>) => void;
 }
 
 const AUTH_STORAGE_KEY = "trainify.auth";
@@ -236,6 +238,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  // O usuario e derivado do JWT, que so muda no login ou no refresh. Sem isso,
+  // uma foto recem-enviada so apareceria no proximo acesso.
+  updateUser: (dados) => {
+    const atual = get().user;
+    if (atual) set({ user: { ...atual, ...dados } });
+  },
 
   getToken: () => get().token,
 }));
