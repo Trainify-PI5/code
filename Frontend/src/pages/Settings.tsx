@@ -4,6 +4,8 @@ import { cn } from "../lib/utils";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useToast } from "../components/ui";
+import { useRef } from "react";
+import api from "../services/api";
 
 type Tab = "profile" | "security";
 
@@ -11,6 +13,47 @@ export default function Settings() {
   const { user } = useAuthStore();
   const { t } = useLanguage();
   const toast = useToast();
+  const seletorFoto = useRef<HTMLInputElement>(null);
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+
+  // Tres passos: pede a URL assinada, envia o arquivo direto para o Storage e
+  // so entao grava a chave no usuario.
+  const trocarFoto = async (arquivo: File) => {
+    if (!arquivo.type.startsWith("image/")) {
+      toast.warning("Escolha um arquivo de imagem.");
+      return;
+    }
+    if (arquivo.size > 5 * 1024 * 1024) {
+      toast.warning("A imagem precisa ter no máximo 5 MB.");
+      return;
+    }
+
+    setEnviandoFoto(true);
+    try {
+      const { data: assinada } = await api.post("/media/avatar-upload-url", {
+        filename: arquivo.name,
+        contentType: arquivo.type,
+      });
+
+      // PUT direto no Storage: sem o header de autenticacao da nossa API,
+      // senao a assinatura da URL e recusada.
+      const envio = await fetch(assinada.url, {
+        method: "PUT",
+        body: arquivo,
+        headers: { "Content-Type": arquivo.type },
+      });
+      if (!envio.ok) throw new Error(`Storage respondeu ${envio.status}`);
+
+      await api.patch(`/users/${user?.id}/avatar`, { avatarKey: assinada.key });
+      toast.success("Foto atualizada. Ela aparece no próximo acesso.");
+    } catch (err) {
+      console.error("Erro ao trocar a foto", err);
+      toast.error("Não foi possível enviar a foto.");
+    } finally {
+      setEnviandoFoto(false);
+      if (seletorFoto.current) seletorFoto.current.value = "";
+    }
+  };
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -71,8 +114,22 @@ export default function Settings() {
                       .join("")
                       .toUpperCase() || "U"}
                   </div>
-                  <button onClick={() => toast.info("Troca de foto de perfil ainda depende de upload no backend.")} className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold uppercase">
-                    {t("settings.change") || "Alterar"}
+                  <input
+                    ref={seletorFoto}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const arquivo = e.target.files?.[0];
+                      if (arquivo) trocarFoto(arquivo);
+                    }}
+                  />
+                  <button
+                    onClick={() => seletorFoto.current?.click()}
+                    disabled={enviandoFoto}
+                    className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold uppercase disabled:cursor-not-allowed"
+                  >
+                    {enviandoFoto ? "..." : t("settings.change") || "Alterar"}
                   </button>
                 </div>
                 <div className="space-y-1">

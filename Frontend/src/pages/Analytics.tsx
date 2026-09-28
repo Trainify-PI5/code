@@ -25,6 +25,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../components/ui";
+import { baixarCSV } from "../lib/download";
 
 type EngagementPeriod = "LAST_30_DAYS" | "LAST_QUARTER" | "YEAR_TO_DATE";
 
@@ -89,8 +90,67 @@ function ChartMessage({ children }: { children: ReactNode }) {
   );
 }
 
+const SITUACAO: Record<string, string> = {
+  ACTIVE: "Em andamento",
+  COMPLETED: "Concluído",
+  CANCELLED: "Cancelado",
+};
+
 export default function Analytics() {
+  const [exportando, setExportando] = useState(false);
   const navigate = useNavigate();
+
+  // GET /analytics/report devolve uma linha por matricula; o arquivo e
+  // montado aqui, do mesmo jeito que na tela de Auditoria.
+  const exportarRelatorio = async () => {
+    setExportando(true);
+    try {
+      const { data } = await api.get("/analytics/report");
+
+      if (!Array.isArray(data) || data.length === 0) {
+        toast.info("Não há matrículas para exportar.");
+        return;
+      }
+
+      const dataBR = (valor?: string | null) =>
+        valor ? new Date(valor).toLocaleDateString("pt-BR") : "";
+
+      baixarCSV(
+        `relatorio-${new Date().toISOString().slice(0, 10)}.csv`,
+        [
+          "Aluno",
+          "E-mail",
+          "Curso",
+          "Situação",
+          "Progresso (%)",
+          "Aulas concluídas",
+          "Total de aulas",
+          "Melhor nota",
+          "Matriculado em",
+          "Concluído em",
+        ],
+        data.map((linha: any) => [
+          linha.studentName,
+          linha.studentEmail,
+          linha.courseTitle,
+          SITUACAO[linha.status] ?? linha.status,
+          linha.progressPercent,
+          linha.completedLessons,
+          linha.totalLessons,
+          linha.bestScore ?? "",
+          dataBR(linha.enrolledAt),
+          dataBR(linha.completedAt),
+        ]),
+      );
+
+      toast.success(`${data.length} matrícula(s) exportada(s).`);
+    } catch (err) {
+      console.error("Erro ao exportar relatório", err);
+      toast.error("Não foi possível exportar o relatório.");
+    } finally {
+      setExportando(false);
+    }
+  };
   const toast = useToast();
   const { t, language } = useLanguage();
   const [period, setPeriod] = useState<EngagementPeriod>("LAST_30_DAYS");
@@ -197,7 +257,8 @@ export default function Analytics() {
           <p className="text-on-surface-variant">{t("analytics.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-4">
-          <button onClick={() => toast.info("Exportação de relatórios ainda depende de uma rota no backend.")} className="px-5 py-2.5 rounded-lg border border-primary text-primary font-medium hover:bg-primary-fixed transition-colors flex items-center gap-2 active:translate-y-[1px]">
+          <button onClick={exportarRelatorio}
+            disabled={exportando} className="px-5 py-2.5 rounded-lg border border-primary text-primary font-medium hover:bg-primary-fixed transition-colors flex items-center gap-2 active:translate-y-[1px]">
             <Download className="w-4 h-4" /> {t("analytics.exportReport")}
           </button>
           <button onClick={() => toast.info("Filtros avançados chegam na próxima entrega.")} className="px-5 py-2.5 rounded-lg bg-primary-container text-white font-medium hover:opacity-90 transition-colors flex items-center gap-2 active:translate-y-[1px] shadow-sm">

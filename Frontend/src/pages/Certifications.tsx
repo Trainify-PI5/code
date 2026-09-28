@@ -10,6 +10,8 @@ import {
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useToast } from "../components/ui";
+import api from "../services/api";
+import { baixarBlob } from "../lib/download";
 
 interface Certificate {
   id: string;
@@ -26,6 +28,57 @@ export default function Certifications() {
   const { t } = useLanguage();
 
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [baixando, setBaixando] = useState<string | null>(null);
+  const [baixandoTodos, setBaixandoTodos] = useState(false);
+
+  const buscarPdf = async (cert: Certificate) => {
+    const { data } = await api.get(`/certifications/${cert.id}/pdf`, {
+      responseType: "blob",
+    });
+    const nome = cert.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
+    baixarBlob(data, `certificado-${nome || cert.id}.pdf`);
+  };
+
+  const baixarUm = async (cert: Certificate) => {
+    setBaixando(cert.id);
+    try {
+      await buscarPdf(cert);
+    } catch (err) {
+      console.error("Erro ao baixar certificado", err);
+      toast.error("Não foi possível baixar o certificado.");
+    } finally {
+      setBaixando(null);
+    }
+  };
+
+  // Um PDF por vez: o navegador bloqueia downloads simultaneos e o backend
+  // gera cada arquivo sob demanda.
+  const baixarTodos = async () => {
+    if (certificates.length === 0) {
+      toast.info("Você ainda não tem certificados.");
+      return;
+    }
+
+    setBaixandoTodos(true);
+    let falhas = 0;
+    for (const cert of certificates) {
+      try {
+        await buscarPdf(cert);
+      } catch (err) {
+        console.error("Erro ao baixar certificado", cert.id, err);
+        falhas++;
+      }
+    }
+    setBaixandoTodos(false);
+
+    if (falhas === 0) {
+      toast.success(`${certificates.length} certificado(s) baixado(s).`);
+    } else if (falhas === certificates.length) {
+      toast.error("Não foi possível baixar os certificados.");
+    } else {
+      toast.warning(`${certificates.length - falhas} baixado(s), ${falhas} com erro.`);
+    }
+  };
 
   // Web Share onde existir (celular), senao copia o link para a area de
   // transferencia — os dois caminhos sao do proprio navegador.
@@ -76,7 +129,8 @@ export default function Certifications() {
           </h1>
           <p className="text-on-surface-variant">{t("cert.subtitle")}</p>
         </div>
-        <button onClick={() => toast.info("Download dos certificados ainda depende de uma rota no backend.")} className="bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95">
+        <button onClick={baixarTodos}
+          disabled={baixandoTodos} className="bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95">
           <Download className="w-4 h-4" /> {t("cert.downloadAll")}
         </button>
       </div>
@@ -168,7 +222,8 @@ export default function Certifications() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => toast.info("Download do certificado ainda depende de uma rota no backend.")}
+                  onClick={() => baixarUm(cert)}
+                  disabled={baixando === cert.id}
                   className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-primary transition-colors"
                   title={t("cert.downloadPdf")}
                   aria-label={t("cert.downloadPdf")}

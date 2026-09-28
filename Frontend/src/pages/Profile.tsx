@@ -10,6 +10,8 @@ import {
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useToast } from "../components/ui";
+import { baixarBlob } from "../lib/download";
+import api from "../services/api";
 
 import { useState, useEffect } from "react";
 
@@ -29,6 +31,26 @@ export default function Profile() {
 
   const [completedCourses, setCompletedCourses] = useState<any[]>([]);
   const [certificates, setCertificates] = useState<any[]>([]);
+  const [baixando, setBaixando] = useState<string | null>(null);
+
+  const baixarCertificado = async (cert: any) => {
+    setBaixando(cert.id);
+    try {
+      const { data } = await api.get(`/certifications/${cert.id}/pdf`, {
+        responseType: "blob",
+      });
+      const nome = String(cert.title || "")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      baixarBlob(data, `certificado-${nome || cert.id}.pdf`);
+    } catch (err) {
+      console.error("Erro ao baixar certificado", err);
+      toast.error("Não foi possível baixar o certificado.");
+    } finally {
+      setBaixando(null);
+    }
+  };
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -254,7 +276,7 @@ export default function Profile() {
                     Emitido em {cert.issuedAt}
                   </p>
                 </div>
-                <button onClick={() => toast.info("Download do certificado ainda depende de uma rota no backend.")} className="shrink-0 flex items-center gap-1.5 text-xs text-primary border border-primary/30 hover:bg-primary-fixed rounded-lg px-3 py-1.5 transition-colors font-medium">
+                <button onClick={() => baixarCertificado(cert)} disabled={baixando === cert.id} className="shrink-0 flex items-center gap-1.5 text-xs text-primary border border-primary/30 hover:bg-primary-fixed rounded-lg px-3 py-1.5 transition-colors font-medium">
                   <Download className="w-3.5 h-3.5" />
                   Baixar
                 </button>

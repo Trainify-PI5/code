@@ -10,7 +10,7 @@ import {
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { useToast } from "../components/ui";
+import { ConfirmDialog, useToast } from "../components/ui";
 
 export default function Notifications() {
   const { t } = useLanguage();
@@ -18,6 +18,21 @@ export default function Notifications() {
   const toast = useToast();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [marcando, setMarcando] = useState(false);
+  const [limparAberto, setLimparAberto] = useState(false);
+
+  const limparTodas = async () => {
+    try {
+      const { data } = await api.delete("/notifications");
+      setNotifications([]);
+      const removidas = data?.removed ?? 0;
+      toast.success(
+        removidas === 1 ? "1 notificação removida." : `${removidas} notificações removidas.`,
+      );
+    } catch (err) {
+      console.error("Erro ao limpar notificações", err);
+      toast.error("Não foi possível limpar as notificações.");
+    }
+  };
 
   // O backend so expoe PATCH /notifications/{id}/read — nao ha rota para
   // marcar todas de uma vez, entao isso percorre as nao lidas.
@@ -80,9 +95,13 @@ export default function Notifications() {
             <CheckCircle className="w-4 h-4" /> {t("notif.markAllRead")}
           </button>
           <button
-            onClick={() =>
-              toast.info("Excluir notificações ainda depende de uma rota no backend.")
-            }
+            onClick={() => {
+              if (notifications.length === 0) {
+                toast.info("Não há notificações para remover.");
+                return;
+              }
+              setLimparAberto(true);
+            }}
             className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-red-500 transition-all px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 uppercase tracking-widest"
           >
             <Trash2 className="w-4 h-4" /> {t("notif.clearAll")}
@@ -134,6 +153,20 @@ export default function Notifications() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={limparAberto}
+        onClose={() => setLimparAberto(false)}
+        onConfirm={limparTodas}
+        tone="danger"
+        title="Limpar notificações"
+        message={
+          notifications.length === 1
+            ? "A notificação será removida definitivamente."
+            : `As ${notifications.length} notificações serão removidas definitivamente.`
+        }
+        confirmLabel="Limpar tudo"
+      />
     </div>
   );
 }

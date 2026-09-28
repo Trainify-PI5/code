@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Circle, Lock, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, FileText, Lock, MessageSquare } from 'lucide-react';
 import api from '../services/api';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input, useToast } from '../components/ui';
+import { baixarBlob } from '../lib/download';
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   VIDEO: 'Vídeo',
@@ -56,6 +57,59 @@ export default function LessonPlayer() {
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgressItem>>({});
   const [completing, setCompleting] = useState(false);
+  const [baixandoTranscricao, setBaixandoTranscricao] = useState(false);
+  const [perguntaIa, setPerguntaIa] = useState('');
+  const [enviandoIa, setEnviandoIa] = useState(false);
+  const [respostaIa, setRespostaIa] = useState<string | null>(null);
+
+  const baixarTranscricao = async () => {
+    if (!activeLesson?.id) return;
+    setBaixandoTranscricao(true);
+    try {
+      const { data } = await api.get(`/lessons/${activeLesson.id}/transcript`, {
+        responseType: 'blob',
+      });
+
+      // Aula sem transcricao volta vazia; baixar arquivo em branco confunde.
+      if (data.size === 0) {
+        toast.info('Esta aula ainda não tem transcrição.');
+        return;
+      }
+
+      const nome = String(activeLesson.title || '')
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-');
+      baixarBlob(data, `transcricao-${nome || activeLesson.id}.txt`);
+    } catch (err) {
+      console.error('Erro ao baixar transcrição', err);
+      toast.error('Não foi possível baixar a transcrição.');
+    } finally {
+      setBaixandoTranscricao(false);
+    }
+  };
+
+  const perguntarIa = async () => {
+    const pergunta = perguntaIa.trim();
+    if (!pergunta) return;
+
+    setEnviandoIa(true);
+    setRespostaIa(null);
+    try {
+      // lessonId da o contexto da aula para o assistente
+      const { data } = await api.post('/ia/chat', {
+        query: pergunta,
+        lessonId: activeLesson?.id,
+      });
+      setRespostaIa(data.response);
+      setPerguntaIa('');
+    } catch (err) {
+      console.error('Erro ao consultar o assistente', err);
+      toast.error('O assistente não respondeu. Tente novamente.');
+    } finally {
+      setEnviandoIa(false);
+    }
+  };
 
   // Carregar dados (mock ou api)
   useEffect(() => {
@@ -264,9 +318,20 @@ export default function LessonPlayer() {
                 ) : null}
 
                 <div className="p-8 max-w-5xl mx-auto w-full flex-1">
-                   <h2 className="text-2xl font-bold text-on-surface mb-4">
-                     {activeLesson.title}
-                   </h2>
+                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                     <h2 className="text-2xl font-bold text-on-surface min-w-0">
+                       {activeLesson.title}
+                     </h2>
+                     <Button
+                       variant="secondary"
+                       size="sm"
+                       onClick={baixarTranscricao}
+                       disabled={baixandoTranscricao}
+                     >
+                       <FileText className="w-4 h-4" />
+                       {baixandoTranscricao ? 'Baixando...' : 'Transcrição'}
+                     </Button>
+                   </div>
                    <div className="prose dark:prose-invert max-w-none text-on-surface-variant">
                      {activeLesson.content || 'Nenhuma descrição fornecida para esta aula.'}
                    </div>
@@ -303,6 +368,16 @@ export default function LessonPlayer() {
                     <div className="bg-surface-container p-3 rounded-xl text-sm text-on-surface-variant max-w-[85%]">
                        Olá! Estou aqui para ajudar com qualquer dúvida sobre "{course.title}". O que você gostaria de saber?
                     </div>
+                    {enviandoIa && (
+                      <div className="bg-surface-container p-3 rounded-xl text-sm text-on-surface-variant max-w-[85%] animate-pulse">
+                        Pensando...
+                      </div>
+                    )}
+                    {respostaIa && (
+                      <div className="bg-primary-fixed p-3 rounded-xl text-sm text-on-surface max-w-[85%] whitespace-pre-wrap">
+                        {respostaIa}
+                      </div>
+                    )}
                  </div>
                  <div className="p-4 border-t border-outline-variant bg-surface-container-low">
                     <div className="flex gap-2">
@@ -312,8 +387,16 @@ export default function LessonPlayer() {
                          placeholder="Faça uma pergunta..."
                          className="py-2"
                          wrapperClassName="flex-1"
+                         value={perguntaIa}
+                         onChange={(e) => setPerguntaIa(e.target.value)}
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') perguntarIa();
+                         }}
+                         disabled={enviandoIa}
                        />
-                       <Button onClick={() => toast.info("O assistente da aula ainda não está conectado.")}>Enviar</Button>
+                       <Button onClick={perguntarIa} disabled={enviandoIa || !perguntaIa.trim()}>
+                         Enviar
+                       </Button>
                     </div>
                  </div>
               </div>

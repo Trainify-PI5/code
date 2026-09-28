@@ -153,7 +153,7 @@ export default function CourseContent({
               <h2 className="text-2xl font-display font-bold text-on-surface">
                 {activeLesson.title}
               </h2>
-              <button onClick={() => toast.info("A transcrição ainda não está disponível para esta aula.")} className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline uppercase tracking-widest">
+              <button onClick={() => toast.info("Abra a aula pelo player do curso para baixar a transcrição.")} className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline uppercase tracking-widest">
                 <FileText className="w-4 h-4" />{" "}
                 {t("content.downloadTranscript")}
               </button>
