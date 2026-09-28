@@ -90,8 +90,9 @@ function ChartMessage({ children }: { children: ReactNode }) {
   );
 }
 
+// Espelha o enum EnrollmentStatus do backend.
 const SITUACAO: Record<string, string> = {
-  ACTIVE: "Em andamento",
+  IN_PROGRESS: "Em andamento",
   COMPLETED: "Concluído",
   CANCELLED: "Cancelado",
 };

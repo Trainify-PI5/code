@@ -70,18 +70,18 @@ export default function LessonPlayer() {
         responseType: 'blob',
       });
 
-      // Aula sem transcricao volta vazia; baixar arquivo em branco confunde.
-      if (data.size === 0) {
-        toast.info('Esta aula ainda não tem transcrição.');
-        return;
-      }
-
       const nome = String(activeLesson.title || '')
         .replace(/[^\w\s-]/g, '')
         .trim()
         .replace(/\s+/g, '-');
       baixarBlob(data, `transcricao-${nome || activeLesson.id}.txt`);
-    } catch (err) {
+    } catch (err: any) {
+      // A API responde 404 quando a aula nao tem transcricao gravada — e
+      // ausencia de conteudo, nao falha.
+      if (err?.response?.status === 404) {
+        toast.info('Esta aula ainda não tem transcrição.');
+        return;
+      }
       console.error('Erro ao baixar transcrição', err);
       toast.error('Não foi possível baixar a transcrição.');
     } finally {
