@@ -6,6 +6,7 @@ import com.trainify.lms.domain.enums.EnrollmentStatus;
 import com.trainify.lms.dto.CourseCompletionDto;
 import com.trainify.lms.dto.EngagementPointDto;
 import com.trainify.lms.dto.KpiDto;
+import com.trainify.lms.dto.ReportRowDto;
 import com.trainify.lms.dto.StatusCountDto;
 import com.trainify.lms.repositories.CourseRepository;
 import com.trainify.lms.repositories.EnrollmentRepository;
@@ -34,6 +35,8 @@ public class AnalyticsService {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final com.trainify.lms.repositories.AssessmentAttemptRepository attemptRepository;
+    private final com.trainify.lms.repositories.LessonRepository lessonRepository;
+    private final com.trainify.lms.repositories.LessonProgressRepository lessonProgressRepository;
 
     @Transactional(readOnly = true)
     public KpiDto getTenantKpis() {
@@ -129,6 +132,59 @@ public class AnalyticsService {
         result.sort(Comparator.comparingInt(CourseCompletionDto::getCompletionRate).reversed()
                 .thenComparing(CourseCompletionDto::getTitle));
         return result;
+    }
+
+    /**
+     * Linhas do relatorio de acompanhamento da empresa: uma por matricula, com
+     * progresso e melhor nota. O frontend monta o arquivo a partir daqui.
+     */
+    @Transactional(readOnly = true)
+    public List<ReportRowDto> getReport() {
+        UUID tenantId = currentTenantId();
+
+        // Melhor nota de cada matricula, em uma passada so
+        var melhorNota = new java.util.HashMap<UUID, Integer>();
+        for (var attempt : attemptRepository.findByTenantId(tenantId)) {
+            melhorNota.merge(attempt.getEnrollment().getId(), attempt.getScore(), Math::max);
+        }
+
+        var aulasPorCurso = new java.util.HashMap<UUID, Integer>();
+        List<ReportRowDto> linhas = new ArrayList<>();
+
+        for (var enrollment : enrollmentRepository.findByTenantIdOrderByEnrolledAtDesc(tenantId)) {
+            ReportRowDto linha = new ReportRowDto();
+            linha.setEnrollmentId(enrollment.getId());
+            linha.setStatus(enrollment.getStatus());
+            linha.setEnrolledAt(enrollment.getEnrolledAt());
+            linha.setCompletedAt(enrollment.getCompletedAt());
+            linha.setBestScore(melhorNota.get(enrollment.getId()));
+
+            if (enrollment.getUser() != null) {
+                linha.setStudentId(enrollment.getUser().getId());
+                linha.setStudentName(enrollment.getUser().getName());
+                linha.setStudentEmail(enrollment.getUser().getEmail());
+            }
+
+            if (enrollment.getCourse() != null) {
+                UUID courseId = enrollment.getCourse().getId();
+                linha.setCourseId(courseId);
+                linha.setCourseTitle(enrollment.getCourse().getTitle());
+
+                int total = aulasPorCurso.computeIfAbsent(courseId,
+                        id -> (int) lessonRepository.countByModuleCourseId(id));
+                int concluidas = (int) lessonProgressRepository.countByEnrollmentIdAndStatus(
+                        enrollment.getId(), com.trainify.lms.domain.enums.ProgressStatus.COMPLETED);
+
+                linha.setTotalLessons(total);
+                linha.setCompletedLessons(Math.min(concluidas, total));
+                linha.setProgressPercent(total == 0 ? 0
+                        : (int) Math.round((double) linha.getCompletedLessons() * 100 / total));
+            }
+
+            linhas.add(linha);
+        }
+
+        return linhas;
     }
 
     /**

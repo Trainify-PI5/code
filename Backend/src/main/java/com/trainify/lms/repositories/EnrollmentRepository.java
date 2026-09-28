@@ -14,6 +14,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
     Optional<Enrollment> findByUserIdAndCourseId(UUID userId, UUID courseId);
     boolean existsByCourseIdAndUserId(UUID courseId, UUID userId);
     java.util.List<Enrollment> findByUserId(UUID userId);
+    java.util.List<Enrollment> findByTenantIdOrderByEnrolledAtDesc(UUID tenantId);
 
     // Contagens usadas pelos graficos do dashboard (AnalyticsService).
     // Todas filtram pela empresa: o isolamento por tenant e feito na aplicacao.

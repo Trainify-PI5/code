@@ -4,6 +4,7 @@ import com.trainify.lms.domain.enums.EngagementPeriod;
 import com.trainify.lms.dto.CourseCompletionDto;
 import com.trainify.lms.dto.EngagementPointDto;
 import com.trainify.lms.dto.KpiDto;
+import com.trainify.lms.dto.ReportRowDto;
 import com.trainify.lms.dto.StatusCountDto;
 import com.trainify.lms.services.AnalyticsService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,13 @@ import java.util.List;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+
+    /** Dados brutos para o relatorio exportado pela tela de Dashboards. */
+    @GetMapping("/report")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'INSTRUCTOR')")
+    public ResponseEntity<List<ReportRowDto>> getReport() {
+        return ResponseEntity.ok(analyticsService.getReport());
+    }
 
     @GetMapping("/kpis")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPER_ADMIN')")

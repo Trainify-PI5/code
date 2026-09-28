@@ -51,6 +51,9 @@ public class UserServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
+    private AvatarUrlResolver avatarUrlResolver;
+
+    @Mock
     private SecurityContext securityContext;
 
     @Mock

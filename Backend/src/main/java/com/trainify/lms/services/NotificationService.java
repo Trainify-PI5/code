@@ -69,6 +69,24 @@ public class NotificationService {
     }
 
     @Transactional
+    public void delete(UUID id, UUID userId) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Notification not found"));
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Notification does not belong to user");
+        }
+        notificationRepository.delete(notification);
+    }
+
+    /** Limpa a caixa de notificacoes do proprio usuario. Devolve quantas saiu. */
+    @Transactional
+    public int deleteAllOfUser(UUID userId) {
+        List<Notification> notifications = notificationRepository.findByUserId(userId);
+        notificationRepository.deleteAll(notifications);
+        return notifications.size();
+    }
+
+    @Transactional
     public void createAndSendNotification(Notification notification) {
         Notification saved = notificationRepository.save(notification);
         NotificationDto dto = mapToDto(saved);

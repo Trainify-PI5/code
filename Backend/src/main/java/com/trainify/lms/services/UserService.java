@@ -30,6 +30,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AvatarUrlResolver avatarUrlResolver;
 
     /** Mesma normalizacao do login, que compara sem diferenciar maiusculas. */
     private static String normalizeEmail(String email) {
@@ -187,7 +188,7 @@ public class UserService {
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole());
-        dto.setAvatar(user.getAvatar());
+        dto.setAvatar(avatarUrlResolver.resolve(user.getAvatar()));
         dto.setIsActive(user.getIsActive());
         dto.setTenantId(user.getTenant().getId());
         return dto;

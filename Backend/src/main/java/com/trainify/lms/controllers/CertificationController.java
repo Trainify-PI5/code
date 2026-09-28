@@ -20,6 +20,20 @@ public class CertificationController {
 
     private final CertificationService certificationService;
 
+    /** Certificado em PDF, pronto para o navegador baixar. */
+    @GetMapping(value = "/{id}/pdf", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> downloadPdf(
+            @org.springframework.web.bind.annotation.PathVariable java.util.UUID id,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+
+        byte[] pdf = certificationService.generatePdf(id, principal);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"certificado-" + id + ".pdf\"")
+                .body(pdf);
+    }
+
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<CertificationDto>> getUserCertifications(@AuthenticationPrincipal CustomUserDetails principal) {

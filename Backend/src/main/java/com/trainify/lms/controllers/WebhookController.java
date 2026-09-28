@@ -74,6 +74,8 @@ public class WebhookController {
         if ("COMPLETED".equals(payload.getStatus())) {
             mediaAsset.setTranscriptionStatus(TranscriptionStatus.COMPLETED);
             mediaAsset.setSubtitlesUrl(payload.getSubtitlesUrl());
+            // O texto vinha no payload e era descartado
+            mediaAsset.setTranscript(payload.getText());
         } else {
             mediaAsset.setTranscriptionStatus(TranscriptionStatus.FAILED);
         }

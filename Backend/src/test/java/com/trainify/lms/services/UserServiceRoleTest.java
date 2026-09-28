@@ -43,6 +43,9 @@ class UserServiceRoleTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private AvatarUrlResolver avatarUrlResolver;
+
     @InjectMocks
     private UserService userService;
 

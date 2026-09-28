@@ -72,6 +72,36 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Texto da transcricao do video da aula. Vem do servico de IA pelo webhook, mas
+     * o instrutor tambem pode escrever ou corrigir pela tela.
+     */
+    @Transactional(readOnly = true)
+    public String getLessonTranscript(UUID lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson not found"));
+
+        String transcript = lesson.getVideoAsset() == null ? null : lesson.getVideoAsset().getTranscript();
+        if (transcript == null || transcript.isBlank()) {
+            throw new EntityNotFoundException("Esta aula ainda nao tem transcricao disponivel.");
+        }
+        return transcript;
+    }
+
+    @Transactional
+    public void updateLessonTranscript(UUID lessonId, String transcript) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson not found"));
+
+        if (lesson.getVideoAsset() == null) {
+            throw new IllegalArgumentException("A aula precisa de um video ou documento para receber a transcricao.");
+        }
+
+        checkInstructorAccess(lesson.getModule().getCourse());
+        lesson.getVideoAsset().setTranscript(transcript);
+        mediaAssetRepository.save(lesson.getVideoAsset());
+    }
+
     @Transactional(readOnly = true)
     public CourseDto getCourseById(UUID id) {
         Course course = courseRepository.findById(id)

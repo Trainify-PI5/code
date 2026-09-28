@@ -15,6 +15,12 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
+    private final com.trainify.lms.services.AvatarUrlResolver avatarUrlResolver;
+
+    public JwtUtil(com.trainify.lms.services.AvatarUrlResolver avatarUrlResolver) {
+        this.avatarUrlResolver = avatarUrlResolver;
+    }
+
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
@@ -45,7 +51,7 @@ public class JwtUtil {
                 .claim("user_id", userDetails.getId().toString())
                 .claim("role", userDetails.getAuthorities().iterator().next().getAuthority())
                 .claim("name", userDetails.getName())
-                .claim("avatar", userDetails.getAvatar())
+                .claim("avatar", avatarUrlResolver.resolve(userDetails.getAvatar()))
                 .issuedAt(new Date())
                 .expiration(new Date((new Date()).getTime() + expirationMs))
                 .signWith(getSigningKey(), Jwts.SIG.HS256)

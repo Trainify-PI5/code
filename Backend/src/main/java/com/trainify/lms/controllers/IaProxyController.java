@@ -20,6 +20,7 @@ import java.util.Map;
 public class IaProxyController {
 
     private final IaServiceClient iaServiceClient;
+    private final com.trainify.lms.repositories.LessonRepository lessonRepository;
 
     @PostMapping("/chat")
     @PreAuthorize("isAuthenticated()")
@@ -28,13 +29,28 @@ public class IaProxyController {
             @RequestBody ChatRequestDto request,
             @AuthenticationPrincipal CustomUserDetails user) {
         
-        IaServiceClient.ChatResponse response = iaServiceClient.chat(
-                new IaServiceClient.ChatRequest(
-                        request.getQuery(),
-                        user.getTenantId().toString(),
-                        request.getCourseId()
-                )
+        IaServiceClient.ChatRequest chatRequest = new IaServiceClient.ChatRequest(
+                request.getQuery(),
+                user.getTenantId().toString(),
+                request.getCourseId()
         );
+
+        // Contexto da aula que o aluno esta assistindo, quando o front informa
+        if (request.getLessonId() != null && !request.getLessonId().isBlank()) {
+            lessonRepository.findById(java.util.UUID.fromString(request.getLessonId()))
+                    .filter(lesson -> lesson.getTenant().getId().equals(user.getTenantId()))
+                    .ifPresent(lesson -> {
+                        chatRequest.lesson_id = lesson.getId().toString();
+                        chatRequest.lesson_title = lesson.getTitle();
+                        chatRequest.lesson_content = lesson.getContent();
+                        if (chatRequest.course_id == null && lesson.getModule() != null
+                                && lesson.getModule().getCourse() != null) {
+                            chatRequest.course_id = lesson.getModule().getCourse().getId().toString();
+                        }
+                    });
+        }
+
+        IaServiceClient.ChatResponse response = iaServiceClient.chat(chatRequest);
 
         return ResponseEntity.ok(Map.of("response", response.response));
     }
@@ -48,5 +64,6 @@ public class IaProxyController {
     public static class ChatRequestDto {
         private String query;
         private String courseId;
+        private String lessonId;
     }
 }

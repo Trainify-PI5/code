@@ -46,6 +46,31 @@ public class MediaController {
         ));
     }
 
+    /**
+     * Endereco de upload da foto do proprio usuario. O upload de video e restrito a
+     * quem ensina; a foto de perfil qualquer pessoa autenticada pode trocar.
+     */
+    @PostMapping("/avatar-upload-url")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> generateAvatarUploadUrl(
+            @Valid @RequestBody GenerateUploadUrlRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String contentType = request.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("A foto de perfil precisa ser uma imagem.");
+        }
+
+        int dot = request.getFilename().lastIndexOf('.');
+        String ext = dot >= 0 ? request.getFilename().substring(dot) : "";
+        String key = "tenant-" + userDetails.getTenantId() + "/avatars/" + userDetails.getId() + "-" + UUID.randomUUID() + ext;
+
+        return ResponseEntity.ok(Map.of(
+                "url", s3Service.generatePresignedUploadUrl(key, contentType),
+                "key", key
+        ));
+    }
+
     @PostMapping("/upload-complete")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Map<String, UUID>> uploadComplete(

@@ -30,6 +30,18 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.getUserNotifications(principal.getId()));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails principal) {
+        notificationService.delete(id, principal.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Limpa todas as notificacoes do usuario logado. */
+    @DeleteMapping
+    public ResponseEntity<java.util.Map<String, Integer>> deleteAll(@AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(java.util.Map.of("removed", notificationService.deleteAllOfUser(principal.getId())));
+    }
+
     @PatchMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails principal) {
         notificationService.markAsRead(id, principal.getId());

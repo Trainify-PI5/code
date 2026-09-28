@@ -19,6 +19,9 @@ public interface IaServiceClient {
         public String query;
         public String tenant_id;
         public String course_id;
+        public String lesson_id;
+        public String lesson_title;
+        public String lesson_content;
 
         public ChatRequest(String query, String tenantId, String courseId) {
             this.query = query;

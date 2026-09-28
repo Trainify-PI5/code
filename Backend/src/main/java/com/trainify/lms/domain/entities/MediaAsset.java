@@ -50,4 +50,7 @@ public class MediaAsset extends BaseEntity {
 
     @Column(name = "subtitles_url", length = 1000)
     private String subtitlesUrl;
+
+    @Column(name = "transcript", columnDefinition = "TEXT")
+    private String transcript;
 }

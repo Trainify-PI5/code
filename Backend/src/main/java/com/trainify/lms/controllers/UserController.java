@@ -55,8 +55,13 @@ public class UserController {
     @PatchMapping("/{id}/avatar")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER') or @securityService.isCurrentUser(#id)")
     public ResponseEntity<UserDto> updateAvatar(@PathVariable UUID id, @RequestBody java.util.Map<String, String> body) {
-        String avatarUrl = body.get("avatarUrl");
-        return ResponseEntity.ok(userService.updateAvatar(id, avatarUrl));
+        // avatarKey: arquivo enviado para o Storage. avatarUrl: endereco externo pronto.
+        String avatarKey = body.get("avatarKey");
+        String stored = avatarKey != null && !avatarKey.isBlank()
+                ? com.trainify.lms.services.AvatarUrlResolver.storedValueForKey(avatarKey)
+                : body.get("avatarUrl");
+
+        return ResponseEntity.ok(userService.updateAvatar(id, stored));
     }
 
     @PutMapping("/me")

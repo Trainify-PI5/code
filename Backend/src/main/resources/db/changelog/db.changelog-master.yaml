@@ -15,3 +15,5 @@ databaseChangeLog:
       file: db/changelog/07-add-password-reset.sql
   - include:
       file: db/changelog/08-assessment-attempts.sql
+  - include:
+      file: db/changelog/09-add-transcript.sql

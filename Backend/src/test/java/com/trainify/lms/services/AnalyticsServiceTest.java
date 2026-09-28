@@ -197,7 +197,8 @@ public class AnalyticsServiceTest {
                 "countByTenantIdAndCourseId",
                 "countByTenantIdAndCourseIdAndStatus",
                 "countByTenantIdAndEnrolledAtGreaterThanEqualAndEnrolledAtLessThan",
-                "countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan")) {
+                "countByTenantIdAndCompletedAtGreaterThanEqualAndCompletedAtLessThan",
+                "findByTenantIdOrderByEnrolledAtDesc")) {
             assertDoesNotThrow(() -> new PartTree(method, Enrollment.class), method);
         }
 
