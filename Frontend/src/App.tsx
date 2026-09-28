@@ -20,7 +20,6 @@ const IAAssistant = lazy(() => import("./pages/IAAssistant"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Notifications = lazy(() => import("./pages/Notifications"));
-const CourseContent = lazy(() => import("./pages/CourseContent"));
 const CourseAssessment = lazy(() => import("./pages/CourseAssessment"));
 const Certifications = lazy(() => import("./pages/Certifications"));
 const Support = lazy(() => import("./pages/Support"));
@@ -153,17 +152,6 @@ export default function App() {
                       element={
                         <ProtectedRoute>
                           <CourseDetail />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/content"
-                      element={
-                        <ProtectedRoute>
-                          <CourseContent
-                            onBack={() => navigate("/courses")}
-                            onAssessment={() => navigate("/assessment")}
-                          />
                         </ProtectedRoute>
                       }
                     />

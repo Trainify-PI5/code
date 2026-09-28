@@ -53,11 +53,11 @@ export const CourseDetail: React.FC = () => {
       setEnrolling(true);
       await api.post(`/courses/${id}/enroll`);
       toast.success('Matrícula realizada! Bons estudos.');
-      navigate('/content');
+      navigate(`/courses/${id}/learn`);
     } catch (err: any) {
       if (err.response?.status === 409) {
         toast.info('Você já está matriculado neste curso.');
-        navigate('/content');
+        navigate(`/courses/${id}/learn`);
       } else {
         toast.error('Não foi possível realizar a matrícula. Tente novamente.');
       }

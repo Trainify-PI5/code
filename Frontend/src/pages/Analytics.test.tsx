@@ -13,19 +13,19 @@ vi.mock("../services/api", () => ({
 const matriculas = [
   {
     status: "IN_PROGRESS",
-    progressPercentage: 40,
+    progressPercent: 40,
     user: { name: "Ana Souza", email: "ana@trainify.com" },
     course: { id: "c1", title: "Comunicação Eficaz" },
   },
   {
     status: "COMPLETED",
-    progressPercentage: 100,
+    progressPercent: 100,
     user: { name: "João Pereira", email: "joao@trainify.com" },
     course: { id: "c1", title: "Comunicação Eficaz" },
   },
   {
     status: "COMPLETED",
-    progressPercentage: 100,
+    progressPercent: 100,
     user: { name: "Bruno Lima", email: "bruno@trainify.com" },
     course: { id: "c2", title: "Liderança" },
   },

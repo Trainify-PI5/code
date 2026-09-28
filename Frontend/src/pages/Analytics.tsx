@@ -284,7 +284,7 @@ export default function Analytics() {
         status: enrollment.status ?? "",
         studentName: enrollment.user?.name || "Usuário Desconhecido",
         studentEmail: enrollment.user?.email || "",
-        progress: enrollment.progressPercentage || 0,
+        progress: enrollment.progressPercent || 0,
         score: enrollment.score ? enrollment.score + "%" : "--",
       })));
     }).catch(console.error);

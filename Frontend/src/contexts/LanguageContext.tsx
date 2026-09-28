@@ -349,33 +349,6 @@ const translations: Record<Language, Record<string, string>> = {
     "assessment.q3o4": "To generate five alternative solutions",
 
     // Conteúdo do Curso
-    "content.courseTitle": "Strategic Decision Making in Complex Environments",
-    "content.moduleInfo": "Module 3: Framework Analysis • 65% Progress",
-    "content.courseGrade": "Course Grade",
-    "content.gradeValue": "88% (Distinction)",
-    "content.retakeAssessment": "Retake Assessment",
-    "content.frameworkEvolution": "Framework Evolution",
-    "content.downloadTranscript": "Download Transcript",
-    "content.lessonPlan": "Lesson Plan",
-    "content.lessonPlanInfo": "6 Lessons • 1h 45m Total",
-    "content.markComplete": "Mark Course Complete",
-    "content.lesson1": "The Psychology of Decision Making",
-    "content.lesson2": "Cognitive Biases in Crisis",
-    "content.lesson3": "Framework Analysis: OODA Loop",
-    "content.lesson4": "Mid-Course Knowledge Check",
-    "content.lesson4Duration": "10 Questions",
-    "content.lesson5": "Group Dynamics and Alignment",
-    "content.lesson6": "Strategic Roadmap Exercise",
-    "content.lesson6Duration": "PDF Study",
-    "content.lessonDesc1":
-      "In this session, we dive deep into the OODA (Observe, Orient, Decide, Act) loop, a strategic framework originally developed by military strategist John Boyd.",
-    "content.lessonDesc2":
-      'We will examine how the "Orientation" phase is the most critical part of the loop, as it filters your observations through cultural heritage, genetic predisposition, and previous experience.',
-    "content.bullet1": "Understanding the four stages of the OODA Loop.",
-    "content.bullet2":
-      'How to accelerate the "Decide" phase without losing accuracy.',
-    "content.bullet3":
-      "Real-world case studies in high-stakes corporate negotiation.",
 
     // Notificações
     "notif.title": "Notifications",
@@ -754,34 +727,6 @@ const translations: Record<Language, Record<string, string>> = {
     "assessment.q3o4": "Generar cinco soluciones alternativas",
 
     // Conteúdo do Curso
-    "content.courseTitle":
-      "Toma de Decisiones Estratégicas en Entornos Complejos",
-    "content.moduleInfo": "Módulo 3: Análisis de Framework • 65% de Progreso",
-    "content.courseGrade": "Calificación del Curso",
-    "content.gradeValue": "88% (Distinción)",
-    "content.retakeAssessment": "Repetir Evaluación",
-    "content.frameworkEvolution": "Evolución del Framework",
-    "content.downloadTranscript": "Descargar Transcripción",
-    "content.lessonPlan": "Plan de Lecciones",
-    "content.lessonPlanInfo": "6 Lecciones • 1h 45m Total",
-    "content.markComplete": "Marcar Curso como Completado",
-    "content.lesson1": "La Psicología de la Toma de Decisiones",
-    "content.lesson2": "Sesgos Cognitivos en Crisis",
-    "content.lesson3": "Análisis de Framework: Loop OODA",
-    "content.lesson4": "Verificación de Conocimiento",
-    "content.lesson4Duration": "10 Preguntas",
-    "content.lesson5": "Dinámica de Grupo y Alineación",
-    "content.lesson6": "Ejercicio de Hoja de Ruta Estratégica",
-    "content.lesson6Duration": "Estudio en PDF",
-    "content.lessonDesc1":
-      "En esta sesión, profundizamos en el loop OODA (Observar, Orientar, Decidir, Actuar), un framework estratégico desarrollado por el estratega militar John Boyd.",
-    "content.lessonDesc2":
-      'Examinaremos cómo la fase de "Orientación" es la parte más crítica del loop, ya que filtra tus observaciones a través de la herencia cultural, predisposición genética y experiencias previas.',
-    "content.bullet1": "Comprender las cuatro etapas del Loop OODA.",
-    "content.bullet2":
-      'Cómo acelerar la fase de "Decisión" sin perder precisión.',
-    "content.bullet3":
-      "Casos de estudio reales en negociación corporativa de alto riesgo.",
   },
 
   "pt-BR": {
@@ -1123,33 +1068,6 @@ const translations: Record<Language, Record<string, string>> = {
     "assessment.q3o4": "Gerar cinco soluções alternativas",
 
     // Conteúdo do Curso
-    "content.courseTitle":
-      "Tomada de Decisão Estratégica em Ambientes Complexos",
-    "content.moduleInfo": "Módulo 3: Análise de Framework • 65% de Progresso",
-    "content.courseGrade": "Nota do Curso",
-    "content.gradeValue": "88% (Distinção)",
-    "content.retakeAssessment": "Refazer Avaliação",
-    "content.frameworkEvolution": "Evolução do Framework",
-    "content.downloadTranscript": "Baixar Transcrição",
-    "content.lessonPlan": "Plano de Aulas",
-    "content.lessonPlanInfo": "6 Aulas • 1h 45m Total",
-    "content.markComplete": "Marcar Curso como Concluído",
-    "content.lesson1": "A Psicologia da Tomada de Decisão",
-    "content.lesson2": "Vieses Cognitivos em Crises",
-    "content.lesson3": "Análise de Framework: Loop OODA",
-    "content.lesson4": "Verificação de Conhecimento",
-    "content.lesson4Duration": "10 Questões",
-    "content.lesson5": "Dinâmicas de Grupo e Alinhamento",
-    "content.lesson6": "Exercício de Roadmap Estratégico",
-    "content.lesson6Duration": "Estudo em PDF",
-    "content.lessonDesc1":
-      "Nesta sessão, mergulhamos no loop OODA (Observar, Orientar, Decidir, Agir), um framework estratégico desenvolvido pelo estrategista militar John Boyd.",
-    "content.lessonDesc2":
-      'Examinaremos como a fase de "Orientação" é a parte mais crítica do loop, pois filtra suas observações através da herança cultural, predisposição genética e experiências anteriores.',
-    "content.bullet1": "Entendendo as quatro etapas do Loop OODA.",
-    "content.bullet2": 'Como acelerar a fase de "Decisão" sem perder precisão.',
-    "content.bullet3":
-      "Estudos de caso reais em negociação corporativa de alto risco.",
 
     // Notificações
     "notif.title": "Notificações",

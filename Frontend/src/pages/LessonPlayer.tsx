@@ -237,7 +237,7 @@ export default function LessonPlayer() {
   // e recalculado de forma assincrona e chegaria desatualizado logo apos concluir.
   const progressPercentage = progressItems.length > 0 && allLessons.length > 0
     ? Math.round((progressItems.filter((p) => p.status === 'COMPLETED').length / allLessons.length) * 100)
-    : (enrollment?.progressPercentage || 0);
+    : (enrollment?.progressPercent || 0);
   const activeCompleted = !!activeLesson && lessonProgress[activeLesson.id]?.status === 'COMPLETED';
   const canMarkAsCompleted = !!enrollment
     && (activeLesson?.lessonType === 'ARTICLE' || activeLesson?.lessonType === 'DOCUMENT');
