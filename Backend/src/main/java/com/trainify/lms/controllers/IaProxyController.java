@@ -1,6 +1,5 @@
 package com.trainify.lms.controllers;
 
-import com.trainify.lms.clients.IaServiceClient;
 import com.trainify.lms.security.CustomUserDetails;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.Data;
@@ -19,8 +18,7 @@ import java.util.Map;
 @Slf4j
 public class IaProxyController {
 
-    private final IaServiceClient iaServiceClient;
-    private final com.trainify.lms.repositories.LessonRepository lessonRepository;
+    private final com.trainify.lms.ai.AiService aiService;
 
     @PostMapping("/chat")
     @PreAuthorize("isAuthenticated()")
@@ -29,30 +27,11 @@ public class IaProxyController {
             @RequestBody ChatRequestDto request,
             @AuthenticationPrincipal CustomUserDetails user) {
         
-        IaServiceClient.ChatRequest chatRequest = new IaServiceClient.ChatRequest(
-                request.getQuery(),
-                user.getTenantId().toString(),
-                request.getCourseId()
-        );
+        java.util.UUID lessonId = request.getLessonId() == null || request.getLessonId().isBlank()
+                ? null
+                : java.util.UUID.fromString(request.getLessonId());
 
-        // Contexto da aula que o aluno esta assistindo, quando o front informa
-        if (request.getLessonId() != null && !request.getLessonId().isBlank()) {
-            lessonRepository.findById(java.util.UUID.fromString(request.getLessonId()))
-                    .filter(lesson -> lesson.getTenant().getId().equals(user.getTenantId()))
-                    .ifPresent(lesson -> {
-                        chatRequest.lesson_id = lesson.getId().toString();
-                        chatRequest.lesson_title = lesson.getTitle();
-                        chatRequest.lesson_content = lesson.getContent();
-                        if (chatRequest.course_id == null && lesson.getModule() != null
-                                && lesson.getModule().getCourse() != null) {
-                            chatRequest.course_id = lesson.getModule().getCourse().getId().toString();
-                        }
-                    });
-        }
-
-        IaServiceClient.ChatResponse response = iaServiceClient.chat(chatRequest);
-
-        return ResponseEntity.ok(Map.of("response", response.response));
+        return ResponseEntity.ok(Map.of("response", aiService.tutor(lessonId, request.getQuery())));
     }
 
     public ResponseEntity<Map<String, String>> chatFallback(ChatRequestDto request, CustomUserDetails user, Throwable t) {

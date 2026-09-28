@@ -64,6 +64,11 @@ app:
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
   ai:
     service-url: ${AI_SERVICE_URL:http://localhost:8000}
+    claude:
+      # Sem a chave, os recursos de IA ficam desligados e o sistema avisa na tela
+      api-key: ${ANTHROPIC_API_KEY:}
+      model: ${ANTHROPIC_MODEL:claude-opus-5}
+      max-tokens: ${ANTHROPIC_MAX_TOKENS:8000}
   s3:
     bucket: ${AWS_S3_BUCKET:trainify-media}
     region: ${AWS_S3_REGION:us-east-1}

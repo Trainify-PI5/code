@@ -41,6 +41,22 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(com.trainify.lms.ai.AiUnavailableException.class)
+    public ProblemDetail handleAiUnavailable(com.trainify.lms.ai.AiUnavailableException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+        problemDetail.setType(URI.create("urn:problem-type:ai-unavailable"));
+        problemDetail.setTitle("AI Unavailable");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(com.trainify.lms.ai.AiContentMissingException.class)
+    public ProblemDetail handleAiContentMissing(com.trainify.lms.ai.AiContentMissingException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problemDetail.setType(URI.create("urn:problem-type:ai-content-missing"));
+        problemDetail.setTitle("AI Content Missing");
+        return problemDetail;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgumentException(IllegalArgumentException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());

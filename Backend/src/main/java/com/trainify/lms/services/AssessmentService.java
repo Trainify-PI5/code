@@ -111,7 +111,7 @@ public class AssessmentService {
      * Um quiz sem pergunta, sem alternativas ou sem gabarito e impossivel de responder.
      * Antes o sistema aceitava e o aluno so descobria na hora da prova.
      */
-    static void validate(CreateAssessmentRequest request) {
+    public static void validate(CreateAssessmentRequest request) {
         List<CreateAssessmentRequest.QuestionRequest> questions = request.getQuestions();
         if (questions == null || questions.isEmpty()) {
             throw new IllegalArgumentException("A avaliação precisa de pelo menos uma pergunta.");
