@@ -28,11 +28,14 @@ public class LessonController {
     }
 
     /** Transcricao em texto puro, pronta para o navegador baixar. */
-    @GetMapping(value = "/{lessonId}/transcript", produces = "text/plain; charset=UTF-8")
+    // Sem restringir o tipo aqui: com produces=text/plain o erro em JSON nao consegue
+    // ser escrito e a resposta vira 500 em vez de 404
+    @GetMapping("/{lessonId}/transcript")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> getTranscript(@PathVariable UUID lessonId) {
         String transcript = courseService.getLessonTranscript(lessonId);
         return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/plain; charset=UTF-8"))
                 .header("Content-Disposition", "attachment; filename=\"transcricao-" + lessonId + ".txt\"")
                 .body(transcript);
     }

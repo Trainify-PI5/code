@@ -29,6 +29,18 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    /**
+     * Sem este tratamento, qualquer registro inexistente virava erro 500 e o front
+     * mostrava "erro inesperado" no lugar de "nao encontrado".
+     */
+    @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)
+    public ProblemDetail handleEntityNotFound(jakarta.persistence.EntityNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problemDetail.setType(URI.create("urn:problem-type:not-found"));
+        problemDetail.setTitle("Not Found");
+        return problemDetail;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgumentException(IllegalArgumentException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
