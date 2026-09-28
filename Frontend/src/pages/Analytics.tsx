@@ -19,13 +19,21 @@ import {
   ShieldCheck,
   Download,
   Filter,
+  Search,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "../components/ui";
+import { Button, Input, Modal, useToast } from "../components/ui";
 import { baixarCSV } from "../lib/download";
+import {
+  aplicarFiltros,
+  contarFiltrosAtivos,
+  cursosDisponiveis,
+  FILTROS_VAZIOS,
+  type FiltrosAnalytics,
+} from "../lib/analyticsFilters";
 
 type EngagementPeriod = "LAST_30_DAYS" | "LAST_QUARTER" | "YEAR_TO_DATE";
 
@@ -38,6 +46,21 @@ interface EngagementPoint {
 interface StatusCount {
   status: string;
   count: number;
+}
+
+/**
+ * Linha da tabela de alunos. Os campos vem crus da API (status como enum,
+ * nome e e-mail separados) porque e sobre eles que os filtros trabalham — a
+ * traducao e a cor sao decididas so na hora de desenhar.
+ */
+interface LinhaAluno {
+  courseId: string;
+  courseTitle: string;
+  status: string;
+  studentName: string;
+  studentEmail: string;
+  progress: number;
+  score: string;
 }
 
 interface CourseCompletion {
@@ -101,6 +124,18 @@ export default function Analytics() {
   const [exportando, setExportando] = useState(false);
   const navigate = useNavigate();
 
+  // `filtros` e o que esta valendo na tela; `rascunho` e o que se mexe dentro do
+  // modal, para fechar no X nao aplicar o que foi digitado por engano.
+  const [filtros, setFiltros] = useState<FiltrosAnalytics>(FILTROS_VAZIOS);
+  const [rascunho, setRascunho] = useState<FiltrosAnalytics>(FILTROS_VAZIOS);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const filtrosAtivos = contarFiltrosAtivos(filtros);
+
+  const abrirFiltros = () => {
+    setRascunho(filtros);
+    setFiltrosAbertos(true);
+  };
+
   // GET /analytics/report devolve uma linha por matricula; o arquivo e
   // montado aqui, do mesmo jeito que na tela de Auditoria.
   const exportarRelatorio = async () => {
@@ -110,6 +145,15 @@ export default function Analytics() {
 
       if (!Array.isArray(data) || data.length === 0) {
         toast.info("Não há matrículas para exportar.");
+        return;
+      }
+
+      // O arquivo sai com o mesmo recorte da tela: exportar o banco inteiro
+      // depois de filtrar seria uma surpresa desagradavel.
+      const linhas = aplicarFiltros(data, filtros);
+
+      if (linhas.length === 0) {
+        toast.info("Nenhuma matrícula corresponde aos filtros atuais.");
         return;
       }
 
@@ -130,7 +174,7 @@ export default function Analytics() {
           "Matriculado em",
           "Concluído em",
         ],
-        data.map((linha: any) => [
+        linhas.map((linha: any) => [
           linha.studentName,
           linha.studentEmail,
           linha.courseTitle,
@@ -144,7 +188,7 @@ export default function Analytics() {
         ]),
       );
 
-      toast.success(`${data.length} matrícula(s) exportada(s).`);
+      toast.success(`${linhas.length} matrícula(s) exportada(s).`);
     } catch (err) {
       console.error("Erro ao exportar relatório", err);
       toast.error("Não foi possível exportar o relatório.");
@@ -226,27 +270,45 @@ export default function Analytics() {
   const statusTotal = statusItems.reduce((sum, item) => sum + item.value, 0);
   const statusPieData = statusItems.filter((item) => item.value > 0);
 
-  const topCourses = (courseCompletion.data ?? []).slice(0, 5);
+  const topCourses = (courseCompletion.data ?? [])
+    .filter((curso) => !filtros.courseId || curso.courseId === filtros.courseId)
+    .slice(0, 5);
 
-  const [learners, setLearners] = useState<any[]>([]);
+  const [learners, setLearners] = useState<LinhaAluno[]>([]);
 
   useEffect(() => {
     api.get('/enrollments/all').then(res => {
-         const fetchedLearners = res.data.map((enrollment: any) => {
-             const prog = enrollment.progressPercentage || 0;
-             return {
-                 name: enrollment.user?.name || "Usuário Desconhecido",
-                 initial: (enrollment.user?.name || "U").substring(0,2).toUpperCase(),
-                 course: enrollment.course?.title || "Curso Desconhecido",
-                 progress: prog,
-                 score: enrollment.score ? enrollment.score + "%" : "--",
-                 status: enrollment.status === 'COMPLETED' ? t("analytics.statusCompleted") : (prog > 0 ? t("analytics.statusInProgress") : t("analytics.statusStarted")),
-                 color: enrollment.status === 'COMPLETED' ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-300" : (prog > 0 ? "bg-primary-fixed text-primary" : "bg-surface-container text-on-surface-variant"),
-             };
-         });
-         setLearners(fetchedLearners);
+      setLearners((res.data ?? []).map((enrollment: any) => ({
+        courseId: enrollment.course?.id ?? "",
+        courseTitle: enrollment.course?.title || "Curso Desconhecido",
+        status: enrollment.status ?? "",
+        studentName: enrollment.user?.name || "Usuário Desconhecido",
+        studentEmail: enrollment.user?.email || "",
+        progress: enrollment.progressPercentage || 0,
+        score: enrollment.score ? enrollment.score + "%" : "--",
+      })));
     }).catch(console.error);
-  }, [t]);
+  }, []);
+
+  const learnersFiltrados = aplicarFiltros(learners, filtros);
+  const cursos = cursosDisponiveis(learners);
+
+  // Cancelada tem rotulo proprio; as demais dependem do progresso, porque uma
+  // matricula em andamento sem nenhuma aula vista ainda nao "esta em andamento".
+  const situacaoDoAluno = (linha: LinhaAluno) => {
+    if (linha.status === "COMPLETED") {
+      return {
+        rotulo: t("analytics.statusCompleted"),
+        cor: "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-300",
+      };
+    }
+    if (linha.status === "CANCELLED") {
+      return { rotulo: t("analytics.statusCancelled"), cor: "bg-surface-container text-on-surface-variant" };
+    }
+    return linha.progress > 0
+      ? { rotulo: t("analytics.statusInProgress"), cor: "bg-primary-fixed text-primary" }
+      : { rotulo: t("analytics.statusStarted"), cor: "bg-surface-container text-on-surface-variant" };
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -262,8 +324,13 @@ export default function Analytics() {
             disabled={exportando} className="px-5 py-2.5 rounded-lg border border-primary text-primary font-medium hover:bg-primary-fixed transition-colors flex items-center gap-2 active:translate-y-[1px]">
             <Download className="w-4 h-4" /> {t("analytics.exportReport")}
           </button>
-          <button onClick={() => toast.info("Filtros avançados chegam na próxima entrega.")} className="px-5 py-2.5 rounded-lg bg-primary-container text-white font-medium hover:opacity-90 transition-colors flex items-center gap-2 active:translate-y-[1px] shadow-sm">
+          <button onClick={abrirFiltros} className="px-5 py-2.5 rounded-lg bg-primary-container text-white font-medium hover:opacity-90 transition-colors flex items-center gap-2 active:translate-y-[1px] shadow-sm">
             <Filter className="w-4 h-4" /> {t("analytics.filterData")}
+            {filtrosAtivos > 0 && (
+              <span className="ml-1 min-w-5 px-1.5 py-0.5 rounded-full bg-white/25 text-[11px] font-bold leading-none flex items-center justify-center">
+                {filtrosAtivos}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -487,10 +554,18 @@ export default function Analytics() {
 
         <div className="lg:col-span-2 bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-sm">
           <div className="p-6 border-b border-outline-variant flex justify-between items-center">
-            <h3 className="text-xl font-display font-bold">
-              {t("analytics.learnerProgress")}
-            </h3>
-            <button onClick={() => navigate("/users")} className="text-primary font-medium hover:underline text-sm">
+            <div className="min-w-0">
+              <h3 className="text-xl font-display font-bold">
+                {t("analytics.learnerProgress")}
+              </h3>
+              {filtrosAtivos > 0 && (
+                <p className="text-sm text-on-surface-variant">
+                  {learnersFiltrados.length}/{learners.length} · {filtrosAtivos}{" "}
+                  {t("analytics.filterActive")}
+                </p>
+              )}
+            </div>
+            <button onClick={() => navigate("/users")} className="text-primary font-medium hover:underline text-sm shrink-0">
               {t("analytics.viewAll")}
             </button>
           </div>
@@ -516,7 +591,9 @@ export default function Analytics() {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {learners.map((row, idx) => (
+                {learnersFiltrados.map((row, idx) => {
+                  const situacao = situacaoDoAluno(row);
+                  return (
                   <tr
                     key={idx}
                     className="border-b border-outline-variant hover:bg-surface-bright transition-colors"
@@ -526,16 +603,16 @@ export default function Analytics() {
                         <div
                           className={cn(
                             "w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px]",
-                            row.color,
+                            situacao.cor,
                           )}
                         >
-                          {row.initial}
+                          {row.studentName.substring(0, 2).toUpperCase()}
                         </div>
-                        <span className="font-semibold">{row.name}</span>
+                        <span className="font-semibold">{row.studentName}</span>
                       </div>
                     </td>
                     <td className="p-4 text-on-surface-variant truncate max-w-[200px]">
-                      {row.course}
+                      {row.courseTitle}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
@@ -560,23 +637,107 @@ export default function Analytics() {
                       <span
                         className={cn(
                           "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm",
-                          row.status === t("analytics.statusCompleted")
-                            ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-300"
-                            : row.status === t("analytics.statusInProgress")
-                              ? "bg-primary-fixed text-primary"
-                              : "bg-surface-container text-on-surface-variant",
+                          situacao.cor,
                         )}
                       >
-                        {row.status}
+                        {situacao.rotulo}
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
+                {learners.length > 0 && learnersFiltrados.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-sm text-on-surface-variant">
+                      {t("analytics.noMatches")}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      <Modal
+        open={filtrosAbertos}
+        onClose={() => setFiltrosAbertos(false)}
+        title={t("analytics.filtersTitle")}
+        description={t("analytics.filtersDescription")}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => setRascunho(FILTROS_VAZIOS)}
+              disabled={contarFiltrosAtivos(rascunho) === 0}
+            >
+              {t("analytics.filterClear")}
+            </Button>
+            <Button
+              onClick={() => {
+                setFiltros(rascunho);
+                setFiltrosAbertos(false);
+              }}
+            >
+              {t("analytics.filterApply")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label
+              htmlFor="filtro-curso"
+              className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+            >
+              {t("analytics.filterCourse")}
+            </label>
+            <select
+              id="filtro-curso"
+              value={rascunho.courseId}
+              onChange={(e) => setRascunho({ ...rascunho, courseId: e.target.value })}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary"
+            >
+              <option value="">{t("analytics.filterAll")}</option>
+              {cursos.map((curso) => (
+                <option key={curso.id} value={curso.id}>
+                  {curso.titulo}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="filtro-situacao"
+              className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+            >
+              {t("analytics.filterStatus")}
+            </label>
+            <select
+              id="filtro-situacao"
+              value={rascunho.status}
+              onChange={(e) => setRascunho({ ...rascunho, status: e.target.value })}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary"
+            >
+              <option value="">{t("analytics.filterAll")}</option>
+              {Object.entries(STATUS_STYLE).map(([status, estilo]) => (
+                <option key={status} value={status}>
+                  {t(estilo.labelKey)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            label={t("analytics.filterSearch")}
+            placeholder={t("analytics.filterSearchPlaceholder")}
+            icon={<Search className="w-4 h-4" />}
+            value={rascunho.busca}
+            onChange={(e) => setRascunho({ ...rascunho, busca: e.target.value })}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
