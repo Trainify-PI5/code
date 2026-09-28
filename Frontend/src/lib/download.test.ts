@@ -1,7 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { montarCSV } from "./download";
+import { montarCSV, nomeDeArquivo } from "./download";
 
 const BOM = String.fromCharCode(0xfeff);
+
+describe("nomeDeArquivo", () => {
+  it("mantém a letra ao tirar o acento, em vez de apagá-la", () => {
+    // o bug original transformava "Integração" em "Integrao"
+    expect(nomeDeArquivo("Integração de Novos Colaboradores", "x")).toBe(
+      "Integracao-de-Novos-Colaboradores",
+    );
+  });
+
+  it("troca espaços por hífen", () => {
+    expect(nomeDeArquivo("Curso de Liderança", "x")).toBe("Curso-de-Lideranca");
+  });
+
+  it("remove pontuação que atrapalha em nome de arquivo", () => {
+    expect(nomeDeArquivo("Aula 1: introdução/básico", "x")).toBe("Aula-1-introducaobasico");
+  });
+
+  it("cai na reserva quando não sobra nada utilizável", () => {
+    expect(nomeDeArquivo("???", "id-123")).toBe("id-123");
+    expect(nomeDeArquivo("", "id-123")).toBe("id-123");
+  });
+
+  it("preserva números e hífens já existentes", () => {
+    expect(nomeDeArquivo("Modulo-2 Parte 3", "x")).toBe("Modulo-2-Parte-3");
+  });
+});
 
 describe("montarCSV", () => {
   it("começa com BOM, para o Excel reconhecer os acentos", () => {

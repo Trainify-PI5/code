@@ -11,7 +11,7 @@ import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useToast } from "../components/ui";
 import api from "../services/api";
-import { baixarBlob } from "../lib/download";
+import { baixarBlob, nomeDeArquivo } from "../lib/download";
 
 interface Certificate {
   id: string;
@@ -35,8 +35,7 @@ export default function Certifications() {
     const { data } = await api.get(`/certifications/${cert.id}/pdf`, {
       responseType: "blob",
     });
-    const nome = cert.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
-    baixarBlob(data, `certificado-${nome || cert.id}.pdf`);
+    baixarBlob(data, `certificado-${nomeDeArquivo(cert.title, cert.id)}.pdf`);
   };
 
   const baixarUm = async (cert: Certificate) => {

@@ -1,3 +1,18 @@
+/**
+ * Transforma um titulo em nome de arquivo seguro. Troca acentuadas pelo
+ * equivalente sem acento em vez de apagar: sem isso "Integracao" viraria
+ * "Integrao", porque o \w do JavaScript nao cobre letras acentuadas.
+ */
+export function nomeDeArquivo(texto: string, reserva: string) {
+  const limpo = String(texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+  return limpo || reserva;
+}
+
 /** Dispara o download de um Blob no navegador, liberando a URL temporaria. */
 export function baixarBlob(blob: Blob, nomeArquivo: string) {
   const url = URL.createObjectURL(blob);

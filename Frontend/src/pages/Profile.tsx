@@ -10,7 +10,7 @@ import {
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useToast } from "../components/ui";
-import { baixarBlob } from "../lib/download";
+import { baixarBlob, nomeDeArquivo } from "../lib/download";
 import api from "../services/api";
 
 import { useState, useEffect } from "react";
@@ -39,11 +39,7 @@ export default function Profile() {
       const { data } = await api.get(`/certifications/${cert.id}/pdf`, {
         responseType: "blob",
       });
-      const nome = String(cert.title || "")
-        .replace(/[^\w\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-");
-      baixarBlob(data, `certificado-${nome || cert.id}.pdf`);
+      baixarBlob(data, `certificado-${nomeDeArquivo(cert.title, cert.id)}.pdf`);
     } catch (err) {
       console.error("Erro ao baixar certificado", err);
       toast.error("Não foi possível baixar o certificado.");

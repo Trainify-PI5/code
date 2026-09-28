@@ -6,7 +6,7 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input, useToast } from '../components/ui';
-import { baixarBlob } from '../lib/download';
+import { baixarBlob, nomeDeArquivo } from '../lib/download';
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   VIDEO: 'Vídeo',
@@ -70,11 +70,7 @@ export default function LessonPlayer() {
         responseType: 'blob',
       });
 
-      const nome = String(activeLesson.title || '')
-        .replace(/[^\w\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
-      baixarBlob(data, `transcricao-${nome || activeLesson.id}.txt`);
+      baixarBlob(data, `transcricao-${nomeDeArquivo(activeLesson.title, activeLesson.id)}.txt`);
     } catch (err: any) {
       // A API responde 404 quando a aula nao tem transcricao gravada — e
       // ausencia de conteudo, nao falha.
