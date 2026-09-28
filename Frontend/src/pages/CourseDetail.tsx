@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, Play, CheckCircle, Clock, Video, FileText, ChevronDown } from 'lucide-react';
 import api from '../services/api';
+import { useToast } from '../components/ui';
 
 interface Lesson {
   id: string;
@@ -45,18 +46,20 @@ export const CourseDetail: React.FC = () => {
     fetchCourse();
   }, [id]);
 
+  const toast = useToast();
+
   const handleEnroll = async () => {
     try {
       setEnrolling(true);
       await api.post(`/courses/${id}/enroll`);
-      alert('Matrícula realizada com sucesso!');
+      toast.success('Matrícula realizada! Bons estudos.');
       navigate('/content');
     } catch (err: any) {
       if (err.response?.status === 409) {
-        alert('Você já está matriculado neste curso!');
+        toast.info('Você já está matriculado neste curso.');
         navigate('/content');
       } else {
-        alert('Erro ao realizar matrícula.');
+        toast.error('Não foi possível realizar a matrícula. Tente novamente.');
       }
     } finally {
       setEnrolling(false);

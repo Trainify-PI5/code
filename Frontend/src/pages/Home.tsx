@@ -5,9 +5,11 @@ import { Course, Activity } from "../types";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuthStore } from "../store/authStore";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
 
   const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
@@ -104,7 +106,7 @@ export default function Home() {
               <h3 className="text-2xl font-display font-bold text-on-surface">
                 {t("home.featuredCourses")}
               </h3>
-              <button className="text-primary hover:text-primary font-medium flex items-center gap-1 transition-colors text-sm">
+              <button onClick={() => navigate("/courses")} className="text-primary hover:text-primary font-medium flex items-center gap-1 transition-colors text-sm">
                 {t("home.viewAll")} <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -219,7 +221,7 @@ export default function Home() {
               ))}
             </div>
             <div className="p-4 border-t border-outline-variant bg-surface-bright rounded-b-2xl">
-              <button className="w-full text-primary hover:text-primary font-medium text-sm py-2 transition-colors">
+              <button onClick={() => navigate("/notifications")} className="w-full text-primary hover:text-primary font-medium text-sm py-2 transition-colors">
                 {t("home.viewActivityLog")}
               </button>
             </div>

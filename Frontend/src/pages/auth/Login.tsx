@@ -7,12 +7,14 @@ import { useAuthStore } from "../../store/authStore";
 import { useThemeStore } from "../../store/themeStore";
 import { cn } from "../../lib/utils";
 import ThemeToggle from "../../components/ThemeToggle";
+import { useToast } from "../../components/ui";
 
 interface LoginProps {
   onNavigate: (page: "register" | "forgot-password") => void;
 }
 
 export default function Login({ onNavigate }: LoginProps) {
+  const toast = useToast();
   const { login, isLoading, error, clearError } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useThemeStore();
   const [email, setEmail] = useState("");
@@ -285,6 +287,7 @@ export default function Login({ onNavigate }: LoginProps) {
 
             <button
               type="button"
+              onClick={() => toast.info("Entrar com Google ainda não está disponível. Use e-mail e senha.")}
               className="w-full flex items-center justify-center gap-3 border border-outline-variant bg-surface-container-lowest rounded-xl py-3 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors active:scale-[0.98]"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">

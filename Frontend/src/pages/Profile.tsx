@@ -9,10 +9,12 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useToast } from "../components/ui";
 
 import { useState, useEffect } from "react";
 
 export default function Profile() {
+  const toast = useToast();
   const { user } = useAuthStore();
   const { t } = useLanguage();
 
@@ -252,7 +254,7 @@ export default function Profile() {
                     Emitido em {cert.issuedAt}
                   </p>
                 </div>
-                <button className="shrink-0 flex items-center gap-1.5 text-xs text-primary border border-primary/30 hover:bg-primary-fixed rounded-lg px-3 py-1.5 transition-colors font-medium">
+                <button onClick={() => toast.info("Download do certificado ainda depende de uma rota no backend.")} className="shrink-0 flex items-center gap-1.5 text-xs text-primary border border-primary/30 hover:bg-primary-fixed rounded-lg px-3 py-1.5 transition-colors font-medium">
                   <Download className="w-3.5 h-3.5" />
                   Baixar
                 </button>

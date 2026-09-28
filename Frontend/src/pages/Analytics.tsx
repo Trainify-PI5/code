@@ -23,6 +23,8 @@ import {
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/ui";
 
 type EngagementPeriod = "LAST_30_DAYS" | "LAST_QUARTER" | "YEAR_TO_DATE";
 
@@ -88,6 +90,8 @@ function ChartMessage({ children }: { children: ReactNode }) {
 }
 
 export default function Analytics() {
+  const navigate = useNavigate();
+  const toast = useToast();
   const { t, language } = useLanguage();
   const [period, setPeriod] = useState<EngagementPeriod>("LAST_30_DAYS");
 
@@ -193,10 +197,10 @@ export default function Analytics() {
           <p className="text-on-surface-variant">{t("analytics.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-4">
-          <button className="px-5 py-2.5 rounded-lg border border-primary text-primary font-medium hover:bg-primary-fixed transition-colors flex items-center gap-2 active:translate-y-[1px]">
+          <button onClick={() => toast.info("Exportação de relatórios ainda depende de uma rota no backend.")} className="px-5 py-2.5 rounded-lg border border-primary text-primary font-medium hover:bg-primary-fixed transition-colors flex items-center gap-2 active:translate-y-[1px]">
             <Download className="w-4 h-4" /> {t("analytics.exportReport")}
           </button>
-          <button className="px-5 py-2.5 rounded-lg bg-primary-container text-white font-medium hover:opacity-90 transition-colors flex items-center gap-2 active:translate-y-[1px] shadow-sm">
+          <button onClick={() => toast.info("Filtros avançados chegam na próxima entrega.")} className="px-5 py-2.5 rounded-lg bg-primary-container text-white font-medium hover:opacity-90 transition-colors flex items-center gap-2 active:translate-y-[1px] shadow-sm">
             <Filter className="w-4 h-4" /> {t("analytics.filterData")}
           </button>
         </div>
@@ -424,7 +428,7 @@ export default function Analytics() {
             <h3 className="text-xl font-display font-bold">
               {t("analytics.learnerProgress")}
             </h3>
-            <button className="text-primary font-medium hover:underline text-sm">
+            <button onClick={() => navigate("/users")} className="text-primary font-medium hover:underline text-sm">
               {t("analytics.viewAll")}
             </button>
           </div>

@@ -2,11 +2,49 @@ import { useState, useEffect } from "react";
 import { Activity, Search, Download } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
+import { useToast } from "../components/ui";
 
 export default function AuditLogs() {
   const { t } = useLanguage();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
+
+  // Os logs ja estao em memoria, entao o CSV e montado no proprio navegador —
+  // nao depende de rota de exportacao no backend.
+  const exportarCSV = () => {
+    if (logs.length === 0) {
+      toast.info("Não há logs para exportar.");
+      return;
+    }
+
+    const colunas = ["Data/Hora", "Usuário", "Ação", "Entidade", "IP"];
+    const escapar = (valor: unknown) => `"${String(valor ?? "").replace(/"/g, '""')}"`;
+    const linhas = logs.map((log) =>
+      [
+        new Date(log.createdAt).toLocaleString("pt-BR"),
+        log.user?.name || "Sistema",
+        log.actionType,
+        log.entityType || "-",
+        log.ipAddress || "-",
+      ]
+        .map(escapar)
+        .join(";"),
+    );
+
+    // BOM para o Excel reconhecer os acentos; ";" porque o Excel pt-BR usa
+    // virgula como separador decimal.
+    const csv =
+      String.fromCharCode(0xfeff) + [colunas.map(escapar).join(";"), ...linhas].join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `auditoria-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast.success(`${logs.length} registro(s) exportado(s).`);
+  };
 
   useEffect(() => {
     api.get("/audit-logs")
@@ -39,7 +77,10 @@ export default function AuditLogs() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input type="text" placeholder="Buscar logs..." className="w-full bg-surface-container border border-outline-variant rounded-lg pl-9 pr-4 py-2 text-sm outline-none focus:border-primary" />
            </div>
-           <button className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-lg text-sm font-medium hover:bg-surface-container transition-colors">
+           <button
+              onClick={exportarCSV}
+              className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-lg text-sm font-medium hover:bg-surface-container transition-colors"
+           >
               <Download className="w-4 h-4" /> Exportar CSV
            </button>
         </div>

@@ -5,7 +5,7 @@ import api from '../services/api';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
-import { Button, Input } from '../components/ui';
+import { Button, Input, useToast } from '../components/ui';
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   VIDEO: 'Vídeo',
@@ -44,6 +44,7 @@ export default function LessonPlayer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const toast = useToast();
 
   // Estados
   const [course, setCourse] = useState<any>(null);
@@ -312,7 +313,7 @@ export default function LessonPlayer() {
                          className="py-2"
                          wrapperClassName="flex-1"
                        />
-                       <Button>Enviar</Button>
+                       <Button onClick={() => toast.info("O assistente da aula ainda não está conectado.")}>Enviar</Button>
                     </div>
                  </div>
               </div>

@@ -3,12 +3,14 @@ import { User, Shield, Save, Eye, EyeOff, Lock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useToast } from "../components/ui";
 
 type Tab = "profile" | "security";
 
 export default function Settings() {
   const { user } = useAuthStore();
   const { t } = useLanguage();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -69,7 +71,7 @@ export default function Settings() {
                       .join("")
                       .toUpperCase() || "U"}
                   </div>
-                  <button className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold uppercase">
+                  <button onClick={() => toast.info("Troca de foto de perfil ainda depende de upload no backend.")} className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold uppercase">
                     {t("settings.change") || "Alterar"}
                   </button>
                 </div>
@@ -132,9 +134,9 @@ export default function Settings() {
                       try {
                         const api = await import("../services/api").then(m => m.default);
                         await api.put("/users/me", { name: nameInput.value, email: user?.email, avatar: user?.avatar });
-                        alert("Perfil atualizado com sucesso!");
+                        toast.success("Perfil atualizado.");
                       } catch (e) {
-                        alert("Erro ao atualizar perfil");
+                        toast.error("Não foi possível atualizar o perfil.");
                       }
                     }
                   }}
@@ -229,18 +231,18 @@ export default function Settings() {
                     const newPwd = (document.getElementById("new-pwd") as HTMLInputElement).value;
                     const confirmPwd = (document.getElementById("confirm-pwd") as HTMLInputElement).value;
                     if(newPwd !== confirmPwd) {
-                      alert(t("settings.passwordMismatch") || "As senhas não coincidem!");
+                      toast.warning(t("settings.passwordMismatch") || "As senhas não coincidem.");
                       return;
                     }
                     if(!newPwd) return;
                     try {
                       const api = await import("../services/api").then(m => m.default);
                       await api.patch("/users/me/password", { newPassword: newPwd });
-                      alert(t("settings.passwordUpdated") || "Senha atualizada com sucesso!");
+                      toast.success(t("settings.passwordUpdated") || "Senha atualizada.");
                       (document.getElementById("new-pwd") as HTMLInputElement).value = "";
                       (document.getElementById("confirm-pwd") as HTMLInputElement).value = "";
                     } catch (e) {
-                      alert(t("settings.passwordError") || "Erro ao atualizar senha");
+                      toast.error(t("settings.passwordError") || "Não foi possível atualizar a senha.");
                     }
                   }}
                   className="bg-primary-container text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95"

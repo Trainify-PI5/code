@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "motion/react";
 import api from "../services/api";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
+import { ConfirmDialog, useToast } from "../components/ui";
 
 interface Message {
   id: string;
@@ -61,6 +62,23 @@ export default function IAAssistant() {
     },
   ]);
   const [input, setInput] = useState("");
+  const [limparAberto, setLimparAberto] = useState(false);
+  const toast = useToast();
+
+  const limparConversa = () => {
+    setMessages([
+      {
+        id: String(Date.now()),
+        role: "model",
+        text: t("ia.welcomeMessage"),
+        timestamp: new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      },
+    ]);
+    toast.success("Conversa limpa.");
+  };
   const [isTyping, setIsTyping] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -147,7 +165,12 @@ export default function IAAssistant() {
             {t("ia.conversations")}
           </h2>
           <div className="flex items-center gap-1">
-            <button className="p-2 hover:bg-surface-container rounded-lg transition-colors">
+            <button
+              onClick={() => setLimparAberto(true)}
+              title="Limpar conversa"
+              aria-label="Limpar conversa"
+              className="p-2 hover:bg-surface-container rounded-lg transition-colors"
+            >
               <Eraser className="w-4 h-4 text-on-surface-variant" />
             </button>
             {/* Botão fechar — só mobile */}
@@ -327,6 +350,16 @@ export default function IAAssistant() {
           </div>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={limparAberto}
+        onClose={() => setLimparAberto(false)}
+        onConfirm={limparConversa}
+        tone="danger"
+        title="Limpar conversa"
+        message="Todas as mensagens desta conversa serão apagadas."
+        confirmLabel="Limpar"
+      />
     </div>
   );
 }

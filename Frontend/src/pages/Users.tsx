@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
-import { Badge, Button, Card, Input } from '../components/ui';
+import { Badge, Button, Card, ConfirmDialog, Input, useToast } from '../components/ui';
 
 interface User {
   id: string;
@@ -27,6 +27,9 @@ export const Users: React.FC = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('STUDENT');
   const [isActive, setIsActive] = useState(true);
+  const [usuarioParaExcluir, setUsuarioParaExcluir] = useState<User | null>(null);
+
+  const toast = useToast();
 
   const fetchUsers = async () => {
     try {
@@ -76,21 +79,22 @@ export const Users: React.FC = () => {
       }
       setIsModalOpen(false);
       fetchUsers();
+      toast.success(isEditMode ? 'Usuário atualizado.' : 'Usuário criado.');
     } catch (err) {
       console.error('Erro ao salvar usuário', err);
-      alert('Erro ao salvar usuário. Verifique os dados e tente novamente.');
+      toast.error('Não foi possível salvar o usuário. Confira os dados e tente novamente.');
     }
   };
 
-  const handleDeleteUser = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
-      try {
-        await api.delete(`/users/${id}`);
-        fetchUsers();
-      } catch (err) {
-        console.error('Erro ao excluir usuário', err);
-        alert('Erro ao excluir usuário.');
-      }
+  const confirmarExclusao = async () => {
+    if (!usuarioParaExcluir) return;
+    try {
+      await api.delete(`/users/${usuarioParaExcluir.id}`);
+      fetchUsers();
+      toast.success('Usuário excluído.');
+    } catch (err) {
+      console.error('Erro ao excluir usuário', err);
+      toast.error('Não foi possível excluir o usuário.');
     }
   };
 
@@ -222,7 +226,7 @@ export const Users: React.FC = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => setUsuarioParaExcluir(user)}
                           className="p-2 text-on-surface-variant hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-surface-container"
                           title="Excluir"
                         >
@@ -323,6 +327,21 @@ export const Users: React.FC = () => {
           </Card>
         </div>
       )}
+
+      <ConfirmDialog
+        open={usuarioParaExcluir !== null}
+        onClose={() => setUsuarioParaExcluir(null)}
+        onConfirm={confirmarExclusao}
+        tone="danger"
+        title="Excluir usuário"
+        message={
+          <>
+            <strong className="text-on-surface">{usuarioParaExcluir?.name}</strong>{" "}
+            perderá o acesso à plataforma. Esta ação não pode ser desfeita.
+          </>
+        }
+        confirmLabel="Excluir"
+      />
     </div>
   );
 };

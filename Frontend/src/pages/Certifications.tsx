@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useToast } from "../components/ui";
 
 interface Certificate {
   id: string;
@@ -21,9 +22,33 @@ interface Certificate {
 }
 
 export default function Certifications() {
+  const toast = useToast();
   const { t } = useLanguage();
 
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+
+  // Web Share onde existir (celular), senao copia o link para a area de
+  // transferencia — os dois caminhos sao do proprio navegador.
+  const compartilhar = async (cert: Certificate) => {
+    const url = `${window.location.origin}/certifications`;
+    const texto = `Concluí "${cert.title}" na Trainify.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Certificado Trainify", text: texto, url });
+        return;
+      } catch {
+        return; // usuario cancelou o compartilhamento
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${texto} ${url}`);
+      toast.success("Link copiado para a área de transferência.");
+    } catch {
+      toast.error("Não foi possível copiar o link.");
+    }
+  };
   
   useEffect(() => {
     import("../services/api").then(api => {
@@ -51,7 +76,7 @@ export default function Certifications() {
           </h1>
           <p className="text-on-surface-variant">{t("cert.subtitle")}</p>
         </div>
-        <button className="bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95">
+        <button onClick={() => toast.info("Download dos certificados ainda depende de uma rota no backend.")} className="bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95">
           <Download className="w-4 h-4" /> {t("cert.downloadAll")}
         </button>
       </div>
@@ -143,14 +168,18 @@ export default function Certifications() {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => toast.info("Download do certificado ainda depende de uma rota no backend.")}
                   className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-primary transition-colors"
                   title={t("cert.downloadPdf")}
+                  aria-label={t("cert.downloadPdf")}
                 >
                   <Download className="w-4 h-4" />
                 </button>
                 <button
+                  onClick={() => compartilhar(cert)}
                   className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-primary transition-colors"
                   title={t("cert.share")}
+                  aria-label={t("cert.share")}
                 >
                   <ExternalLink className="w-4 h-4" />
                 </button>

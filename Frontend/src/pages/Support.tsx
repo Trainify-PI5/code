@@ -8,8 +8,11 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useState } from "react";
+import { Button, Modal } from "../components/ui";
 
 export default function Support() {
+  const [ajudaAberta, setAjudaAberta] = useState<number | null>(null);
   const { t } = useLanguage();
 
   const quickHelp = [
@@ -66,6 +69,7 @@ export default function Support() {
         {quickHelp.map((item, idx) => (
           <button
             key={idx}
+            onClick={() => setAjudaAberta(idx)}
             className="bg-surface-container-lowest border border-outline-variant p-6 rounded-2xl text-left hover:border-primary hover:shadow-md transition-all group"
           >
             <div className="w-12 h-12 bg-surface-container rounded-full flex items-center justify-center text-on-surface-variant mb-4 group-hover:bg-primary-fixed group-hover:text-primary transition-colors">
@@ -142,6 +146,19 @@ export default function Support() {
           </div>
         </div>
       </div>
+
+      <Modal
+        open={ajudaAberta !== null}
+        onClose={() => setAjudaAberta(null)}
+        title={ajudaAberta !== null ? quickHelp[ajudaAberta].title : undefined}
+        footer={
+          <Button onClick={() => setAjudaAberta(null)}>Entendi</Button>
+        }
+      >
+        <p className="text-on-surface-variant">
+          {ajudaAberta !== null && quickHelp[ajudaAberta].desc}
+        </p>
+      </Modal>
     </div>
   );
 }

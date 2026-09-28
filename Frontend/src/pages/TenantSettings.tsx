@@ -3,6 +3,7 @@ import { Building2, Save, UploadCloud } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
+import { useToast } from "../components/ui";
 
 export default function TenantSettings() {
   const { t } = useLanguage();
@@ -27,13 +28,15 @@ export default function TenantSettings() {
     }).catch(console.error);
   }, []);
 
+  const toast = useToast();
+
   const handleSave = async () => {
     setSaving(true);
     try {
       await api.put("/tenants/me", tenant);
-      alert("Configurações atualizadas com sucesso!");
+      toast.success("Configurações da empresa atualizadas.");
     } catch (e) {
-      alert("Erro ao salvar configurações");
+      toast.error("Não foi possível salvar as configurações.");
     } finally {
       setSaving(false);
     }

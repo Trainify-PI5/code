@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useToast } from "../components/ui";
 
 interface Lesson {
   id: string;
@@ -31,6 +32,7 @@ export default function CourseContent({
   onAssessment,
 }: CourseContentProps) {
   const { t, language } = useLanguage();
+  const toast = useToast();
 
   const lessons: Lesson[] = useMemo(
     () => [
@@ -151,7 +153,7 @@ export default function CourseContent({
               <h2 className="text-2xl font-display font-bold text-on-surface">
                 {activeLesson.title}
               </h2>
-              <button className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline uppercase tracking-widest">
+              <button onClick={() => toast.info("A transcrição ainda não está disponível para esta aula.")} className="flex items-center gap-1.5 text-xs font-bold text-primary hover:underline uppercase tracking-widest">
                 <FileText className="w-4 h-4" />{" "}
                 {t("content.downloadTranscript")}
               </button>
@@ -238,7 +240,7 @@ export default function CourseContent({
             ))}
           </div>
           <div className="p-4 bg-surface-container-low/50">
-            <button className="w-full bg-surface-container-lowest border border-outline-variant py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest hover:border-primary transition-all">
+            <button onClick={() => toast.info("Use o player da aula para marcar a conclusão.")} className="w-full bg-surface-container-lowest border border-outline-variant py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest hover:border-primary transition-all">
               {t("content.markComplete")}
             </button>
           </div>

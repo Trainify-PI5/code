@@ -4,7 +4,7 @@ import { UploadMedia } from '../components/UploadMedia';
 import AssessmentBuilder from '../components/Course/AssessmentBuilder';
 import api from '../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button } from '../components/ui';
+import { Alert, Button, ConfirmDialog, useToast } from '../components/ui';
 
 interface Lesson {
   id?: string;
@@ -33,6 +33,12 @@ export const CourseBuilder: React.FC = () => {
   const [modules, setModules] = useState<Module[]>([]);
   const [savedCourseId, setSavedCourseId] = useState<string | undefined>(id);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
+  // guarda o que sera excluido enquanto o dialogo de confirmacao esta aberto
+  const [exclusao, setExclusao] = useState<
+    { tipo: 'modulo'; modIdx: number } | { tipo: 'licao'; modIdx: number; lessonIdx: number } | null
+  >(null);
+
+  const toast = useToast();
 
   useEffect(() => {
     if (id) {
@@ -65,7 +71,7 @@ export const CourseBuilder: React.FC = () => {
       setModules(loadedModules);
     } catch (err) {
       console.error('Erro ao carregar curso', err);
-      alert('Erro ao carregar os dados do curso.');
+      toast.error('Não foi possível carregar os dados do curso.');
     } finally {
       setLoading(false);
     }
@@ -93,36 +99,42 @@ export const CourseBuilder: React.FC = () => {
     setModules(updatedModules);
   };
 
-  const handleRemoveModule = async (index: number) => {
+  const removerModulo = async (index: number) => {
     const mod = modules[index];
     if (mod.id) {
-      if (!window.confirm('Tem certeza que deseja excluir este módulo e todas as suas lições?')) return;
       try {
         await api.delete(`/modules/${mod.id}`);
       } catch (err) {
-        alert('Erro ao excluir módulo.');
+        toast.error('Não foi possível excluir o módulo.');
         return;
       }
     }
     const updatedModules = [...modules];
     updatedModules.splice(index, 1);
     setModules(updatedModules);
+    toast.success('Módulo excluído.');
   };
 
-  const handleRemoveLesson = async (moduleIndex: number, lessonIndex: number) => {
+  const removerLicao = async (moduleIndex: number, lessonIndex: number) => {
     const less = modules[moduleIndex].lessons[lessonIndex];
     if (less.id) {
-      if (!window.confirm('Tem certeza que deseja excluir esta lição?')) return;
       try {
         await api.delete(`/lessons/${less.id}`);
       } catch (err) {
-        alert('Erro ao excluir lição.');
+        toast.error('Não foi possível excluir a aula.');
         return;
       }
     }
     const updatedModules = [...modules];
     updatedModules[moduleIndex].lessons.splice(lessonIndex, 1);
     setModules(updatedModules);
+    toast.success('Aula excluída.');
+  };
+
+  const confirmarExclusao = async () => {
+    if (!exclusao) return;
+    if (exclusao.tipo === 'modulo') await removerModulo(exclusao.modIdx);
+    else await removerLicao(exclusao.modIdx, exclusao.lessonIdx);
   };
 
   const saveCourse = async (publish: boolean) => {
@@ -289,7 +301,7 @@ export const CourseBuilder: React.FC = () => {
                   className="w-full text-lg font-bold px-3 py-2 bg-transparent border-b-2 border-transparent hover:border-outline-variant focus:border-primary focus:bg-surface-container-lowest outline-none transition-all rounded-t-md text-on-surface"
                 />
               </div>
-              <button onClick={() => handleRemoveModule(modIdx)} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 p-2 rounded-lg transition-colors">
+              <button onClick={() => setExclusao({ tipo: 'modulo', modIdx })} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 p-2 rounded-lg transition-colors">
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
@@ -319,7 +331,7 @@ export const CourseBuilder: React.FC = () => {
                         placeholder="Título da Lição"
                         className="flex-1 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface outline-none focus:ring-2 focus:ring-primary/50"
                       />
-                      <button onClick={() => handleRemoveLesson(modIdx, lessIdx)} className="text-red-400 hover:text-red-500 p-1.5 rounded-lg">
+                      <button onClick={() => setExclusao({ tipo: 'licao', modIdx, lessonIdx: lessIdx })} className="text-red-400 hover:text-red-500 p-1.5 rounded-lg">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -446,6 +458,20 @@ export const CourseBuilder: React.FC = () => {
           <span className="font-medium">Adicionar Novo Módulo</span>
         </button>
       </div>
+
+      <ConfirmDialog
+        open={exclusao !== null}
+        onClose={() => setExclusao(null)}
+        onConfirm={confirmarExclusao}
+        tone="danger"
+        title={exclusao?.tipo === 'modulo' ? 'Excluir módulo' : 'Excluir aula'}
+        message={
+          exclusao?.tipo === 'modulo'
+            ? 'O módulo e todas as aulas dentro dele serão removidos. Esta ação não pode ser desfeita.'
+            : 'Esta aula será removida do módulo. Esta ação não pode ser desfeita.'
+        }
+        confirmLabel="Excluir"
+      />
     </div>
   );
 };

@@ -9,11 +9,41 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
+import api from "../services/api";
+import { useToast } from "../components/ui";
 
 export default function Notifications() {
   const { t } = useLanguage();
 
+  const toast = useToast();
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [marcando, setMarcando] = useState(false);
+
+  // O backend so expoe PATCH /notifications/{id}/read — nao ha rota para
+  // marcar todas de uma vez, entao isso percorre as nao lidas.
+  const marcarTodasComoLidas = async () => {
+    const naoLidas = notifications.filter((n) => !n.read);
+    if (naoLidas.length === 0) {
+      toast.info("Nenhuma notificação não lida.");
+      return;
+    }
+
+    setMarcando(true);
+    try {
+      await Promise.all(naoLidas.map((n) => api.patch(`/notifications/${n.id}/read`)));
+      setNotifications((atuais) => atuais.map((n) => ({ ...n, read: true })));
+      toast.success(
+        naoLidas.length === 1
+          ? "Notificação marcada como lida."
+          : `${naoLidas.length} notificações marcadas como lidas.`,
+      );
+    } catch (err) {
+      console.error("Erro ao marcar notificações", err);
+      toast.error("Não foi possível marcar as notificações.");
+    } finally {
+      setMarcando(false);
+    }
+  };
 
   useEffect(() => {
     import("../services/api").then(api => {
@@ -42,10 +72,19 @@ export default function Notifications() {
           <p className="text-on-surface-variant">{t("notif.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <button className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-all px-3 py-2 rounded-lg hover:bg-surface-container uppercase tracking-widest">
+          <button
+            onClick={marcarTodasComoLidas}
+            disabled={marcando}
+            className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-all px-3 py-2 rounded-lg hover:bg-surface-container uppercase tracking-widest disabled:opacity-60 disabled:cursor-not-allowed"
+          >
             <CheckCircle className="w-4 h-4" /> {t("notif.markAllRead")}
           </button>
-          <button className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-red-500 transition-all px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 uppercase tracking-widest">
+          <button
+            onClick={() =>
+              toast.info("Excluir notificações ainda depende de uma rota no backend.")
+            }
+            className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-red-500 transition-all px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 uppercase tracking-widest"
+          >
             <Trash2 className="w-4 h-4" /> {t("notif.clearAll")}
           </button>
         </div>
