@@ -42,23 +42,29 @@ export default function Support() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-10">
-      {/* Destaque Principal */}
-      <div className="bg-primary-container rounded-3xl p-10 md:p-16 text-white text-center relative overflow-hidden shadow-md">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-primary-fixed rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute left-0 bottom-0 w-64 h-64 bg-primary rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/3" />
-        <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-          <h1 className="text-4xl md:text-5xl font-display font-bold">
+      {/* Destaque Principal — superficie de marca: fica no roxo profundo nos dois
+          temas, como as telas de entrada. Antes era bg-primary-container, que no
+          tema escuro clareia para #8353e2: o subtitulo caia para 2.07:1 e o campo
+          de busca, preso a uma cor de superficie, virava caixa preta dentro do roxo.
+          Aqui o fundo nao depende do tema, entao tudo por cima pode ser branco. */}
+      <div className="rounded-3xl px-6 py-12 md:px-16 md:py-14 text-white text-center relative overflow-hidden shadow-md bg-gradient-to-br from-[#1a0550] via-[#2d0d7a] to-[#452097]">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute left-0 bottom-0 w-64 h-64 bg-white/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
+        <div className="relative z-10 max-w-2xl mx-auto space-y-5">
+          <h1 className="text-3xl md:text-5xl font-display font-bold tracking-tight text-balance">
             {t("support.heroTitle")}
           </h1>
-          <p className="text-primary-fixed text-lg">
+          <p className="text-white/80 text-base md:text-lg leading-relaxed text-balance">
             {t("support.heroSubtitle")}
           </p>
-          <div className="relative max-w-lg mx-auto mt-8">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+          <div className="relative max-w-lg mx-auto pt-2">
+            {/* top-1/2 do wrapper conta o pt-2, entao o icone desce meio passo */}
+            <Search className="absolute left-4 top-[calc(50%+0.25rem)] -translate-y-1/2 text-white/70 w-5 h-5 pointer-events-none" />
             <input
               type="text"
               placeholder={t("support.searchPlaceholder")}
-              className="w-full bg-surface-container-lowest text-on-surface rounded-xl pl-12 pr-4 py-4 focus:outline-none focus:ring-4 focus:ring-primary-fixed/50 transition-all font-sans shadow-lg text-sm"
+              aria-label={t("support.searchPlaceholder")}
+              className="w-full bg-white/15 border border-white/25 text-white placeholder:text-white/70 rounded-xl pl-12 pr-4 py-3.5 text-sm font-sans backdrop-blur-sm transition-colors hover:bg-white/20 focus:outline-none focus:border-white/60 focus:bg-white/20 focus-visible:ring-white/60 focus-visible:ring-offset-0"
             />
           </div>
         </div>
