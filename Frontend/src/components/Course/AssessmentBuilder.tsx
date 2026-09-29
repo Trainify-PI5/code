@@ -125,7 +125,7 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-50"
+          className="bg-primary-container text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {saving ? "Salvando..." : "Salvar Avaliação"}

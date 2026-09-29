@@ -27,6 +27,7 @@ import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { Button, Input, Modal, useToast } from "../components/ui";
 import { baixarCSV } from "../lib/download";
+import { useTemaGrafico } from "../lib/chartTheme";
 import {
   aplicarFiltros,
   contarFiltrosAtivos,
@@ -71,11 +72,11 @@ interface CourseCompletion {
   completionRate: number;
 }
 
-// Cor fixa por status, para a pizza e a legenda nao trocarem de cor entre cargas
-const STATUS_STYLE: Record<string, { labelKey: string; color: string }> = {
-  IN_PROGRESS: { labelKey: "analytics.statusInProgress", color: "#4b2c92" },
-  COMPLETED: { labelKey: "analytics.statusCompleted", color: "#16a34a" },
-  CANCELLED: { labelKey: "analytics.statusCancelled", color: "#b3aac0" },
+// Rotulo fixo por status; a cor vem do tema, que muda entre claro e escuro.
+const STATUS_STYLE: Record<string, { labelKey: string }> = {
+  IN_PROGRESS: { labelKey: "analytics.statusInProgress" },
+  COMPLETED: { labelKey: "analytics.statusCompleted" },
+  CANCELLED: { labelKey: "analytics.statusCancelled" },
 };
 
 const LOCALES: Record<string, string> = { en: "en-US", es: "es-ES", "pt-BR": "pt-BR" };
@@ -198,6 +199,7 @@ export default function Analytics() {
   };
   const toast = useToast();
   const { t, language } = useLanguage();
+  const cores = useTemaGrafico();
   const [period, setPeriod] = useState<EngagementPeriod>("LAST_30_DAYS");
 
   const engagement = useAnalyticsData<EngagementPoint[]>("/analytics/engagement", { period });
@@ -265,7 +267,7 @@ export default function Analytics() {
     status: item.status,
     name: t(STATUS_STYLE[item.status]?.labelKey ?? item.status),
     value: item.count,
-    color: STATUS_STYLE[item.status]?.color ?? "#edeeef",
+    color: cores.status[item.status] ?? cores.neutro,
   }));
   const statusTotal = statusItems.reduce((sum, item) => sum + item.value, 0);
   const statusPieData = statusItems.filter((item) => item.value > 0);
@@ -392,36 +394,35 @@ export default function Analytics() {
                 <AreaChart data={engagementChart}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4b2c92" stopOpacity={0.1} />
-                      <stop offset="95%" stopColor="#4b2c92" stopOpacity={0} />
+                      <stop offset="5%" stopColor={cores.matriculas} stopOpacity={0.1} />
+                      <stop offset="95%" stopColor={cores.matriculas} stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorCompletions" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#16a34a" stopOpacity={0.1} />
-                      <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
+                      <stop offset="5%" stopColor={cores.conclusoes} stopOpacity={0.1} />
+                      <stop offset="95%" stopColor={cores.conclusoes} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     vertical={false}
-                    stroke="#edeeef"
+                    stroke={cores.grade}
                   />
                   <XAxis
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12, fill: "#494552" }}
+                    tick={{ fontSize: 12, fill: cores.eixo }}
                   />
                   <YAxis
                     allowDecimals={false}
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12, fill: "#494552" }}
+                    tick={{ fontSize: 12, fill: cores.eixo }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#fff",
+                      ...cores.tooltip,
                       borderRadius: "12px",
-                      borderColor: "#cbc4d3",
                       boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
                     itemStyle={{ fontWeight: 600 }}
@@ -431,7 +432,7 @@ export default function Analytics() {
                     type="monotone"
                     dataKey="enrollments"
                     name={t("analytics.newEnrollments")}
-                    stroke="#4b2c92"
+                    stroke={cores.matriculas}
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorValue)"
@@ -440,7 +441,7 @@ export default function Analytics() {
                     type="monotone"
                     dataKey="completions"
                     name={t("analytics.completions")}
-                    stroke="#16a34a"
+                    stroke={cores.conclusoes}
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorCompletions)"
@@ -487,8 +488,8 @@ export default function Analytics() {
                       </Pie>
                       <Tooltip
                         contentStyle={{
+                          ...cores.tooltip,
                           borderRadius: "12px",
-                          border: "none",
                           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                         }}
                       />

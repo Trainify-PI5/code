@@ -121,7 +121,7 @@ export const Users: React.FC = () => {
     switch(role) {
       case 'ADMIN': return <ShieldAlert className="w-4 h-4 text-red-500" />;
       case 'MANAGER': return <ShieldCheck className="w-4 h-4 text-blue-500" />;
-      default: return <Shield className="w-4 h-4 text-slate-400" />;
+      default: return <Shield className="w-4 h-4 text-on-surface-variant" />;
     }
   };
 
