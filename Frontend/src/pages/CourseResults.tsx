@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, CheckCircle2, XCircle, Users, Target, RotateCcw } from "lucide-react";
 import { cn } from "../lib/utils";
 import api from "../services/api";
-import { PageHeader } from "../components/ui";
+import { DataTable, PageHeader, type Coluna } from "../components/ui";
 
 interface Attempt {
   id: string;
@@ -102,6 +102,57 @@ export default function CourseResults() {
     return { students, approved, average };
   }, [rows]);
 
+  const colunas: Coluna<StudentRow>[] = [
+    {
+      key: "studentName",
+      header: "Aluno",
+      sortValue: (row) => row.studentName,
+      render: (row) => <span className="font-medium text-on-surface">{row.studentName}</span>,
+    },
+    {
+      key: "lessonTitle",
+      header: "Avaliação",
+      sortValue: (row) => row.lessonTitle,
+      render: (row) => <span className="text-on-surface-variant">{row.lessonTitle}</span>,
+    },
+    {
+      key: "bestScore",
+      header: "Melhor nota",
+      sortValue: (row) => row.bestScore,
+      render: (row) => (
+        <span className={cn("font-bold", row.passed ? "text-green-600" : "text-red-500")}>
+          {row.bestScore}%
+        </span>
+      ),
+    },
+    {
+      key: "attempts",
+      header: "Tentativas",
+      sortValue: (row) => row.attempts,
+      render: (row) => (
+        <span className="flex items-center gap-1.5 text-on-surface-variant">
+          <RotateCcw className="w-3.5 h-3.5" /> {row.attempts}
+        </span>
+      ),
+    },
+    {
+      key: "passed",
+      header: "Situação",
+      // aprovado primeiro, e nao "Aprovado" antes de "Reprovado" por acaso
+      sortValue: (row) => (row.passed ? 0 : 1),
+      render: (row) =>
+        row.passed ? (
+          <span className="inline-flex items-center gap-1.5 text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full text-xs font-bold dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Aprovado
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full text-xs font-bold dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400">
+            <XCircle className="w-3.5 h-3.5" /> Reprovado
+          </span>
+        ),
+    },
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <button
@@ -155,46 +206,14 @@ export default function CourseResults() {
           </div>
 
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-container text-on-surface-variant text-xs uppercase tracking-widest">
-                <tr>
-                  <th className="text-left px-6 py-4 font-bold">Aluno</th>
-                  <th className="text-left px-6 py-4 font-bold">Avaliação</th>
-                  <th className="text-left px-6 py-4 font-bold">Melhor nota</th>
-                  <th className="text-left px-6 py-4 font-bold">Tentativas</th>
-                  <th className="text-left px-6 py-4 font-bold">Situação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={`${row.studentId}-${row.lessonTitle}`} className="border-t border-outline-variant">
-                    <td className="px-6 py-4 font-medium text-on-surface">{row.studentName}</td>
-                    <td className="px-6 py-4 text-on-surface-variant">{row.lessonTitle}</td>
-                    <td className="px-6 py-4">
-                      <span className={cn("font-bold", row.passed ? "text-green-600" : "text-red-500")}>
-                        {row.bestScore}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-on-surface-variant">
-                      <span className="flex items-center gap-1.5">
-                        <RotateCcw className="w-3.5 h-3.5" /> {row.attempts}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {row.passed ? (
-                        <span className="inline-flex items-center gap-1.5 text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full text-xs font-bold dark:bg-green-500/10 dark:border-green-500/30 dark:text-green-300">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Aprovado
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full text-xs font-bold dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400">
-                          <XCircle className="w-3.5 h-3.5" /> Reprovado
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              columns={colunas}
+              rows={rows}
+              rowKey={(row) => `${row.studentId}-${row.lessonTitle}`}
+              pageSize={20}
+              initialSort={{ key: "bestScore", direcao: "desc" }}
+              emptyMessage="Nenhum resultado ainda."
+            />
           </div>
         </>
       )}

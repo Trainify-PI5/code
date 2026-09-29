@@ -2,25 +2,89 @@ import { useState, useEffect } from "react";
 import { Activity, Search, Download } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { PageHeader, SkeletonTableRows, useToast } from "../components/ui";
+import { DataTable, PageHeader, useToast, type Coluna } from "../components/ui";
 
 export default function AuditLogs() {
   const { t } = useLanguage();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
   const toast = useToast();
+
+  // Os logs vem inteiros da API, entao a busca filtra o que ja esta em memoria.
+  const textoDoLog = (log: any) =>
+    [log.user?.name, log.actionType, log.entityType, log.ipAddress]
+      .filter(Boolean)
+      .join(" ")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase();
+
+  const termo = busca
+    .trim()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+  const logsFiltrados = termo ? logs.filter((log) => textoDoLog(log).includes(termo)) : logs;
+
+  const colunas: Coluna<any>[] = [
+    {
+      key: "createdAt",
+      header: "Data/Hora",
+      sortValue: (log) => new Date(log.createdAt),
+      render: (log) => (
+        <span className="font-medium text-on-surface-variant whitespace-nowrap">
+          {new Date(log.createdAt).toLocaleString("pt-BR")}
+        </span>
+      ),
+    },
+    {
+      key: "user",
+      header: "Usuário",
+      sortValue: (log) => log.user?.name || "Sistema",
+      render: (log) => (
+        <span className="font-semibold text-primary">{log.user?.name || "Sistema"}</span>
+      ),
+    },
+    {
+      key: "actionType",
+      header: "Ação",
+      sortValue: (log) => log.actionType,
+      render: (log) => (
+        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm bg-surface-container text-on-surface-variant">
+          {log.actionType}
+        </span>
+      ),
+    },
+    {
+      key: "entityType",
+      header: "Entidade",
+      sortValue: (log) => log.entityType,
+      render: (log) => <span className="text-on-surface-variant">{log.entityType || "-"}</span>,
+    },
+    {
+      key: "ipAddress",
+      header: "IP",
+      sortValue: (log) => log.ipAddress,
+      render: (log) => (
+        <span className="text-xs font-mono text-on-surface-variant">
+          {log.ipAddress || "0.0.0.0"}
+        </span>
+      ),
+    },
+  ];
 
   // Os logs ja estao em memoria, entao o CSV e montado no proprio navegador —
   // nao depende de rota de exportacao no backend.
   const exportarCSV = () => {
-    if (logs.length === 0) {
+    if (logsFiltrados.length === 0) {
       toast.info("Não há logs para exportar.");
       return;
     }
 
     const colunas = ["Data/Hora", "Usuário", "Ação", "Entidade", "IP"];
     const escapar = (valor: unknown) => `"${String(valor ?? "").replace(/"/g, '""')}"`;
-    const linhas = logs.map((log) =>
+    const linhas = logsFiltrados.map((log) =>
       [
         new Date(log.createdAt).toLocaleString("pt-BR"),
         log.user?.name || "Sistema",
@@ -67,7 +131,14 @@ export default function AuditLogs() {
         <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
            <div className="relative max-w-sm w-full">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-              <input type="text" placeholder="Buscar logs..." className="w-full bg-surface-container border border-outline-variant rounded-lg pl-9 pr-4 py-2 text-sm outline-none focus:border-primary" />
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar logs..."
+                aria-label="Buscar logs"
+                className="w-full bg-surface-container border border-outline-variant rounded-lg pl-9 pr-4 py-2 text-sm outline-none focus:border-primary"
+              />
            </div>
            <button
               onClick={exportarCSV}
@@ -76,59 +147,16 @@ export default function AuditLogs() {
               <Download className="w-4 h-4" /> Exportar CSV
            </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse" aria-busy={loading}>
-            <thead>
-              <tr className="bg-surface-container-low/30 border-b border-outline-variant">
-                <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                  Data/Hora
-                </th>
-                <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                  Usuário
-                </th>
-                <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                  Ação
-                </th>
-                <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                  Entidade
-                </th>
-                <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                  IP
-                </th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {loading ? (
-                <SkeletonTableRows rows={6} columns={5} />
-              ) : logs.length === 0 ? (
-                <tr><td colSpan={5} className="p-8 text-center text-on-surface-variant">Nenhum log encontrado.</td></tr>
-              ) : logs.map((log, idx) => (
-                <tr
-                  key={log.id}
-                  className="border-b border-outline-variant hover:bg-surface-bright transition-colors"
-                >
-                  <td className="p-4 font-medium text-on-surface-variant">
-                    {new Date(log.createdAt).toLocaleString()}
-                  </td>
-                  <td className="p-4 font-semibold text-primary">
-                    {log.user?.name || "Sistema"}
-                  </td>
-                  <td className="p-4">
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm bg-surface-container text-on-surface-variant">
-                      {log.actionType}
-                    </span>
-                  </td>
-                  <td className="p-4 text-on-surface-variant">
-                    {log.entityType || "-"}
-                  </td>
-                  <td className="p-4 text-xs font-mono text-on-surface-variant">
-                    {log.ipAddress || "0.0.0.0"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={colunas}
+          rows={logsFiltrados}
+          rowKey={(log) => log.id}
+          loading={loading}
+          pageSize={20}
+          skeletonRows={6}
+          initialSort={{ key: "createdAt", direcao: "desc" }}
+          emptyMessage={termo ? "Nenhum log corresponde à busca." : "Nenhum log encontrado."}
+        />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
-import { Badge, Button, Card, ConfirmDialog, Input, PageHeader, SkeletonTableRows, useToast } from '../components/ui';
+import { Badge, Button, Card, ConfirmDialog, DataTable, Input, PageHeader, useToast, type Coluna } from '../components/ui';
 
 interface User {
   id: string;
@@ -125,6 +125,85 @@ export const Users: React.FC = () => {
     }
   };
 
+  const colunas: Coluna<any>[] = [
+    {
+      key: "name",
+      header: "Usuário",
+      sortValue: (user) => user.name,
+      render: (user) => (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-full bg-primary-container text-white flex items-center justify-center font-bold overflow-hidden border border-outline-variant">
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+            ) : (
+              user.name.charAt(0).toUpperCase()
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium text-on-surface truncate">{user.name}</p>
+            <p className="text-sm text-on-surface-variant truncate">{user.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "role",
+      header: "Função",
+      sortValue: (user) => user.role,
+      render: (user) => (
+        <div className="flex items-center gap-2">
+          {getRoleIcon(user.role)}
+          <span className="text-sm font-medium text-on-surface-variant">{user.role}</span>
+        </div>
+      ),
+    },
+    {
+      key: "isActive",
+      header: "Status",
+      // ordena por situacao, nao pelo texto: ativo primeiro
+      sortValue: (user) => (user.isActive ? 0 : 1),
+      render: (user) => (
+        <Badge tone={user.isActive ? "success" : "neutral"}>
+          {user.isActive ? "Ativo" : "Inativo"}
+        </Badge>
+      ),
+    },
+    {
+      key: "acoes",
+      header: "Ações",
+      align: "right",
+      hideLabelOnMobile: true,
+      render: (user) => (
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => handleToggleStatus(user)}
+            className="p-2 text-on-surface-variant hover:text-green-600 dark:hover:text-green-400 transition-colors rounded-lg hover:bg-surface-container"
+            title={user.isActive ? "Desativar usuário" : "Ativar usuário"}
+            aria-label={user.isActive ? `Desativar ${user.name}` : `Ativar ${user.name}`}
+          >
+            {user.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={() => openEditModal(user)}
+            className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container"
+            title="Editar"
+            aria-label={`Editar ${user.name}`}
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setUsuarioParaExcluir(user)}
+            className="p-2 text-on-surface-variant hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-surface-container"
+            title="Excluir"
+            aria-label={`Excluir ${user.name}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <PageHeader
@@ -152,87 +231,16 @@ export const Users: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse" aria-busy={loading}>
-            <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant text-on-surface-variant text-sm font-medium">
-                <th className="p-4">Usuário</th>
-                <th className="p-4">Função</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant">
-              {loading ? (
-                <SkeletonTableRows rows={5} columns={4} avatar />
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-on-surface-variant">
-                    Nenhum usuário encontrado.
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-surface-container-low transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold overflow-hidden border border-outline-variant">
-                          {user.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                          ) : (
-                            user.name.charAt(0).toUpperCase()
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-on-surface">{user.name}</p>
-                          <p className="text-sm text-on-surface-variant">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {getRoleIcon(user.role)}
-                        <span className="text-sm font-medium text-on-surface-variant">
-                          {user.role}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <Badge tone={user.isActive ? "success" : "neutral"}>
-                        {user.isActive ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleToggleStatus(user)}
-                          className="p-2 text-on-surface-variant hover:text-green-600 dark:hover:text-green-400 transition-colors rounded-lg hover:bg-surface-container"
-                          title={user.isActive ? "Desativar usuário" : "Ativar usuário"}
-                        >
-                          {user.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container"
-                          title="Editar"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setUsuarioParaExcluir(user)}
-                          className="p-2 text-on-surface-variant hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-surface-container"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={colunas}
+          rows={filteredUsers}
+          rowKey={(user) => user.id}
+          loading={loading}
+          pageSize={20}
+          skeletonAvatar
+          initialSort={{ key: "name", direcao: "asc" }}
+          emptyMessage="Nenhum usuário encontrado."
+        />
       </Card>
 
       {isModalOpen && (

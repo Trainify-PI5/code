@@ -25,7 +25,7 @@ import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Button, Input, Modal, PageHeader, SkeletonTableRows, useToast } from "../components/ui";
+import { Button, DataTable, Input, Modal, PageHeader, useToast, type Coluna } from "../components/ui";
 import { baixarCSV } from "../lib/download";
 import { useTemaGrafico } from "../lib/chartTheme";
 import {
@@ -313,6 +313,77 @@ export default function Analytics() {
       : { rotulo: t("analytics.statusStarted"), cor: "bg-surface-container text-on-surface-variant" };
   };
 
+  const colunasAlunos: Coluna<LinhaAluno>[] = [
+    {
+      key: "studentName",
+      header: t("analytics.colName"),
+      sortValue: (row) => row.studentName,
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-bold text-[10px]",
+              situacaoDoAluno(row).cor,
+            )}
+          >
+            {row.studentName.substring(0, 2).toUpperCase()}
+          </div>
+          <span className="font-semibold truncate">{row.studentName}</span>
+        </div>
+      ),
+    },
+    {
+      key: "courseTitle",
+      header: t("analytics.colCourse"),
+      sortValue: (row) => row.courseTitle,
+      render: (row) => (
+        <span className="text-on-surface-variant truncate block max-w-[200px]">
+          {row.courseTitle}
+        </span>
+      ),
+    },
+    {
+      key: "progress",
+      header: t("analytics.colProgress"),
+      sortValue: (row) => row.progress,
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <div className="w-16 bg-surface-container h-1.5 rounded-full overflow-hidden">
+            <div
+              className={cn("h-full", row.progress === 100 ? "bg-green-500" : "bg-primary-container")}
+              style={{ width: `${row.progress}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-on-surface-variant">{row.progress}%</span>
+        </div>
+      ),
+    },
+    {
+      key: "score",
+      header: t("analytics.colScore"),
+      sortValue: (row) => row.score,
+      render: (row) => <span className="font-semibold">{row.score}</span>,
+    },
+    {
+      key: "status",
+      header: t("analytics.colStatus"),
+      sortValue: (row) => situacaoDoAluno(row).rotulo,
+      render: (row) => {
+        const situacao = situacaoDoAluno(row);
+        return (
+          <span
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm",
+              situacao.cor,
+            )}
+          >
+            {situacao.rotulo}
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <PageHeader
@@ -569,94 +640,17 @@ export default function Analytics() {
               {t("analytics.viewAll")}
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse" aria-busy={carregandoAlunos}>
-              <thead>
-                <tr className="bg-surface-container-low/30 border-b border-outline-variant">
-                  <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {t("analytics.colName")}
-                  </th>
-                  <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {t("analytics.colCourse")}
-                  </th>
-                  <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {t("analytics.colProgress")}
-                  </th>
-                  <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {t("analytics.colScore")}
-                  </th>
-                  <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    {t("analytics.colStatus")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {carregandoAlunos && <SkeletonTableRows rows={5} columns={5} avatar />}
-                {!carregandoAlunos && learnersFiltrados.map((row, idx) => {
-                  const situacao = situacaoDoAluno(row);
-                  return (
-                  <tr
-                    key={idx}
-                    className="border-b border-outline-variant hover:bg-surface-bright transition-colors"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px]",
-                            situacao.cor,
-                          )}
-                        >
-                          {row.studentName.substring(0, 2).toUpperCase()}
-                        </div>
-                        <span className="font-semibold">{row.studentName}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-on-surface-variant truncate max-w-[200px]">
-                      {row.courseTitle}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-surface-container h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className={cn(
-                              "h-full",
-                              row.progress === 100
-                                ? "bg-green-500"
-                                : "bg-primary-container",
-                            )}
-                            style={{ width: `${row.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-on-surface-variant">
-                          {row.progress}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4 font-semibold">{row.score}</td>
-                    <td className="p-4">
-                      <span
-                        className={cn(
-                          "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm",
-                          situacao.cor,
-                        )}
-                      >
-                        {situacao.rotulo}
-                      </span>
-                    </td>
-                  </tr>
-                  );
-                })}
-                {!carregandoAlunos && learners.length > 0 && learnersFiltrados.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-sm text-on-surface-variant">
-                      {t("analytics.noMatches")}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={colunasAlunos}
+            rows={learnersFiltrados}
+            rowKey={(row) => `${row.studentEmail}-${row.courseId}`}
+            loading={carregandoAlunos}
+            pageSize={10}
+            skeletonAvatar
+            emptyMessage={
+              learners.length > 0 ? t("analytics.noMatches") : t("analytics.noEnrollments")
+            }
+          />
         </div>
       </div>
 
