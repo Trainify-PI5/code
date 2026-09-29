@@ -29,3 +29,9 @@ if (!window.matchMedia) {
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
 }
+
+// Outra lacuna do jsdom: nenhum navegador real fica sem scrollIntoView, entao
+// nao faz sentido proteger a chamada no componente so por causa do teste.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}

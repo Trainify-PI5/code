@@ -1,4 +1,4 @@
-import { useState, Suspense, lazy } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { cn } from "./lib/utils";
 import {
   Routes,
@@ -32,6 +32,7 @@ const CourseResults = lazy(() => import("./pages/CourseResults"));
 import { useAuthStore } from "./store/authStore";
 import { useThemeStore } from "./store/themeStore";
 import AIChatWidget from "./components/AIChatWidget";
+import CommandPalette from "./components/CommandPalette";
 
 
 function ProtectedRoute({
@@ -55,8 +56,22 @@ export default function App() {
   const { isAuthenticated } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useThemeStore();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [paletaAberta, setPaletaAberta] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Ctrl+K no Windows e Linux, Cmd+K no Mac. O preventDefault e necessario
+  // porque Cmd+K e atalho nativo do navegador para a barra de endereco.
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setPaletaAberta((aberta) => !aberta);
+      }
+    };
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, []);
 
   if (!isAuthenticated) {
     return <AuthRouter />;
@@ -98,6 +113,7 @@ export default function App() {
           toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isDarkMode={isDarkMode}
           toggleDarkMode={toggleDarkMode}
+          onOpenSearch={() => setPaletaAberta(true)}
         />
 
         <main className="flex-1 overflow-y-auto w-full relative flex flex-col">
@@ -293,6 +309,7 @@ export default function App() {
         </main>
       </div>
       <AIChatWidget />
+      <CommandPalette open={paletaAberta} onClose={() => setPaletaAberta(false)} />
     </div>
   );
 }

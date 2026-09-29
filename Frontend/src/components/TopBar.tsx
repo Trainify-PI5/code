@@ -12,7 +12,6 @@ import {
   User,
   Settings,
   Menu,
-  X,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -28,7 +27,15 @@ interface TopBarProps {
   toggleSidebar: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  /** Abre a paleta de comandos (Ctrl/Cmd+K). */
+  onOpenSearch: () => void;
 }
+
+// Cmd no Mac, Ctrl no resto. Lido uma vez: nao muda durante a sessao.
+const atalhoDaBusca =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
+    ? "⌘K"
+    : "Ctrl K";
 
 export default function TopBar({
   onNotify,
@@ -39,13 +46,12 @@ export default function TopBar({
   toggleSidebar,
   isDarkMode,
   toggleDarkMode,
+  onOpenSearch,
 }: TopBarProps) {
   const { language, setLanguage, t } = useLanguage();
   const { user, logout } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -59,12 +65,6 @@ export default function TopBar({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  useEffect(() => {
-    if (searchOpen && searchRef.current) {
-      searchRef.current.focus();
-    }
-  }, [searchOpen]);
 
   const initials = user?.name
     ? user.name
@@ -100,23 +100,29 @@ export default function TopBar({
             </button>
           </div>
 
-          {/* Centro (Busca) */}
+          {/* Centro (Busca) — botao, e nao campo: quem digita e a paleta */}
           <div className="hidden md:flex justify-center flex-1 min-w-0 max-w-2xl px-4">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant w-4 h-4" />
-              <input
-                type="text"
-                placeholder={t("topbar.search")}
-                className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-sans placeholder:text-outline-variant text-on-surface shadow-sm"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="group w-full flex items-center gap-3 bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm shadow-sm transition-colors hover:border-primary"
+            >
+              <Search className="w-4 h-4 shrink-0 text-on-surface-variant" aria-hidden="true" />
+              <span className="flex-1 text-left truncate text-outline-variant group-hover:text-on-surface-variant transition-colors">
+                {t("topbar.search")}
+              </span>
+              <kbd className="shrink-0 text-[10px] font-bold text-on-surface-variant border border-outline-variant rounded px-1.5 py-0.5">
+                {atalhoDaBusca}
+              </kbd>
+            </button>
           </div>
 
           {/* Lado Direito */}
           <div className="flex items-center justify-end gap-1 sm:gap-2 w-auto shrink-0 ml-auto">
             {/* Botão de busca mobile */}
             <button
-              onClick={() => setSearchOpen(true)}
+              onClick={onOpenSearch}
+              aria-label="Pesquisar"
               className="md:hidden text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-surface-container active:scale-95"
             >
               <Search className="w-5 h-5" />
@@ -258,29 +264,6 @@ export default function TopBar({
         </div>
       </header>
 
-      {/* Search overlay — mobile */}
-      {searchOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-surface-bright/95 backdrop-blur-sm flex flex-col">
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-outline-variant">
-            <Search className="w-5 h-5 text-on-surface-variant shrink-0" />
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder={t("topbar.search")}
-              className="flex-1 bg-transparent outline-none text-base text-on-surface placeholder:text-outline-variant"
-            />
-            <button
-              onClick={() => setSearchOpen(false)}
-              className="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="flex-1 flex items-center justify-center text-on-surface-variant text-sm">
-            Digite para pesquisar...
-          </div>
-        </div>
-      )}
     </>
   );
 }
