@@ -3,7 +3,7 @@ import { User, Shield, Save, Eye, EyeOff, Lock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
-import { PageHeader, useToast } from "../components/ui";
+import { PageContainer, PageHeader, useToast } from "../components/ui";
 import { useRef } from "react";
 import api from "../services/api";
 
@@ -72,7 +72,7 @@ export default function Settings() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <PageContainer>
       <PageHeader
         title={t("settings.title") || "Configurações"}
         subtitle={t("settings.subtitle") || "Gerencie as preferências da sua conta."}
@@ -320,6 +320,6 @@ export default function Settings() {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -25,7 +25,7 @@ import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Button, DataTable, Input, Modal, PageHeader, useToast, type Coluna } from "../components/ui";
+import { Button, DataTable, Input, Modal, PageContainer, PageHeader, useToast, type Coluna } from "../components/ui";
 import { baixarCSV } from "../lib/download";
 import { useTemaGrafico } from "../lib/chartTheme";
 import {
@@ -385,7 +385,7 @@ export default function Analytics() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <PageContainer width="wide">
       <PageHeader
         title={t("analytics.title")}
         subtitle={t("analytics.subtitle")}
@@ -733,6 +733,6 @@ export default function Analytics() {
           />
         </div>
       </Modal>
-    </div>
+    </PageContainer>
   );
 }

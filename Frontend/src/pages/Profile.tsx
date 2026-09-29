@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useToast } from "../components/ui";
+import { PageContainer, useToast } from "../components/ui";
 import { baixarBlob, nomeDeArquivo } from "../lib/download";
 import api from "../services/api";
 
@@ -116,7 +116,7 @@ export default function Profile() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <PageContainer>
       {/* Header do Perfil */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -319,6 +319,6 @@ export default function Profile() {
           ))}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

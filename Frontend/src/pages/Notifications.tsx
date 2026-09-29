@@ -10,7 +10,7 @@ import {
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { ConfirmDialog, PageHeader, useToast } from "../components/ui";
+import { ConfirmDialog, PageContainer, PageHeader, useToast } from "../components/ui";
 
 export default function Notifications() {
   const { t } = useLanguage();
@@ -78,7 +78,7 @@ export default function Notifications() {
   }, []);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <PageContainer width="narrow">
       <PageHeader
         title={t("notif.title")}
         subtitle={t("notif.subtitle")}
@@ -165,6 +165,6 @@ export default function Notifications() {
         }
         confirmLabel="Limpar tudo"
       />
-    </div>
+    </PageContainer>
   );
 }

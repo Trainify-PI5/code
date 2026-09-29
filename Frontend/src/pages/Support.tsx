@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useState } from "react";
-import { Button, Modal } from "../components/ui";
+import { Button, Modal, PageContainer } from "../components/ui";
 
 export default function Support() {
   const [ajudaAberta, setAjudaAberta] = useState<number | null>(null);
@@ -41,7 +41,7 @@ export default function Support() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-10">
+    <PageContainer className="pb-10">
       {/* Destaque Principal — superficie de marca: fica no roxo profundo nos dois
           temas, como as telas de entrada. Antes era bg-primary-container, que no
           tema escuro clareia para #8353e2: o subtitulo caia para 2.07:1 e o campo
@@ -92,7 +92,7 @@ export default function Support() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10">
         {/* Contato */}
         <div className="space-y-6">
-          <h3 className="text-2xl font-display font-bold">
+          <h3 className="text-xl font-display font-bold">
             {t("support.contactTitle")}
           </h3>
           <p className="text-on-surface-variant text-sm">
@@ -131,7 +131,7 @@ export default function Support() {
 
         {/* Perguntas Frequentes */}
         <div className="lg:col-span-2 space-y-6">
-          <h3 className="text-2xl font-display font-bold flex items-center gap-2">
+          <h3 className="text-xl font-display font-bold flex items-center gap-2">
             <HelpCircle className="w-6 h-6 text-primary" />{" "}
             {t("support.faqTitle")}
           </h3>
@@ -165,6 +165,6 @@ export default function Support() {
           {ajudaAberta !== null && quickHelp[ajudaAberta].desc}
         </p>
       </Modal>
-    </div>
+    </PageContainer>
   );
 }

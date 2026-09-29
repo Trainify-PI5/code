@@ -6,6 +6,7 @@ import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate } from "react-router-dom";
+import { PageContainer } from "../components/ui";
 
 export default function Home() {
   const { t } = useLanguage();
@@ -56,7 +57,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <PageContainer>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Coluna Esquerda */}
         <div className="lg:col-span-8 space-y-6">
@@ -103,7 +104,7 @@ export default function Home() {
           {/* Cursos em Destaque */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-display font-bold text-on-surface">
+              <h3 className="text-xl font-display font-bold text-on-surface">
                 {t("home.featuredCourses")}
               </h3>
               <button onClick={() => navigate("/courses")} className="text-primary hover:text-primary font-medium flex items-center gap-1 transition-colors text-sm">
@@ -228,6 +229,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

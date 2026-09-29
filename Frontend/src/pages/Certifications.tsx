@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
-import { Button, PageHeader, useToast } from "../components/ui";
+import { Button, PageContainer, PageHeader, useToast } from "../components/ui";
 import api from "../services/api";
 import { baixarBlob, nomeDeArquivo } from "../lib/download";
 
@@ -120,7 +120,7 @@ export default function Certifications() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto">
+    <PageContainer>
       <PageHeader
         title={t("cert.title")}
         subtitle={t("cert.subtitle")}
@@ -239,6 +239,6 @@ export default function Certifications() {
           </div>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }

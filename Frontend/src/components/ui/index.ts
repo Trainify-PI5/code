@@ -16,6 +16,8 @@ export { default as ConfirmDialog } from "./ConfirmDialog";
 export type { ConfirmDialogProps } from "./ConfirmDialog";
 export { default as DataTable } from "./DataTable";
 export type { DataTableProps, Coluna } from "./DataTable";
+export { default as PageContainer } from "./PageContainer";
+export type { PageContainerProps } from "./PageContainer";
 export { default as PageHeader } from "./PageHeader";
 export type { PageHeaderProps } from "./PageHeader";
 export { default as Skeleton, SkeletonText, SkeletonTableRows, SkeletonCard, SkeletonCards } from "./Skeleton";

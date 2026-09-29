@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
-import { Badge, Button, Card, ConfirmDialog, DataTable, Input, PageHeader, useToast, type Coluna } from '../components/ui';
+import { Badge, Button, Card, ConfirmDialog, DataTable, Input, PageContainer, PageHeader, useToast, type Coluna } from "../components/ui";
 
 interface User {
   id: string;
@@ -205,7 +205,7 @@ export const Users: React.FC = () => {
   ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <PageContainer width="wide">
       <PageHeader
         title="Gestão de Usuários"
         subtitle="Administre os acessos e permissões da plataforma."
@@ -343,7 +343,7 @@ export const Users: React.FC = () => {
         }
         confirmLabel="Excluir"
       />
-    </div>
+    </PageContainer>
   );
 };
 

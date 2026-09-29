@@ -4,7 +4,7 @@ import { UploadMedia } from '../components/UploadMedia';
 import AssessmentBuilder from '../components/Course/AssessmentBuilder';
 import api from '../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, ConfirmDialog, useToast } from '../components/ui';
+import { Alert, Button, ConfirmDialog, PageContainer, useToast } from "../components/ui";
 
 interface Lesson {
   id?: string;
@@ -226,7 +226,7 @@ export const CourseBuilder: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-24">
+    <PageContainer className="pb-24">
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant">
         <div className="min-w-0">
           <h1 className="text-3xl font-display font-bold tracking-tight text-on-surface flex items-center gap-3">
@@ -472,7 +472,7 @@ export const CourseBuilder: React.FC = () => {
         }
         confirmLabel="Excluir"
       />
-    </div>
+    </PageContainer>
   );
 };
 

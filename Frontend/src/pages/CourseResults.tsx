@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, CheckCircle2, XCircle, Users, Target, RotateCcw } from "lucide-react";
 import { cn } from "../lib/utils";
 import api from "../services/api";
-import { DataTable, PageHeader, type Coluna } from "../components/ui";
+import { DataTable, PageContainer, PageHeader, type Coluna } from "../components/ui";
 
 interface Attempt {
   id: string;
@@ -154,7 +154,7 @@ export default function CourseResults() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <PageContainer width="wide">
       <button
         onClick={() => navigate("/courses")}
         className="flex items-center gap-2 text-on-surface-variant hover:text-primary"
@@ -217,6 +217,6 @@ export default function CourseResults() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

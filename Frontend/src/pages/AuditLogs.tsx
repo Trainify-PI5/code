@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Activity, Search, Download } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { DataTable, PageHeader, useToast, type Coluna } from "../components/ui";
+import { DataTable, PageContainer, PageHeader, useToast, type Coluna } from "../components/ui";
 
 export default function AuditLogs() {
   const { t } = useLanguage();
@@ -120,7 +120,7 @@ export default function AuditLogs() {
   }, []);
 
   return (
-    <div className="w-full min-w-0 space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto">
+    <PageContainer width="wide">
       <PageHeader
         icon={<Activity className="w-6 h-6" />}
         title="Logs de Auditoria"
@@ -158,6 +158,6 @@ export default function AuditLogs() {
           emptyMessage={termo ? "Nenhum log corresponde à busca." : "Nenhum log encontrado."}
         />
       </div>
-    </div>
+    </PageContainer>
   );
 }

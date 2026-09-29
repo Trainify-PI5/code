@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import PageHeader from "./PageHeader";
+import PageContainer from "./PageContainer";
 import Skeleton, {
   SkeletonCards,
   SkeletonTableRows,
@@ -159,5 +160,51 @@ describe("SkeletonTableRows com avatar", () => {
     montar({ rows: 1, columns: 3 });
     const primeira = screen.getByTestId("skeleton-row").querySelectorAll("td")[0];
     expect(primeira.querySelectorAll('[data-testid="skeleton"]')).toHaveLength(1);
+  });
+});
+
+describe("PageContainer", () => {
+  it("usa a largura padrão quando nada é pedido", () => {
+    const { container } = render(<PageContainer>conteúdo</PageContainer>);
+    expect(container.firstElementChild?.className).toContain("max-w-5xl");
+  });
+
+  it("estreita para leitura e alarga para tabela", () => {
+    const { container, rerender } = render(<PageContainer width="narrow">a</PageContainer>);
+    expect(container.firstElementChild?.className).toContain("max-w-3xl");
+
+    rerender(<PageContainer width="wide">a</PageContainer>);
+    expect(container.firstElementChild?.className).toContain("max-w-7xl");
+  });
+
+  it("centraliza e mantém o mesmo respiro vertical em todas as telas", () => {
+    const { container } = render(<PageContainer>a</PageContainer>);
+    const classes = container.firstElementChild?.className ?? "";
+    expect(classes).toContain("mx-auto");
+    expect(classes).toContain("space-y-8");
+  });
+
+  it("não aplica recuo próprio — quem recua é o layout, uma vez só", () => {
+    // tres paginas repetiam o p-8 do <main> e ficavam com o dobro do recuo
+    const { container } = render(<PageContainer>a</PageContainer>);
+    const classes = container.firstElementChild?.className ?? "";
+    expect(classes).not.toMatch(/\bp-\d/);
+    expect(classes).not.toMatch(/\bpx-\d/);
+  });
+
+  it("aceita classe extra sem perder a largura", () => {
+    const { container } = render(
+      <PageContainer width="wide" className="pb-24">
+        a
+      </PageContainer>,
+    );
+    const classes = container.firstElementChild?.className ?? "";
+    expect(classes).toContain("max-w-7xl");
+    expect(classes).toContain("pb-24");
+  });
+
+  it("não deixa o conteúdo estourar num container flex", () => {
+    const { container } = render(<PageContainer>a</PageContainer>);
+    expect(container.firstElementChild?.className).toContain("min-w-0");
   });
 });

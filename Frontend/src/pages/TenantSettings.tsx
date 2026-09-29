@@ -3,7 +3,7 @@ import { Building2, Save, UploadCloud } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { PageHeader, useToast } from "../components/ui";
+import { PageContainer, PageHeader, useToast } from "../components/ui";
 
 export default function TenantSettings() {
   const { t } = useLanguage();
@@ -45,7 +45,7 @@ export default function TenantSettings() {
   if (loading) return <div className="p-8">Carregando...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-16">
+    <PageContainer className="pb-16">
       <PageHeader
         icon={<Building2 className="w-6 h-6" />}
         title="Configurações da Empresa"
@@ -156,6 +156,6 @@ export default function TenantSettings() {
           </button>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

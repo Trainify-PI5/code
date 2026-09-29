@@ -4,7 +4,7 @@ import api from '../services/api';
 import { MessageSquare, Plus, User, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Button, Card, Input, PageHeader, Textarea } from '../components/ui';
+import { Button, Card, Input, PageContainer, PageHeader, Textarea } from "../components/ui";
 
 export default function Forum() {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +47,7 @@ export default function Forum() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <PageContainer>
       <PageHeader
         title="Fórum de Discussões"
         subtitle="Tire dúvidas e interaja com outros alunos e instrutores do curso."
@@ -137,6 +137,6 @@ export default function Forum() {
           ))}
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

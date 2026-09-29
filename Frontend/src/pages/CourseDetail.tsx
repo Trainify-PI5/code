@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, Play, CheckCircle, Clock, Video, FileText, ChevronDown } from 'lucide-react';
 import api from '../services/api';
-import { useToast } from '../components/ui';
+import { PageContainer, useToast } from "../components/ui";
 
 interface Lesson {
   id: string;
@@ -75,7 +75,7 @@ export const CourseDetail: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 p-4 sm:p-8 animate-in fade-in duration-500">
+    <PageContainer>
       <div className="bg-surface-container-lowest rounded-2xl p-6 sm:p-8 shadow-sm border border-outline-variant">
         <h1 className="text-3xl sm:text-4xl font-display font-bold text-on-surface mb-4">{course.title}</h1>
         <p className="text-base sm:text-lg text-on-surface-variant mb-8 leading-relaxed">
@@ -109,7 +109,7 @@ export const CourseDetail: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        <h2 className="text-2xl font-display font-bold text-on-surface flex items-center gap-2">
+        <h2 className="text-xl font-display font-bold text-on-surface flex items-center gap-2">
           <BookOpen className="w-6 h-6 text-primary" />
           Conteúdo do Curso
         </h2>
@@ -142,7 +142,7 @@ export const CourseDetail: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 
