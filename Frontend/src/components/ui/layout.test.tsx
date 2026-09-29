@@ -130,3 +130,34 @@ describe("SkeletonCards", () => {
     expect(screen.getAllByTestId("skeleton")).toHaveLength(4);
   });
 });
+
+describe("SkeletonTableRows com avatar", () => {
+  const montar = (props = {}) =>
+    render(
+      <table>
+        <tbody>
+          <SkeletonTableRows {...props} />
+        </tbody>
+      </table>,
+    );
+
+  it("imita foto e duas linhas na primeira coluna", () => {
+    montar({ rows: 1, columns: 3, avatar: true });
+    const primeira = screen.getByTestId("skeleton-row").querySelectorAll("td")[0];
+    const blocos = primeira.querySelectorAll('[data-testid="skeleton"]');
+    expect(blocos).toHaveLength(3);
+    expect(blocos[0].className).toContain("rounded-full");
+  });
+
+  it("as demais colunas continuam sendo uma linha só", () => {
+    montar({ rows: 1, columns: 3, avatar: true });
+    const celulas = screen.getByTestId("skeleton-row").querySelectorAll("td");
+    expect(celulas[1].querySelectorAll('[data-testid="skeleton"]')).toHaveLength(1);
+  });
+
+  it("sem avatar a primeira coluna volta a ser uma linha só", () => {
+    montar({ rows: 1, columns: 3 });
+    const primeira = screen.getByTestId("skeleton-row").querySelectorAll("td")[0];
+    expect(primeira.querySelectorAll('[data-testid="skeleton"]')).toHaveLength(1);
+  });
+});

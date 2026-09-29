@@ -48,25 +48,46 @@ export function SkeletonText({
  * Linhas de tabela. Devolve <tr> soltos de proposito, para entrarem direto no
  * <tbody> — um <div> ali dentro seria HTML invalido.
  * A primeira coluna vem mais larga, que e onde costuma ficar o nome.
+ *
+ * `avatar` existe porque a altura precisa bater: numa tabela com foto, nome e
+ * e-mail empilhados a linha real tem ~77px, contra 48px de uma linha de texto
+ * simples. Sem isso a tela dava um salto de quase 150px quando os dados
+ * chegavam — o oposto do que o esqueleto serve para resolver.
  */
 export function SkeletonTableRows({
   rows = 5,
   columns = 4,
+  avatar = false,
   className,
 }: {
   rows?: number;
   columns?: number;
+  avatar?: boolean;
   className?: string;
 }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, linha) => (
         <tr key={linha} className={className} data-testid="skeleton-row">
-          {Array.from({ length: columns }).map((_, coluna) => (
-            <td key={coluna} className="p-4">
-              <Skeleton className={cn("h-4", coluna === 0 ? "w-40 max-w-full" : "w-20 max-w-full")} />
-            </td>
-          ))}
+          {Array.from({ length: columns }).map((_, coluna) =>
+            coluna === 0 && avatar ? (
+              <td key={coluna} className="p-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                  <div className="space-y-2 min-w-0">
+                    <Skeleton className="h-4 w-28 max-w-full" />
+                    <Skeleton className="h-3 w-40 max-w-full" />
+                  </div>
+                </div>
+              </td>
+            ) : (
+              <td key={coluna} className="p-4">
+                <Skeleton
+                  className={cn("h-4", coluna === 0 ? "w-40 max-w-full" : "w-20 max-w-full")}
+                />
+              </td>
+            ),
+          )}
         </tr>
       ))}
     </>

@@ -591,7 +591,7 @@ export default function Analytics() {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {carregandoAlunos && <SkeletonTableRows rows={5} columns={5} />}
+                {carregandoAlunos && <SkeletonTableRows rows={5} columns={5} avatar />}
                 {!carregandoAlunos && learnersFiltrados.map((row, idx) => {
                   const situacao = situacaoDoAluno(row);
                   return (

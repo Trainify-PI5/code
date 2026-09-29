@@ -164,7 +164,7 @@ export const Users: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-outline-variant">
               {loading ? (
-                <SkeletonTableRows rows={5} columns={4} />
+                <SkeletonTableRows rows={5} columns={4} avatar />
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-on-surface-variant">
