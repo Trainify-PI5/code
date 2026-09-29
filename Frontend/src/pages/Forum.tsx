@@ -4,7 +4,7 @@ import api from '../services/api';
 import { MessageSquare, Plus, User, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Button, Card, Input, Textarea } from '../components/ui';
+import { Button, Card, Input, PageHeader, Textarea } from '../components/ui';
 
 export default function Forum() {
   const { id } = useParams<{ id: string }>();
@@ -48,20 +48,16 @@ export default function Forum() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-on-surface">
-            Fórum de Discussões
-          </h1>
-          <p className="text-on-surface-variant mt-1">
-            Tire dúvidas e interaja com outros alunos e instrutores do curso.
-          </p>
-        </div>
-        <Button onClick={() => setIsCreating(true)}>
-          <Plus className="w-5 h-5" />
-          Nova Discussão
-        </Button>
-      </div>
+      <PageHeader
+        title="Fórum de Discussões"
+        subtitle="Tire dúvidas e interaja com outros alunos e instrutores do curso."
+        actions={
+          <Button onClick={() => setIsCreating(true)}>
+            <Plus className="w-5 h-5" />
+            Nova Discussão
+          </Button>
+        }
+      />
 
       {isCreating && (
         <Card className="space-y-4">

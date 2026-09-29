@@ -10,7 +10,7 @@ import {
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { ConfirmDialog, useToast } from "../components/ui";
+import { ConfirmDialog, PageHeader, useToast } from "../components/ui";
 
 export default function Notifications() {
   const { t } = useLanguage();
@@ -79,14 +79,11 @@ export default function Notifications() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end border-b border-outline-variant pb-6">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-display font-bold text-on-surface">
-            {t("notif.title")}
-          </h1>
-          <p className="text-on-surface-variant">{t("notif.subtitle")}</p>
-        </div>
-        <div className="flex flex-wrap gap-2 shrink-0">
+      <PageHeader
+        title={t("notif.title")}
+        subtitle={t("notif.subtitle")}
+        actions={
+          <>
           <button
             onClick={marcarTodasComoLidas}
             disabled={marcando}
@@ -106,8 +103,9 @@ export default function Notifications() {
           >
             <Trash2 className="w-4 h-4" /> {t("notif.clearAll")}
           </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="space-y-4">
         {notifications.map((notif) => (

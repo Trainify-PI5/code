@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useToast } from "../components/ui";
+import { Button, PageHeader, useToast } from "../components/ui";
 import api from "../services/api";
 import { baixarBlob, nomeDeArquivo } from "../lib/download";
 
@@ -121,18 +121,15 @@ export default function Certifications() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto">
-      <div className="flex justify-between items-end border-b border-outline-variant pb-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-on-surface">
-            {t("cert.title")}
-          </h1>
-          <p className="text-on-surface-variant">{t("cert.subtitle")}</p>
-        </div>
-        <button onClick={baixarTodos}
-          disabled={baixandoTodos} className="bg-primary-container text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95">
-          <Download className="w-4 h-4" /> {t("cert.downloadAll")}
-        </button>
-      </div>
+      <PageHeader
+        title={t("cert.title")}
+        subtitle={t("cert.subtitle")}
+        actions={
+          <Button onClick={baixarTodos} disabled={baixandoTodos}>
+            <Download className="w-4 h-4" /> {t("cert.downloadAll")}
+          </Button>
+        }
+      />
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

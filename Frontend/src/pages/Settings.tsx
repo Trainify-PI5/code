@@ -3,7 +3,7 @@ import { User, Shield, Save, Eye, EyeOff, Lock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useToast } from "../components/ui";
+import { PageHeader, useToast } from "../components/ui";
 import { useRef } from "react";
 import api from "../services/api";
 
@@ -73,14 +73,10 @@ export default function Settings() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="border-b border-outline-variant pb-6">
-        <h1 className="text-3xl font-display font-bold text-on-surface">
-          {t("settings.title") || "Configurações"}
-        </h1>
-        <p className="text-on-surface-variant mt-1">
-          {t("settings.subtitle") || "Gerencie as preferências da sua conta."}
-        </p>
-      </div>
+      <PageHeader
+        title={t("settings.title") || "Configurações"}
+        subtitle={t("settings.subtitle") || "Gerencie as preferências da sua conta."}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <aside className="space-y-1">

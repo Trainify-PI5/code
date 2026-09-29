@@ -5,6 +5,7 @@ import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
+import { PageHeader, SkeletonCards } from "../components/ui";
 
 type CourseStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
@@ -181,13 +182,11 @@ export default function Courses() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-outline-variant pb-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold text-on-surface">{t("courses.title")}</h1>
-          <p className="text-on-surface-variant max-w-xl">{t("courses.subtitle")}</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
+      <PageHeader
+        title={t("courses.title")}
+        subtitle={t("courses.subtitle")}
+        actions={
+          <>
           {filters.map((item) => (
             <button
               key={item.key}
@@ -202,15 +201,9 @@ export default function Courses() {
               {item.label}
             </button>
           ))}
-        </div>
-      </div>
-
-      {loading && (
-        <div className="flex items-center gap-3 text-on-surface-variant">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          {t("courses.loading")}
-        </div>
-      )}
+          </>
+        }
+      />
 
       {error && !loading && (
         <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">{error}</div>
@@ -222,8 +215,9 @@ export default function Courses() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {visibleCourses.map((course) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" aria-busy={loading}>
+        {loading && <SkeletonCards count={6} />}
+        {!loading && visibleCourses.map((course) => (
           <div
             key={course.id}
             className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden flex flex-col group hover:shadow-lg transition-all duration-300"

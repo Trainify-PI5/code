@@ -25,7 +25,7 @@ import { cn } from "../lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Button, Input, Modal, useToast } from "../components/ui";
+import { Button, Input, Modal, PageHeader, SkeletonTableRows, useToast } from "../components/ui";
 import { baixarCSV } from "../lib/download";
 import { useTemaGrafico } from "../lib/chartTheme";
 import {
@@ -277,6 +277,7 @@ export default function Analytics() {
     .slice(0, 5);
 
   const [learners, setLearners] = useState<LinhaAluno[]>([]);
+  const [carregandoAlunos, setCarregandoAlunos] = useState(true);
 
   useEffect(() => {
     api.get('/enrollments/all').then(res => {
@@ -289,7 +290,7 @@ export default function Analytics() {
         progress: enrollment.progressPercent || 0,
         score: enrollment.score ? enrollment.score + "%" : "--",
       })));
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setCarregandoAlunos(false));
   }, []);
 
   const learnersFiltrados = aplicarFiltros(learners, filtros);
@@ -314,14 +315,11 @@ export default function Analytics() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-display font-bold text-on-surface">
-            {t("analytics.title")}
-          </h1>
-          <p className="text-on-surface-variant">{t("analytics.subtitle")}</p>
-        </div>
-        <div className="flex flex-wrap gap-4">
+      <PageHeader
+        title={t("analytics.title")}
+        subtitle={t("analytics.subtitle")}
+        actions={
+          <>
           <button onClick={exportarRelatorio}
             disabled={exportando} className="px-5 py-2.5 rounded-lg border border-primary text-primary font-medium hover:bg-primary-fixed transition-colors flex items-center gap-2 active:translate-y-[1px]">
             <Download className="w-4 h-4" /> {t("analytics.exportReport")}
@@ -334,8 +332,9 @@ export default function Analytics() {
               </span>
             )}
           </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Cartões de KPI */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -571,7 +570,7 @@ export default function Analytics() {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse" aria-busy={carregandoAlunos}>
               <thead>
                 <tr className="bg-surface-container-low/30 border-b border-outline-variant">
                   <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
@@ -592,7 +591,8 @@ export default function Analytics() {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {learnersFiltrados.map((row, idx) => {
+                {carregandoAlunos && <SkeletonTableRows rows={5} columns={5} />}
+                {!carregandoAlunos && learnersFiltrados.map((row, idx) => {
                   const situacao = situacaoDoAluno(row);
                   return (
                   <tr
@@ -647,7 +647,7 @@ export default function Analytics() {
                   </tr>
                   );
                 })}
-                {learners.length > 0 && learnersFiltrados.length === 0 && (
+                {!carregandoAlunos && learners.length > 0 && learnersFiltrados.length === 0 && (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-sm text-on-surface-variant">
                       {t("analytics.noMatches")}

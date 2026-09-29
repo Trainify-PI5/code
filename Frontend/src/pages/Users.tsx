@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Edit2, Trash2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
-import { Badge, Button, Card, ConfirmDialog, Input, useToast } from '../components/ui';
+import { Badge, Button, Card, ConfirmDialog, Input, PageHeader, SkeletonTableRows, useToast } from '../components/ui';
 
 interface User {
   id: string;
@@ -127,16 +127,16 @@ export const Users: React.FC = () => {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-on-surface">Gestão de Usuários</h1>
-          <p className="text-on-surface-variant mt-2">Administre os acessos e permissões da plataforma.</p>
-        </div>
-        <Button onClick={openCreateModal}>
-          <Plus className="w-4 h-4" />
-          <span>Novo Usuário</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Gestão de Usuários"
+        subtitle="Administre os acessos e permissões da plataforma."
+        actions={
+          <Button onClick={openCreateModal}>
+            <Plus className="w-4 h-4" />
+            <span>Novo Usuário</span>
+          </Button>
+        }
+      />
 
       <Card padding="none" className="overflow-hidden">
         <div className="p-4 border-b border-outline-variant bg-surface-container-low">
@@ -153,7 +153,7 @@ export const Users: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse" aria-busy={loading}>
             <thead>
               <tr className="bg-surface-container-low border-b border-outline-variant text-on-surface-variant text-sm font-medium">
                 <th className="p-4">Usuário</th>
@@ -164,14 +164,7 @@ export const Users: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-outline-variant">
               {loading ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-on-surface-variant">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      Carregando usuários...
-                    </div>
-                  </td>
-                </tr>
+                <SkeletonTableRows rows={5} columns={4} />
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-on-surface-variant">

@@ -3,7 +3,7 @@ import { Building2, Save, UploadCloud } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { useToast } from "../components/ui";
+import { PageHeader, useToast } from "../components/ui";
 
 export default function TenantSettings() {
   const { t } = useLanguage();
@@ -46,15 +46,11 @@ export default function TenantSettings() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-16">
-      <div className="border-b border-outline-variant pb-6 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center text-primary shadow-sm">
-           <Building2 className="w-6 h-6" />
-        </div>
-        <div>
-           <h1 className="text-3xl font-display font-bold text-on-surface">Configurações da Empresa</h1>
-           <p className="text-on-surface-variant mt-1">Personalize a identidade visual e domínio da sua plataforma.</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Building2 className="w-6 h-6" />}
+        title="Configurações da Empresa"
+        subtitle="Personalize a identidade visual e domínio da sua plataforma."
+      />
 
       <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 shadow-sm space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

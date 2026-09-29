@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, CheckCircle2, XCircle, Users, Target, RotateCcw } from "lucide-react";
 import { cn } from "../lib/utils";
 import api from "../services/api";
+import { PageHeader } from "../components/ui";
 
 interface Attempt {
   id: string;
@@ -110,10 +111,7 @@ export default function CourseResults() {
         <ArrowLeft className="w-4 h-4" /> Voltar para cursos
       </button>
 
-      <div className="border-b border-outline-variant pb-6">
-        <h1 className="text-3xl font-display font-bold text-on-surface">Resultados das avaliações</h1>
-        <p className="text-on-surface-variant mt-1">{courseTitle}</p>
-      </div>
+      <PageHeader title="Resultados das avaliações" subtitle={courseTitle} />
 
       {loading && (
         <div className="flex items-center gap-3 text-on-surface-variant">

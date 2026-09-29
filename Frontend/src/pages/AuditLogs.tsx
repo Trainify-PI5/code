@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Activity, Search, Download } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import api from "../services/api";
-import { useToast } from "../components/ui";
+import { PageHeader, SkeletonTableRows, useToast } from "../components/ui";
 
 export default function AuditLogs() {
   const { t } = useLanguage();
@@ -57,19 +57,11 @@ export default function AuditLogs() {
 
   return (
     <div className="w-full min-w-0 space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 border-b border-outline-variant pb-6">
-        <div className="space-y-1 flex items-center gap-4 min-w-0">
-          <div className="w-12 h-12 shrink-0 rounded-xl bg-primary-container flex items-center justify-center text-primary shadow-sm">
-             <Activity className="w-6 h-6" />
-          </div>
-          <div className="min-w-0">
-             <h1 className="text-3xl font-display font-bold text-on-surface">
-               Logs de Auditoria
-             </h1>
-             <p className="text-on-surface-variant">Rastreie todas as ações do sistema para conformidade e segurança.</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Activity className="w-6 h-6" />}
+        title="Logs de Auditoria"
+        subtitle="Rastreie todas as ações do sistema para conformidade e segurança."
+      />
 
       <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-sm">
         <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
@@ -85,7 +77,7 @@ export default function AuditLogs() {
            </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse" aria-busy={loading}>
             <thead>
               <tr className="bg-surface-container-low/30 border-b border-outline-variant">
                 <th className="p-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
@@ -107,7 +99,7 @@ export default function AuditLogs() {
             </thead>
             <tbody className="text-sm">
               {loading ? (
-                <tr><td colSpan={5} className="p-8 text-center text-on-surface-variant">Carregando logs...</td></tr>
+                <SkeletonTableRows rows={6} columns={5} />
               ) : logs.length === 0 ? (
                 <tr><td colSpan={5} className="p-8 text-center text-on-surface-variant">Nenhum log encontrado.</td></tr>
               ) : logs.map((log, idx) => (
