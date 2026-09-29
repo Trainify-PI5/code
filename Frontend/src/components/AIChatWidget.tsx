@@ -51,7 +51,8 @@ export default function AIChatWidget() {
       {/* Botão Flutuante */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-colors z-40"
+        aria-label="Abrir assistente Trainify"
+        className="fixed bottom-6 right-6 p-4 bg-primary-container text-white rounded-full shadow-lg hover:opacity-90 transition-opacity z-40"
       >
         <MessageSquare size={24} />
       </button>
@@ -63,15 +64,22 @@ export default function AIChatWidget() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-border flex flex-col z-50 overflow-hidden"
+            role="dialog"
+            aria-label="Assistente Trainify"
+            className="fixed bottom-24 right-6 w-96 h-[500px] bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant flex flex-col z-50 overflow-hidden"
           >
-            {/* Cabeçalho */}
-            <div className="p-4 bg-primary text-white flex items-center justify-between">
+            {/* Cabecalho: primary-container e nao primary, porque no tema escuro
+                --primary e um lilas claro e o texto branco some em cima dele. */}
+            <div className="p-4 bg-primary-container text-white flex items-center justify-between">
               <div>
                 <h3 className="font-semibold">Assistente Trainify</h3>
-                <p className="text-xs text-primary-foreground/80">IA treinada no seu conteúdo</p>
+                <p className="text-xs text-white/80">IA treinada no seu conteúdo</p>
               </div>
-              <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Fechar assistente"
+                className="hover:bg-white/20 p-1 rounded transition-colors"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -79,20 +87,20 @@ export default function AIChatWidget() {
             {/* Mensagens */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-bright">
               {messages.length === 0 && (
-                <div className="text-center text-secondary-foreground text-sm mt-10">
+                <div className="text-center text-on-surface-variant text-sm mt-10">
                   Olá! Como posso ajudar você no seu aprendizado hoje?
                 </div>
               )}
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-white rounded-br-none' : 'bg-surface border border-border text-foreground rounded-bl-none'}`}>
+                  <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary-container text-white rounded-br-none' : 'bg-surface-container border border-outline-variant text-on-surface rounded-bl-none'}`}>
                     {msg.content}
                   </div>
                 </div>
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-surface border border-border p-3 rounded-2xl rounded-bl-none">
+                  <div className="bg-surface-container border border-outline-variant p-3 rounded-2xl rounded-bl-none">
                     <Loader2 className="animate-spin text-primary" size={16} />
                   </div>
                 </div>
@@ -101,19 +109,21 @@ export default function AIChatWidget() {
             </div>
 
             {/* Entrada */}
-            <div className="p-4 border-t border-border bg-white">
+            <div className="p-4 border-t border-outline-variant bg-surface-container-lowest">
               <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Pergunte sobre um curso..."
-                  className="flex-1 bg-surface border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  aria-label="Pergunte sobre um curso"
+                  className="flex-1 bg-surface-container border border-outline-variant rounded-xl px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="bg-primary text-white p-2 rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Enviar pergunta"
+                  className="bg-primary-container text-white p-2 rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 >
                   <Send size={18} />
                 </button>
