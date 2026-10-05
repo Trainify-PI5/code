@@ -38,7 +38,6 @@ public class CertificationService {
         cert.setCourse(course);
         cert.setTenant(user.getTenant());
         cert.setIssuedAt(java.time.Instant.now());
-        cert.setScore(100);
         
         certificationRepository.save(cert);
     }
@@ -67,7 +66,7 @@ public class CertificationService {
                     cert.getUser() != null ? cert.getUser().getName() : "",
                     cert.getCourse() != null ? cert.getCourse().getTitle() : "",
                     cert.getTenant() != null ? cert.getTenant().getName() : "Trainify",
-                    cert.getScore(),
+                    null,
                     cert.getIssuedAt(),
                     cert.getId());
         } catch (java.io.IOException e) {
@@ -82,7 +81,6 @@ public class CertificationService {
             dto.setCourseId(cert.getCourse().getId());
             dto.setCourseTitle(cert.getCourse().getTitle());
         }
-        dto.setScore(cert.getScore());
         dto.setIssuedAt(cert.getIssuedAt());
         // Endereco real de download, no lugar do link ficticio que era gravado antes
         dto.setCertificateUrl("/api/v1/certifications/" + cert.getId() + "/pdf");

@@ -27,27 +27,6 @@ export default function IAAssistant() {
   // Mobile: sidebar de conversas fechada por padrão
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const recentConversations = [
-    {
-      id: "1",
-      title: t("ia.conv1Title"),
-      preview: t("ia.conv1Preview"),
-      time: "10:42 AM",
-    },
-    {
-      id: "2",
-      title: t("ia.conv2Title"),
-      preview: t("ia.conv2Preview"),
-      time: t("ia.yesterday"),
-    },
-    {
-      id: "3",
-      title: t("ia.conv3Title"),
-      preview: t("ia.conv3Preview"),
-      time: "Out 12",
-    },
-  ];
-
   const suggestedActions = [
     { icon: FileText, label: t("ia.action1") },
     { icon: Sparkles, label: t("ia.action2") },
@@ -58,7 +37,7 @@ export default function IAAssistant() {
       id: "1",
       role: "model",
       text: t("ia.welcomeMessage"),
-      timestamp: "10:40 AM",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
   const [input, setInput] = useState("");
@@ -191,7 +170,7 @@ export default function IAAssistant() {
             {suggestedActions.map((action, idx) => (
               <button
                 key={idx}
-                onClick={() => setSidebarOpen(false)}
+                onClick={() => { setInput(action.label); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 p-3 bg-surface-container-lowest border border-outline-variant rounded-xl hover:border-primary hover:shadow-sm transition-all group"
               >
                 <action.icon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
@@ -207,25 +186,7 @@ export default function IAAssistant() {
           <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest px-4 py-4 block">
             {t("ia.recent")}
           </span>
-          {recentConversations.map((chat) => (
-            <button
-              key={chat.id}
-              onClick={() => setSidebarOpen(false)}
-              className="w-full text-left p-4 rounded-xl hover:bg-surface-container-lowest border border-transparent hover:border-outline-variant transition-all mb-1 group"
-            >
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-sm font-bold text-on-surface truncate group-hover:text-primary transition-colors">
-                  {chat.title}
-                </span>
-                <span className="text-[10px] text-on-surface-variant whitespace-nowrap ml-2">
-                  {chat.time}
-                </span>
-              </div>
-              <p className="text-xs text-on-surface-variant truncate">
-                {chat.preview}
-              </p>
-            </button>
-          ))}
+<p className="px-4 text-sm text-on-surface-variant">O histórico de conversas não está disponível. As mensagens desta sessão aparecem ao lado.</p>
         </div>
       </aside>
 

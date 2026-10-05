@@ -1,14 +1,10 @@
 import {
   Award,
   BookOpen,
-  Clock,
-  TrendingUp,
-  Star,
   CheckCircle2,
   Download,
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
-import { useLanguage } from "../contexts/LanguageContext";
 import { PageContainer, useToast } from "../components/ui";
 import { baixarBlob, nomeDeArquivo } from "../lib/download";
 import api from "../services/api";
@@ -18,7 +14,6 @@ import { useState, useEffect } from "react";
 export default function Profile() {
   const toast = useToast();
   const { user } = useAuthStore();
-  const { t } = useLanguage();
 
   const initials = user?.name
     ? user.name
@@ -48,6 +43,7 @@ export default function Profile() {
     }
   };
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -57,11 +53,8 @@ export default function Profile() {
         const enrollsRes = await api.get("/enrollments");
         const completed = enrollsRes.data.filter((e: any) => e.status === "COMPLETED").map((e: any) => ({
           id: e.id,
-          title: e.courseTitle || "Curso sem Título",
-          category: "Liderança",
-          duration: "4h 00m",
-          completedAt: new Date(e.lastAccessedAt || Date.now()).toLocaleDateString(),
-          score: e.score || 100,
+          title: e.course?.title || "Título indisponível",
+          completedAt: e.completedAt ? new Date(e.completedAt).toLocaleDateString() : "Data indisponível",
         }));
         setCompletedCourses(completed);
 
@@ -70,11 +63,11 @@ export default function Profile() {
         setCertificates(certsRes.data.map((c: any) => ({
           id: c.id,
           title: c.courseTitle || "Certificado",
-          issuedAt: new Date(c.issuedAt).toLocaleDateString(),
+          issuedAt: c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() : "Data indisponível",
         })));
 
       } catch (err) {
-        console.error("Error loading profile data", err);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -83,13 +76,6 @@ export default function Profile() {
   }, []);
 
   const stats = [
-    {
-      label: "Horas Estudadas",
-      value: `${completedCourses.length * 4}h`,
-      icon: Clock,
-      color: "text-blue-500",
-      bg: "bg-blue-50 dark:bg-blue-950/30",
-    },
     {
       label: "Cursos Concluídos",
       value: completedCourses.length.toString(),
@@ -104,16 +90,10 @@ export default function Profile() {
       color: "text-yellow-500",
       bg: "bg-yellow-50 dark:bg-yellow-950/30",
     },
-    {
-      label: "Nota Média",
-      value: completedCourses.length > 0 
-        ? `${Math.round(completedCourses.reduce((acc, c) => acc + c.score, 0) / completedCourses.length)}%` 
-        : "0%",
-      icon: TrendingUp,
-      color: "text-purple-500",
-      bg: "bg-purple-50 dark:bg-purple-950/30",
-    },
   ];
+
+  if (loading) return <PageContainer><p role="status">Carregando perfil...</p></PageContainer>;
+  if (error) return <PageContainer><p role="alert">Não foi possível carregar os dados do perfil.</p></PageContainer>;
 
   return (
     <PageContainer>
@@ -132,32 +112,6 @@ export default function Profile() {
                 <span>{initials}</span>
               )}
             </div>
-            <label
-              htmlFor="avatar-upload"
-              className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-            >
-              <span className="text-white text-xs font-bold text-center leading-tight px-2">
-                Alterar foto
-              </span>
-            </label>
-            <input
-              id="avatar-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    const result = ev.target?.result as string;
-                    //salvar no authStore quando tiver o backend
-                    console.log("Nova foto:", result);
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
           </div>
           <div className="flex-1 text-center sm:text-left space-y-2">
             <h1 className="text-3xl font-display font-bold text-on-surface">
@@ -168,17 +122,11 @@ export default function Profile() {
               {user?.role || "—"}
             </span>
           </div>
-          <div className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-950/30 px-4 py-2 rounded-xl">
-            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-            <span className="font-bold text-yellow-600 dark:text-yellow-400">
-              Top Aluno
-            </span>
-          </div>
         </div>
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {stats.map((stat) => (
           <div
             key={stat.label}
@@ -211,6 +159,7 @@ export default function Profile() {
             </h2>
           </div>
           <div className="divide-y divide-outline-variant">
+            {completedCourses.length === 0 && <p className="p-6 text-on-surface-variant">Nenhum curso concluído.</p>}
             {completedCourses.map((course) => (
               <div
                 key={course.id}
@@ -225,22 +174,9 @@ export default function Profile() {
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-on-surface-variant">
-                      {course.category}
-                    </span>
-                    <span className="text-xs text-on-surface-variant">•</span>
-                    <span className="text-xs text-on-surface-variant">
-                      {course.duration}
-                    </span>
-                    <span className="text-xs text-on-surface-variant">•</span>
-                    <span className="text-xs text-on-surface-variant">
                       {course.completedAt}
                     </span>
                   </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-sm font-bold text-primary">
-                    {course.score}%
-                  </span>
                 </div>
               </div>
             ))}
@@ -288,37 +224,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Progresso Geral */}
-      <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm">
-        <h2 className="text-xl font-display font-bold text-on-surface mb-6 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-primary" />
-          Progresso por Categoria
-        </h2>
-        <div className="space-y-5">
-          {[
-            { label: "Liderança", value: 75, color: "bg-purple-500" },
-            { label: "Técnico", value: 60, color: "bg-blue-500" },
-            { label: "Soft Skills", value: 90, color: "bg-green-500" },
-          ].map((item) => (
-            <div key={item.label}>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-on-surface">
-                  {item.label}
-                </span>
-                <span className="text-sm font-bold text-on-surface">
-                  {item.value}%
-                </span>
-              </div>
-              <div className="w-full bg-outline-variant h-2.5 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ${item.color}`}
-                  style={{ width: `${item.value}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </PageContainer>
   );
 }

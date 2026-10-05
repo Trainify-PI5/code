@@ -108,7 +108,6 @@ export default function LessonPlayer() {
     }
   };
 
-  // Carregar dados (mock ou api)
   useEffect(() => {
     const fetchData = async () => {
       try {

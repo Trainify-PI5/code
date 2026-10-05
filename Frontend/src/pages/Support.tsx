@@ -1,7 +1,4 @@
 import {
-  Search,
-  Phone,
-  Mail,
   FileText,
   HelpCircle,
   AlertCircle,
@@ -57,16 +54,6 @@ export default function Support() {
           <p className="text-white/80 text-base md:text-lg leading-relaxed text-balance">
             {t("support.heroSubtitle")}
           </p>
-          <div className="relative max-w-lg mx-auto pt-2">
-            {/* top-1/2 do wrapper conta o pt-2, entao o icone desce meio passo */}
-            <Search className="absolute left-4 top-[calc(50%+0.25rem)] -translate-y-1/2 text-white/70 w-5 h-5 pointer-events-none" />
-            <input
-              type="text"
-              placeholder={t("support.searchPlaceholder")}
-              aria-label={t("support.searchPlaceholder")}
-              className="w-full bg-white/15 border border-white/25 text-white placeholder:text-white/70 rounded-xl pl-12 pr-4 py-3.5 text-sm font-sans backdrop-blur-sm transition-colors hover:bg-white/20 focus:outline-none focus:border-white/60 focus:bg-white/20 focus-visible:ring-white/60 focus-visible:ring-offset-0"
-            />
-          </div>
         </div>
       </div>
 
@@ -98,35 +85,7 @@ export default function Support() {
           <p className="text-on-surface-variant text-sm">
             {t("support.contactSubtitle")}
           </p>
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 space-y-6">
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 bg-surface-container rounded-full flex items-center justify-center shrink-0 text-on-surface-variant">
-                <Mail className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">{t("support.emailSupport")}</p>
-                <p className="text-sm text-primary hover:underline cursor-pointer mt-1">
-                  support@trainify.tech
-                </p>
-                <p className="text-xs text-on-surface-variant mt-1">
-                  {t("support.emailResponse")}
-                </p>
-              </div>
-            </div>
-            <div className="w-full h-px bg-outline-variant" />
-            <div className="flex gap-4 items-start">
-              <div className="w-10 h-10 bg-surface-container rounded-full flex items-center justify-center shrink-0 text-on-surface-variant">
-                <Phone className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">{t("support.phoneSupport")}</p>
-                <p className="text-sm font-medium mt-1">1-800-TRAIN-ME</p>
-                <p className="text-xs text-on-surface-variant mt-1">
-                  {t("support.phoneHours")}
-                </p>
-              </div>
-            </div>
-          </div>
+<p className="text-sm text-on-surface-variant">Procure o administrador da sua organização para obter o canal de suporte.</p>
         </div>
 
         {/* Perguntas Frequentes */}

@@ -65,25 +65,6 @@ export default function Login({ onNavigate }: LoginProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { value: "1.200+", label: "Cursos disponíveis" },
-              { value: "98%", label: "Satisfação dos alunos" },
-              { value: "45k", label: "Profissionais ativos" },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm"
-              >
-                <div className="text-2xl font-display font-extrabold text-white">
-                  {stat.value}
-                </div>
-                <div className="text-xs text-purple-200/70 mt-1 leading-tight">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
         <p className="text-purple-200/40 text-xs relative z-10">

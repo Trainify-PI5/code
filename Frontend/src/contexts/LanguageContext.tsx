@@ -33,10 +33,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Início
     "home.welcomePrefix": "Welcome back,",
     "home.subtitle":
-      "You are currently on track to complete your Q3 leadership objectives. Keep up the momentum.",
+      "Explore available courses and follow your learning activities.",
     "home.currentTrack": "Current Track",
-    "home.moduleProgress": "Module 4 of 6",
-    "home.estCompletion": "Est. completion: Oct 12",
     "home.featuredCourses": "Featured Courses",
     "home.viewAll": "View all",
     "home.active": "Active",
@@ -45,15 +43,8 @@ const translations: Record<Language, Record<string, string>> = {
     "home.acrossDepts": "Across depts",
     "home.recentActivity": "Recent Activity",
     "home.viewActivityLog": "View Activity Log",
-    "home.trackName": "Advanced Executive Leadership",
     "home.videoSeries": "Video Series",
     "home.interactiveQuiz": "Interactive Quiz",
-    "home.course1Title": "Conflict Resolution in Agile Teams",
-    "home.course1Desc":
-      "Master the techniques to navigate and resolve interpersonal conflicts within fast-paced agile environments.",
-    "home.course2Title": "Data-Driven Decision Making",
-    "home.course2Desc":
-      "Learn how to interpret complex datasets to drive strategic corporate initiatives and optimize operations.",
     "home.act1User": "Design Team",
     "home.act1Action": "completed",
     "home.act1Target": "Accessibility Guidelines",
@@ -95,18 +86,6 @@ const translations: Record<Language, Record<string, string>> = {
     "courses.reviewMaterial": "Review Material",
     "courses.resumeCourse": "Resume Course",
     "courses.startCourse": "Start Course",
-    "courses.c1Title": "Strategic Decision Making in Complex Environments",
-    "courses.c1Desc":
-      "Learn frameworks for making high-stakes decisions when variables are uncertain and cross-functional alignment is critical.",
-    "courses.c2Title": "Advanced Data Analytics with Python",
-    "courses.c2Desc":
-      "Master data manipulation, visualization, and predictive modeling using pandas, numpy, and scikit-learn.",
-    "courses.c3Title": "Effective Conflict Resolution in Teams",
-    "courses.c3Desc":
-      "Develop practical strategies to navigate interpersonal disputes and foster psychological safety.",
-    "courses.c4Title": "Inclusive Leadership in Global Organizations",
-    "courses.c4Desc":
-      "Build diverse teams and foster a culture of belonging across geographical and cultural boundaries.",
 
     // Análises
     "analytics.title": "Analytics Overview",
@@ -194,18 +173,6 @@ const translations: Record<Language, Record<string, string>> = {
     "cert.skillTechnical": "Technical",
     "cert.skillCommunication": "Communication",
     "cert.skillCompliance": "Compliance",
-    "cert.c1Title": "Strategic Decision Making",
-    "cert.c1Date": "Oct 15, 2024",
-    "cert.c1Issuer": "Trainify Exec",
-    "cert.c2Title": "Advanced React Patterns",
-    "cert.c2Date": "Sep 02, 2024",
-    "cert.c2Issuer": "Trainify Tech",
-    "cert.c3Title": "Agile Team Conflict Resolution",
-    "cert.c3Date": "Jul 18, 2024",
-    "cert.c3Issuer": "Trainify SoftSkills",
-    "cert.c4Title": "Data Security & Compliance",
-    "cert.c4Date": "Jan 10, 2024",
-    "cert.c4Issuer": "Trainify Sec",
 
     // Assistente de IA
     "nav.assistant": "IA Assistant",
@@ -214,12 +181,6 @@ const translations: Record<Language, Record<string, string>> = {
     "ia.recent": "Recent",
     "ia.action1": "Generate Progress Report",
     "ia.action2": "Schedule Team Training",
-    "ia.conv1Title": "Onboarding Course Plan",
-    "ia.conv1Preview": "Here are the recommended modules for new...",
-    "ia.conv2Title": "Q3 Compliance Completion",
-    "ia.conv2Preview": "Generate a list of employees who haven't...",
-    "ia.conv3Title": "Leadership Skills Path",
-    "ia.conv3Preview": "I need a learning path for mid-level managers...",
     "ia.yesterday": "Yesterday",
     "ia.welcomeMessage":
       "Hello! I'm your Learning IA Assistant. I can help you build curriculums, analyze training data, or recommend courses for your team.\n\nHow can I assist you today?",
@@ -270,22 +231,20 @@ const translations: Record<Language, Record<string, string>> = {
     "support.contactSubtitle":
       "If you can't find what you are looking for, our support team is ready to help.",
     "support.emailSupport": "Email Support",
-    "support.emailResponse": "Expected response time: 2-4 hours",
     "support.phoneSupport": "Phone Support",
-    "support.phoneHours": "Mon-Fri, 9am-6pm EST",
     "support.faqTitle": "Frequently Asked Questions",
     "support.faq1Q": "How do I print or download my certificate?",
     "support.faq1A":
       "Navigate to the Certifications tab from the left menu. Find the credential you want to download and click the download icon located at the bottom right of the certification card.",
     "support.faq2Q": "Is there a limit on how many courses I can take?",
     "support.faq2A":
-      "No, all courses in your departmental track are fully available to you without limits. Some premium enterprise content may require manager approval.",
+      "Available courses are listed on the Courses page. Contact your organization administrator for access questions.",
     "support.faq3Q": "I forgot my password, how do I reset it?",
     "support.faq3A":
-      "Because Trainify uses Single Sign-On (SSO) with your corporate account, you will need to contact your local IT helpdesk to reset your password.",
+      "On the login page, select Forgot password and enter your email to receive a reset link.",
     "support.faq4Q": "How often are the training materials updated?",
     "support.faq4A":
-      "We update our course material quarterly. However, critical compliance and security courses are updated immediately as regulations change.",
+      "Course materials are managed by their instructors. Ask the instructor about updates.",
 
     // Perfil
     "profile.myProfile": "My Profile",
@@ -321,7 +280,7 @@ const translations: Record<Language, Record<string, string>> = {
     "assessment.noAnswer": "Not answered",
     "assessment.completed": "Assessment Completed!",
     "assessment.completedDesc":
-      "You've scored 100% on the Strategic Thinking knowledge check. Great work!",
+      "Review your assessment result below.",
     "assessment.totalScore": "Total Score",
     "assessment.timeSpent": "Time Spent",
     "assessment.returnToCourse": "Return to Course",
@@ -359,18 +318,6 @@ const translations: Record<Language, Record<string, string>> = {
       "Stay updated with your latest learning activities and team alerts.",
     "notif.markAllRead": "Mark all read",
     "notif.clearAll": "Clear all",
-    "notif.n1Title": "Certification Completed",
-    "notif.n1Desc":
-      'Congratulations! You have successfully completed the "Strategic Decision Making" course.',
-    "notif.n1Time": "2 hours ago",
-    "notif.n2Title": "New mandatory course assigned",
-    "notif.n2Desc":
-      'Your manager has assigned "Data Security Basics" to your learning path. Due by Nov 15.',
-    "notif.n2Time": "Yesterday",
-    "notif.n3Title": "New Reply in Leadership Forum",
-    "notif.n3Desc":
-      'Marcus Chen replied: "Great point about cross-functional alignment. I think we..."',
-    "notif.n3Time": "2 days ago",
   },
 
   es: {
@@ -397,10 +344,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Início
     "home.welcomePrefix": "Bienvenido de nuevo,",
     "home.subtitle":
-      "Actualmente estás en camino de completar tus objetivos de liderazgo del T3. Mantén el ritmo.",
+      "Explora los cursos disponibles y sigue tus actividades de aprendizaje.",
     "home.currentTrack": "Vía Actual",
-    "home.moduleProgress": "Módulo 4 de 6",
-    "home.estCompletion": "Est. de finalización: Oct 12",
     "home.featuredCourses": "Cursos Destacados",
     "home.viewAll": "Ver todos",
     "home.active": "Activos",
@@ -409,15 +354,8 @@ const translations: Record<Language, Record<string, string>> = {
     "home.acrossDepts": "En deptos",
     "home.recentActivity": "Actividad Reciente",
     "home.viewActivityLog": "Ver Registro de Actividad",
-    "home.trackName": "Liderazgo Ejecutivo Avanzado",
     "home.videoSeries": "Serie de Videos",
     "home.interactiveQuiz": "Quiz Interactivo",
-    "home.course1Title": "Resolución de Conflictos en Equipos Ágiles",
-    "home.course1Desc":
-      "Domina las técnicas para navegar y resolver conflictos interpersonales en entornos ágiles.",
-    "home.course2Title": "Toma de Decisiones Basada en Datos",
-    "home.course2Desc":
-      "Aprende a interpretar conjuntos de datos complejos para impulsar iniciativas corporativas estratégicas.",
     "home.act1User": "Equipo de Diseño",
     "home.act1Action": "completó",
     "home.act1Target": "Pautas de Accesibilidad",
@@ -459,18 +397,6 @@ const translations: Record<Language, Record<string, string>> = {
     "courses.reviewMaterial": "Revisar Material",
     "courses.resumeCourse": "Reanudar Curso",
     "courses.startCourse": "Comenzar Curso",
-    "courses.c1Title": "Toma de Decisiones Estratégicas en Entornos Complejos",
-    "courses.c1Desc":
-      "Aprende marcos de trabajo para tomar decisiones de alto impacto cuando las variables son inciertas.",
-    "courses.c2Title": "Análisis de Datos Avanzado con Python",
-    "courses.c2Desc":
-      "Domina la manipulación de datos, visualización y modelado predictivo con pandas, numpy y scikit-learn.",
-    "courses.c3Title": "Resolución Efectiva de Conflictos en Equipos",
-    "courses.c3Desc":
-      "Desarrolla estrategias para resolver disputas interpersonales y fomentar la seguridad psicológica.",
-    "courses.c4Title": "Liderazgo Inclusivo en Organizaciones Globales",
-    "courses.c4Desc":
-      "Construye equipos diversos y fomenta una cultura de pertenencia más allá de las fronteras culturales.",
 
     // Análises
     "analytics.title": "Resumen de Análisis",
@@ -557,18 +483,6 @@ const translations: Record<Language, Record<string, string>> = {
     "cert.skillTechnical": "Técnico",
     "cert.skillCommunication": "Comunicación",
     "cert.skillCompliance": "Cumplimiento",
-    "cert.c1Title": "Toma de Decisiones Estratégicas",
-    "cert.c1Date": "15 Oct 2024",
-    "cert.c1Issuer": "Trainify Exec",
-    "cert.c2Title": "Patrones Avanzados en React",
-    "cert.c2Date": "02 Sep 2024",
-    "cert.c2Issuer": "Trainify Tech",
-    "cert.c3Title": "Resolución de Conflictos en Equipos Ágiles",
-    "cert.c3Date": "18 Jul 2024",
-    "cert.c3Issuer": "Trainify SoftSkills",
-    "cert.c4Title": "Seguridad de Datos y Cumplimiento",
-    "cert.c4Date": "10 Ene 2024",
-    "cert.c4Issuer": "Trainify Sec",
 
     // Assistente de IA
     "nav.assistant": "Asistente IA",
@@ -577,12 +491,6 @@ const translations: Record<Language, Record<string, string>> = {
     "ia.recent": "Recientes",
     "ia.action1": "Generar Informe de Progreso",
     "ia.action2": "Programar Entrenamiento del Equipo",
-    "ia.conv1Title": "Plan de Incorporación",
-    "ia.conv1Preview": "Aquí están los módulos recomendados para nuevos...",
-    "ia.conv2Title": "Cumplimiento Q3",
-    "ia.conv2Preview": "Genera una lista de empleados que aún no han...",
-    "ia.conv3Title": "Ruta de Habilidades de Liderazgo",
-    "ia.conv3Preview": "Necesito una ruta para gerentes de nivel medio...",
     "ia.yesterday": "Ayer",
     "ia.welcomeMessage":
       "¡Hola! Soy tu Asistente de Aprendizaje IA. Puedo ayudarte a crear currículos, analizar datos de entrenamiento o recomendar cursos para tu equipo.\n\n¿Cómo puedo ayudarte hoy?",
@@ -621,18 +529,6 @@ const translations: Record<Language, Record<string, string>> = {
       "Mantente actualizado con tus actividades de aprendizaje y alertas del equipo.",
     "notif.markAllRead": "Marcar todas como leídas",
     "notif.clearAll": "Limpiar todo",
-    "notif.n1Title": "Certificación Completada",
-    "notif.n1Desc":
-      'Felicitaciones! Completaste exitosamente el curso "Toma de Decisiones Estratégicas".',
-    "notif.n1Time": "Hace 2 horas",
-    "notif.n2Title": "Nuevo curso obligatorio asignado",
-    "notif.n2Desc":
-      'Tu gerente asignó "Seguridad de Datos Básico" a tu ruta. Fecha límite: 15 de Nov.',
-    "notif.n2Time": "Ayer",
-    "notif.n3Title": "Nueva respuesta en el Foro de Liderazgo",
-    "notif.n3Desc":
-      'Marcus Chen respondió: "Excelente punto sobre alineación entre equipos. Creo que..."',
-    "notif.n3Time": "Hace 2 días",
 
     // Suporte
     "support.heroTitle": "¿Cómo podemos ayudarte?",
@@ -651,22 +547,20 @@ const translations: Record<Language, Record<string, string>> = {
     "support.contactSubtitle":
       "Si no encuentras lo que buscas, nuestro equipo está listo para ayudarte.",
     "support.emailSupport": "Soporte por Correo",
-    "support.emailResponse": "Tiempo de respuesta esperado: 2-4 horas",
     "support.phoneSupport": "Soporte Telefónico",
-    "support.phoneHours": "Lun-Vie, 9am-6pm EST",
     "support.faqTitle": "Preguntas Frecuentes",
     "support.faq1Q": "¿Cómo imprimo o descargo mi certificado?",
     "support.faq1A":
       "Ve a la pestaña Certificaciones en el menú izquierdo. Encuentra la credencial que deseas descargar y haz clic en el ícono de descarga en la esquina inferior derecha.",
     "support.faq2Q": "¿Hay un límite en la cantidad de cursos que puedo tomar?",
     "support.faq2A":
-      "No, todos los cursos de tu ruta departamental están disponibles sin límites. Algunos contenidos premium pueden requerir aprobación del gerente.",
+      "Los cursos disponibles aparecen en la página Cursos. Consulta al administrador de tu organización sobre el acceso.",
     "support.faq3Q": "Olvidé mi contraseña, ¿cómo la restablezco?",
     "support.faq3A":
-      "Como Trainify usa Single Sign-On (SSO) con tu cuenta corporativa, deberás contactar al soporte de TI de tu empresa para restablecer la contraseña.",
+      "En la página de inicio de sesión, selecciona Olvidé mi contraseña e introduce tu correo para recibir el enlace.",
     "support.faq4Q": "¿Con qué frecuencia se actualizan los materiales?",
     "support.faq4A":
-      "Actualizamos nuestros materiales trimestralmente. Los cursos de cumplimiento y seguridad se actualizan inmediatamente cuando hay cambios regulatorios.",
+      "Los responsables de cada curso gestionan los materiales. Consulta al instructor sobre las actualizaciones.",
 
     // Perfil
     "profile.myProfile": "Mi Perfil",
@@ -702,7 +596,7 @@ const translations: Record<Language, Record<string, string>> = {
     "assessment.noAnswer": "Sin responder",
     "assessment.completed": "¡Evaluación Completada!",
     "assessment.completedDesc":
-      "Obtuviste 100% en la verificación de Pensamiento Estratégico. ¡Excelente trabajo!",
+      "Consulta el resultado de tu evaluación a continuación.",
     "assessment.totalScore": "Puntuación Total",
     "assessment.timeSpent": "Tiempo Empleado",
     "assessment.returnToCourse": "Volver al Curso",
@@ -759,10 +653,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Início
     "home.welcomePrefix": "Bem-vindo de volta,",
     "home.subtitle":
-      "Você está no caminho certo para concluir seus objetivos de liderança do 3º trimestre. Mantenha o ritmo.",
+      "Explore os cursos disponíveis e acompanhe suas atividades de aprendizado.",
     "home.currentTrack": "Trilha Atual",
-    "home.moduleProgress": "Módulo 4 de 6",
-    "home.estCompletion": "Prev. de conclusão: 12 de Out",
     "home.featuredCourses": "Cursos em Destaque",
     "home.viewAll": "Ver todos",
     "home.active": "Ativos",
@@ -771,15 +663,8 @@ const translations: Record<Language, Record<string, string>> = {
     "home.acrossDepts": "Entre depts",
     "home.recentActivity": "Atividade Recente",
     "home.viewActivityLog": "Ver Histórico de Atividades",
-    "home.trackName": "Liderança Executiva Avançada",
     "home.videoSeries": "Série de Vídeos",
     "home.interactiveQuiz": "Quiz Interativo",
-    "home.course1Title": "Resolução de Conflitos em Times Ágeis",
-    "home.course1Desc":
-      "Domine as técnicas para navegar e resolver conflitos interpessoais em ambientes ágeis.",
-    "home.course2Title": "Tomada de Decisão Baseada em Dados",
-    "home.course2Desc":
-      "Aprenda a interpretar conjuntos de dados complexos para impulsionar iniciativas corporativas.",
     "home.act1User": "Time de Design",
     "home.act1Action": "concluiu",
     "home.act1Target": "Diretrizes de Acessibilidade",
@@ -821,18 +706,6 @@ const translations: Record<Language, Record<string, string>> = {
     "courses.reviewMaterial": "Revisar Material",
     "courses.resumeCourse": "Continuar Curso",
     "courses.startCourse": "Iniciar Curso",
-    "courses.c1Title": "Tomada de Decisão Estratégica em Ambientes Complexos",
-    "courses.c1Desc":
-      "Aprenda frameworks para tomar decisões de alto impacto quando as variáveis são incertas.",
-    "courses.c2Title": "Análise de Dados Avançada com Python",
-    "courses.c2Desc":
-      "Domine manipulação de dados, visualização e modelagem preditiva com pandas, numpy e scikit-learn.",
-    "courses.c3Title": "Resolução de Conflitos em Equipes",
-    "courses.c3Desc":
-      "Desenvolva estratégias para resolver disputas interpessoais e promover segurança psicológica.",
-    "courses.c4Title": "Liderança Inclusiva em Organizações Globais",
-    "courses.c4Desc":
-      "Construa equipes diversas e promova uma cultura de pertencimento além das fronteiras culturais.",
 
     // Análises
     "analytics.title": "Visão Geral de Análises",
@@ -920,18 +793,6 @@ const translations: Record<Language, Record<string, string>> = {
     "cert.skillTechnical": "Técnico",
     "cert.skillCommunication": "Comunicação",
     "cert.skillCompliance": "Conformidade",
-    "cert.c1Title": "Tomada de Decisão Estratégica",
-    "cert.c1Date": "15 Out 2024",
-    "cert.c1Issuer": "Trainify Exec",
-    "cert.c2Title": "Padrões Avançados em React",
-    "cert.c2Date": "02 Set 2024",
-    "cert.c2Issuer": "Trainify Tech",
-    "cert.c3Title": "Resolução de Conflitos em Times Ágeis",
-    "cert.c3Date": "18 Jul 2024",
-    "cert.c3Issuer": "Trainify SoftSkills",
-    "cert.c4Title": "Segurança de Dados e Conformidade",
-    "cert.c4Date": "10 Jan 2024",
-    "cert.c4Issuer": "Trainify Sec",
 
     // Assistente de IA
     "nav.assistant": "Assistente IA",
@@ -940,12 +801,6 @@ const translations: Record<Language, Record<string, string>> = {
     "ia.recent": "Recentes",
     "ia.action1": "Gerar Relatório de Progresso",
     "ia.action2": "Agendar Treinamento da Equipe",
-    "ia.conv1Title": "Plano de Onboarding",
-    "ia.conv1Preview": "Aqui estão os módulos recomendados para novos...",
-    "ia.conv2Title": "Conclusão de Compliance Q3",
-    "ia.conv2Preview": "Gere uma lista de colaboradores que ainda não...",
-    "ia.conv3Title": "Trilha de Habilidades de Liderança",
-    "ia.conv3Preview": "Preciso de uma trilha para gestores de nível médio...",
     "ia.yesterday": "Ontem",
     "ia.welcomeMessage":
       "Olá! Sou seu Assistente de Aprendizado IA. Posso ajudar você a criar currículos, analisar dados de treinamento ou recomendar cursos para sua equipe.\n\nComo posso te ajudar hoje?",
@@ -995,22 +850,20 @@ const translations: Record<Language, Record<string, string>> = {
     "support.contactSubtitle":
       "Se não encontrar o que procura, nossa equipe está pronta para ajudar.",
     "support.emailSupport": "Suporte por E-mail",
-    "support.emailResponse": "Tempo de resposta esperado: 2-4 horas",
     "support.phoneSupport": "Suporte por Telefone",
-    "support.phoneHours": "Seg-Sex, 9h-18h (horário de Brasília)",
     "support.faqTitle": "Perguntas Frequentes",
     "support.faq1Q": "Como imprimo ou baixo meu certificado?",
     "support.faq1A":
       "Acesse a aba Certificados no menu lateral. Encontre a credencial que deseja baixar e clique no ícone de download no canto inferior direito do card.",
     "support.faq2Q": "Existe limite de cursos que posso fazer?",
     "support.faq2A":
-      "Não, todos os cursos da sua trilha departamental estão disponíveis sem limites. Alguns conteúdos premium podem exigir aprovação do gestor.",
+      "Os cursos disponíveis podem ser consultados na página Cursos. Em caso de dúvidas sobre acesso, procure o administrador da sua organização.",
     "support.faq3Q": "Esqueci minha senha, como a redefino?",
     "support.faq3A":
-      "Como o Trainify utiliza Single Sign-On (SSO) com sua conta corporativa, entre em contato com o suporte de TI da sua empresa para redefinir a senha.",
+      "Na tela de login, clique em Esqueceu a senha? e informe seu e-mail para receber o link de recuperação.",
     "support.faq4Q": "Com que frequência os materiais são atualizados?",
     "support.faq4A":
-      "Atualizamos nossos materiais trimestralmente. Cursos de compliance e segurança são atualizados imediatamente quando há mudanças regulatórias.",
+      "Os materiais são gerenciados pelos responsáveis por cada curso. Consulte o instrutor para saber sobre atualizações.",
 
     // Perfil
     "profile.myProfile": "Meu Perfil",
@@ -1046,7 +899,7 @@ const translations: Record<Language, Record<string, string>> = {
     "assessment.noAnswer": "Não respondida",
     "assessment.completed": "Avaliação Concluída!",
     "assessment.completedDesc":
-      "Você tirou 100% na verificação de conhecimento de Pensamento Estratégico. Excelente trabalho!",
+      "Confira abaixo o resultado da sua avaliação.",
     "assessment.totalScore": "Pontuação Total",
     "assessment.timeSpent": "Tempo Gasto",
     "assessment.returnToCourse": "Voltar ao Curso",
@@ -1084,18 +937,6 @@ const translations: Record<Language, Record<string, string>> = {
       "Fique atualizado com suas atividades de aprendizado e alertas da equipe.",
     "notif.markAllRead": "Marcar todas como lidas",
     "notif.clearAll": "Limpar tudo",
-    "notif.n1Title": "Certificação Concluída",
-    "notif.n1Desc":
-      'Parabéns! Você concluiu com sucesso o curso "Tomada de Decisão Estratégica".',
-    "notif.n1Time": "2 horas atrás",
-    "notif.n2Title": "Novo curso obrigatório atribuído",
-    "notif.n2Desc":
-      'Seu gestor atribuiu "Segurança de Dados Básico" à sua trilha. Prazo: 15 de Nov.',
-    "notif.n2Time": "Ontem",
-    "notif.n3Title": "Nova resposta no Fórum de Liderança",
-    "notif.n3Desc":
-      'Marcus Chen respondeu: "Ótimo ponto sobre alinhamento entre equipes. Acho que..."',
-    "notif.n3Time": "2 dias atrás",
   },
 };
 

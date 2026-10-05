@@ -50,7 +50,7 @@ function userFromToken(accessToken: string, fallbackEmail: string): User {
     name: decoded.name || decoded.sub || fallbackEmail,
     email: decoded.sub || fallbackEmail,
     role: decoded.role ? decoded.role.replace("ROLE_", "") : "STUDENT",
-    department: "LMS",
+    department: "",
     tenantId: decoded.tenant_id,
     avatar: decoded.avatar,
   };
@@ -153,7 +153,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         name: userPayload.name,
         email: userPayload.sub,
         role: userPayload.role ? userPayload.role.replace("ROLE_", "") : "STUDENT",
-        department: "LMS",
+        department: "",
         tenantId: userPayload.tenant_id,
       };
 

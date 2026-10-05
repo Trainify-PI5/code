@@ -24,7 +24,7 @@ public class Certification extends BaseEntity {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    @Column(nullable = false)
+    @Column
     private Integer score;
 
     @Column(name = "issued_at")

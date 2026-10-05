@@ -190,14 +190,13 @@ export default function Register({ onNavigate }: RegisterProps) {
               de crescimento.
             </h2>
             <p className="text-purple-200/80 text-lg leading-relaxed">
-              Crie sua conta gratuitamente e desbloqueie acesso a centenas de
-              trilhas de aprendizado.
+              Acesse os cursos disponíveis para sua organização.
             </p>
           </div>
           <div className="space-y-4">
             {[
-              "Trilhas personalizadas por IA",
-              "Certificações reconhecidas pelo mercado",
+              "Conteúdos organizados por módulos",
+              "Certificados de conclusão",
               "Acompanhe seu progresso em tempo real",
             ].map((text) => (
               <div key={text} className="flex items-center gap-3">

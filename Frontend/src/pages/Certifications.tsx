@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Award,
   Download,
-  Clock,
-  Star,
   ExternalLink,
   ShieldCheck,
 } from "lucide-react";
@@ -18,9 +16,7 @@ interface Certificate {
   title: string;
   date: string;
   issuer: string;
-  skill: string;
   color: string;
-  score: number;
 }
 
 export default function Certifications() {
@@ -28,6 +24,8 @@ export default function Certifications() {
   const { t } = useLanguage();
 
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [baixando, setBaixando] = useState<string | null>(null);
   const [baixandoTodos, setBaixandoTodos] = useState(false);
 
@@ -110,14 +108,15 @@ export default function Certifications() {
           title: c.courseTitle || "Curso sem Título",
           date: c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() : "",
           issuer: "Trainify LMS",
-          skill: "Conhecimento Geral", // mock fallback
           color: "bg-primary-container text-white",
-          score: c.score || 100,
         }));
         setCertificates(mapped);
-      }).catch(console.error);
+      }).catch(() => setError(true)).finally(() => setLoading(false));
     });
   }, []);
+
+  if (loading) return <PageContainer><p role="status">Carregando certificados...</p></PageContainer>;
+  if (error) return <PageContainer><p role="alert">Não foi possível carregar os certificados.</p></PageContainer>;
 
   return (
     <PageContainer>
@@ -146,32 +145,6 @@ export default function Certifications() {
             </p>
           </div>
         </div>
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-surface-container rounded-full flex items-center justify-center text-on-surface-variant">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">
-              {t("cert.hoursLogged")}
-            </p>
-            <p className="text-3xl font-display font-bold text-on-surface leading-tight">
-              {certificates.length * 4}h
-            </p>
-          </div>
-        </div>
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-700 dark:bg-green-500/10 dark:text-green-300">
-            <Star className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">
-              {t("cert.avgScore")}
-            </p>
-            <p className="text-3xl font-display font-bold text-on-surface leading-tight">
-              {certificates.length > 0 ? Math.round(certificates.reduce((acc, c) => acc + c.score, 0) / certificates.length) : 0}%
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Grade */}
@@ -179,6 +152,7 @@ export default function Certifications() {
         {t("cert.yourCredentials")}
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {certificates.length === 0 && <p className="text-on-surface-variant">Nenhum certificado disponível.</p>}
         {certificates.map((cert) => (
           <div
             key={cert.id}
@@ -193,9 +167,6 @@ export default function Certifications() {
               <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3" />
               <div className="flex justify-between items-start relative z-10">
                 <ShieldCheck className="w-8 h-8 opacity-80" />
-                <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2 py-1 rounded backdrop-blur-sm">
-                  {cert.skill}
-                </span>
               </div>
               <div className="relative z-10">
                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">
@@ -211,9 +182,6 @@ export default function Certifications() {
               <div>
                 <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest">
                   {t("cert.issued")} {cert.date}
-                </p>
-                <p className="text-sm font-medium mt-1">
-                  {t("cert.score")}: {cert.score}%
                 </p>
               </div>
               <div className="flex items-center gap-2">

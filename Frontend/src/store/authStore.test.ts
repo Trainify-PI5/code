@@ -77,7 +77,7 @@ describe('authStore', () => {
         name: 'Ana Souza',
         email: 'ana@trainify.com',
         role: 'ADMIN',
-        department: 'LMS',
+        department: '',
         tenantId: 't-1',
         avatar: undefined,
       });
