@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Circle, FileText, Lock, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, FileText, List, Lock, MessageSquare } from 'lucide-react';
 import api from '../services/api';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
@@ -52,6 +52,7 @@ export default function LessonPlayer() {
   const [enrollment, setEnrollment] = useState<any>(null);
   const [activeLesson, setActiveLesson] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
+  const [showLessons, setShowLessons] = useState(false);
   const [loading, setLoading] = useState(true);
   const [initialTime, setInitialTime] = useState(0);
   const [mediaUrl, setMediaUrl] = useState<string>('');
@@ -246,20 +247,30 @@ export default function LessonPlayer() {
     <div className="flex flex-col h-[calc(100vh-8rem)] bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant">
 
       {/* Cabeçalho do Player */}
-      <div className="flex items-center justify-between p-4 border-b border-outline-variant bg-surface-container-low shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-outline-variant bg-surface-container-low shrink-0">
+        <div className="flex min-w-0 items-center gap-4">
           <button
             onClick={() => navigate(-1)}
             className="p-2 hover:bg-surface-container rounded-full transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-on-surface-variant" />
           </button>
-          <h1 className="font-semibold text-on-surface">
+          <h1 className="font-semibold text-on-surface break-words min-w-0">
             {course.title}
           </h1>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            className="lg:hidden"
+            aria-expanded={showLessons}
+            aria-controls="course-lessons"
+            onClick={() => setShowLessons((open) => !open)}
+          >
+            <List className="w-4 h-4" />
+            Conteúdo do curso
+          </Button>
           <button
             onClick={() => setShowChat(!showChat)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -273,10 +284,10 @@ export default function LessonPlayer() {
       </div>
 
       {/* Área de Conteúdo Principal */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
 
         {/* Vídeo e Descrição */}
-        <div className="flex-1 overflow-y-auto flex flex-col relative">
+        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto flex flex-col relative">
            {activeLesson ? (
              <>
                 {activeLesson.lessonType === 'VIDEO' && mediaUrl ? (
@@ -400,7 +411,12 @@ export default function LessonPlayer() {
         </div>
 
         {/* Barra Lateral de Aulas */}
-        <div className="w-80 shrink-0 border-l border-outline-variant bg-surface-container-low overflow-y-auto hidden lg:block">
+        <div
+          id="course-lessons"
+          role="region"
+          aria-label="Conteúdo do curso"
+          className={`order-first lg:order-last w-full lg:w-80 max-h-[40%] lg:max-h-none shrink-0 border-b lg:border-b-0 lg:border-l border-outline-variant bg-surface-container-low overflow-y-auto ${showLessons ? 'block' : 'hidden'} lg:block`}
+        >
            <div className="p-4 border-b border-outline-variant">
               <h3 className="font-semibold text-on-surface">Conteúdo do Curso</h3>
               <p className="text-xs text-on-surface-variant mt-1">{progressPercentage}% concluído</p>
@@ -421,7 +437,12 @@ export default function LessonPlayer() {
                          return (
                            <button
                              key={lesson.id}
-                             onClick={() => { if (!locked) setActiveLesson(lesson); }}
+                             onClick={() => {
+                               if (locked) return;
+                               setActiveLesson(lesson);
+                               setShowLessons(false);
+                             }}
+                             aria-current={activeLesson?.id === lesson.id ? 'true' : undefined}
                              disabled={locked}
                              title={locked ? 'Conclua a aula anterior para liberar' : undefined}
                              className={`flex items-start gap-3 p-3 text-left rounded-lg transition-colors ${
@@ -448,6 +469,8 @@ export default function LessonPlayer() {
                                    {lesson.title}
                                  </p>
                                  <p className="text-xs opacity-70 mt-1">{formatLessonMeta(lesson)}</p>
+                                 {completed && <span className="text-xs">Concluída</span>}
+                                 {locked && <span className="text-xs">Conclua a aula anterior para liberar</span>}
                               </div>
                            </button>
                          );
