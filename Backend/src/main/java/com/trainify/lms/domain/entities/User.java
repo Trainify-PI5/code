@@ -28,6 +28,9 @@ public class User extends BaseEntity {
     @Column(length = 500)
     private String avatar;
 
+    @Column(length = 1000)
+    private String bio;
+
     @Column(name = "password_hash", length = 255, nullable = false)
     private String passwordHash;
 

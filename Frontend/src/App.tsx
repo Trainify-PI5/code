@@ -33,6 +33,7 @@ import { useAuthStore } from "./store/authStore";
 import { useThemeStore } from "./store/themeStore";
 import AIChatWidget from "./components/AIChatWidget";
 import CommandPalette from "./components/CommandPalette";
+import api from "./services/api";
 
 
 function ProtectedRoute({
@@ -53,12 +54,21 @@ function ProtectedRoute({
 }
 
 export default function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token, updateUser } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useThemeStore();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [paletaAberta, setPaletaAberta] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    api.get('/users/me').then(({ data }) => {
+      if (!cancelled) updateUser({ name: data.name, bio: data.bio, avatar: data.avatar });
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [isAuthenticated, token, updateUser]);
 
   // Ctrl+K no Windows e Linux, Cmd+K no Mac. O preventDefault e necessario
   // porque Cmd+K e atalho nativo do navegador para a barra de endereco.

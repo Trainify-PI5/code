@@ -11,6 +11,7 @@ public class UserDto {
     private String email;
     private Role role;
     private String avatar;
+    private String bio;
     private Boolean isActive;
     private UUID tenantId;
 }

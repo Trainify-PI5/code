@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Shield, Save, Eye, EyeOff, Lock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuthStore } from "../store/authStore";
@@ -15,6 +15,53 @@ export default function Settings() {
   const toast = useToast();
   const seletorFoto = useRef<HTMLInputElement>(null);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [name, setName] = useState(user?.name || "");
+  const [bio, setBio] = useState(user?.bio || "");
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [profileAttempt, setProfileAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingProfile(true);
+    setProfileLoaded(false);
+    setProfileError("");
+    api.get('/users/me').then(({ data }) => {
+      if (cancelled) return;
+      setName(data.name);
+      setBio(data.bio || "");
+      setProfileLoaded(true);
+    }).catch(() => {
+      if (!cancelled) setProfileError("Não foi possível carregar o perfil. Tente novamente.");
+    }).finally(() => {
+      if (!cancelled) setLoadingProfile(false);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id, profileAttempt]);
+
+  const saveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!profileLoaded || savingProfile) return;
+    if (!name.trim()) {
+      setProfileError("Informe seu nome.");
+      return;
+    }
+    setSavingProfile(true);
+    setProfileError("");
+    try {
+      const { data } = await api.put('/users/me', { name: name.trim(), email: user?.email, bio });
+      setName(data.name);
+      setBio(data.bio || "");
+      updateUser({ name: data.name, bio: data.bio });
+      toast.success("Perfil atualizado.");
+    } catch {
+      setProfileError("Não foi possível atualizar o perfil. Tente novamente.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Tres passos: pede a URL assinada, envia o arquivo direto para o Storage e
   // so entao grava a chave no usuario.
@@ -128,7 +175,7 @@ export default function Settings() {
 
         <div className="md:col-span-2 space-y-8">
           {activeTab === "profile" && (
-            <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 shadow-sm space-y-6">
+            <form onSubmit={saveProfile} className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 shadow-sm space-y-6">
               <h3 className="text-lg font-display font-bold border-b border-outline-variant pb-4">
                 {t("settings.personalInfo") || "Informações Pessoais"}
               </h3>
@@ -162,6 +209,7 @@ export default function Settings() {
                     }}
                   />
                   <button
+                    type="button"
                     onClick={() => seletorFoto.current?.click()}
                     disabled={enviandoFoto}
                     className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold uppercase disabled:cursor-not-allowed"
@@ -184,13 +232,17 @@ export default function Settings() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="profile-name" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
                     {t("settings.fullName") || "Nome Completo"}
                   </label>
                   <input
                     id="profile-name"
                     type="text"
-                    defaultValue={user?.name || ""}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    maxLength={100}
+                    disabled={!profileLoaded || savingProfile}
                     className="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 text-sm focus:border-primary outline-none transition-all text-on-surface"
                   />
                 </div>
@@ -206,10 +258,15 @@ export default function Settings() {
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="profile-bio" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
                     {t("settings.bio") || "Bio"}
                   </label>
                   <textarea
+                    id="profile-bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    maxLength={1000}
+                    disabled={!profileLoaded || savingProfile}
                     rows={3}
                     className="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 text-sm focus:border-primary outline-none resize-none transition-all text-on-surface"
                     placeholder={
@@ -220,27 +277,23 @@ export default function Settings() {
                 </div>
               </div>
 
+              {loadingProfile && <p role="status">Carregando perfil...</p>}
+              {profileError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{profileError}</p>}
+              {!loadingProfile && !profileLoaded && (
+                <button type="button" onClick={() => setProfileAttempt((attempt) => attempt + 1)} className="text-primary underline">Tentar novamente</button>
+              )}
               <div className="flex justify-end pt-2">
-                <button 
-                  onClick={async () => {
-                    const nameInput = document.getElementById("profile-name") as HTMLInputElement;
-                    if(nameInput) {
-                      try {
-                        const api = await import("../services/api").then(m => m.default);
-                        await api.put("/users/me", { name: nameInput.value, email: user?.email, avatar: user?.avatar });
-                        toast.success("Perfil atualizado.");
-                      } catch (e) {
-                        toast.error("Não foi possível atualizar o perfil.");
-                      }
-                    }
-                  }}
-                  className="bg-primary-container text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+                <button
+                  type="submit"
+                  disabled={!profileLoaded || savingProfile}
+                  aria-busy={savingProfile}
+                  className="bg-primary-container text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4" />
                   {t("settings.save") || "Salvar Alterações"}
                 </button>
               </div>
-            </section>
+            </form>
           )}
 
           {activeTab === "security" && (

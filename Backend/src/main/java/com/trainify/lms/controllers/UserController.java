@@ -70,6 +70,12 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(request));
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDto> getProfile() {
+        return ResponseEntity.ok(userService.getProfile());
+    }
+
     @PatchMapping("/me/password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> updatePassword(@Valid @RequestBody com.trainify.lms.dto.UpdatePasswordRequest request) {

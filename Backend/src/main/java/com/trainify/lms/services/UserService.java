@@ -163,8 +163,11 @@ public class UserService {
             throw new RuntimeException("Email already exists");
         }
 
-        user.setName(request.getName());
+        user.setName(request.getName().trim());
         user.setEmail(normalizeEmail(request.getEmail()));
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
         if (request.getAvatar() != null) {
             user.setAvatar(request.getAvatar());
         }
@@ -186,6 +189,12 @@ public class UserService {
         userRepository.save(user);
     }
 
+    @Transactional(readOnly = true)
+    public UserDto getProfile() {
+        return mapToDto(userRepository.findById(getCurrentUser().getId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found")));
+    }
+
     private UserDto mapToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
@@ -193,6 +202,7 @@ public class UserService {
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole());
         dto.setAvatar(avatarUrlResolver.resolve(user.getAvatar()));
+        dto.setBio(user.getBio());
         dto.setIsActive(user.getIsActive());
         dto.setTenantId(user.getTenant().getId());
         return dto;

@@ -9,6 +9,7 @@ export interface User {
   role: string;
   department: string;
   avatar?: string;
+  bio?: string | null;
   tenantId?: string;
 }
 

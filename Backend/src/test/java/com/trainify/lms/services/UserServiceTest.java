@@ -110,6 +110,54 @@ public class UserServiceTest {
     }
 
     @Test
+    void updateProfilePersistsNameAndBioWithoutReplacingAvatar() {
+        when(mockUserDetails.getId()).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(userRepository.save(mockUser)).thenReturn(mockUser);
+        mockUser.setAvatar("stored-avatar-key");
+        var request = new com.trainify.lms.dto.UpdateProfileRequest();
+        request.setName("  Novo nome  ");
+        request.setEmail(mockUser.getEmail());
+        request.setBio("Minha bio");
+
+        UserDto result = userService.updateProfile(request);
+
+        assertEquals("Novo nome", result.getName());
+        assertEquals("Minha bio", result.getBio());
+        assertEquals("Minha bio", mockUser.getBio());
+        assertEquals("stored-avatar-key", mockUser.getAvatar());
+        verify(userRepository).save(mockUser);
+    }
+
+    @Test
+    void updateProfilePreservesOmittedBioAndAllowsClearingIt() {
+        when(mockUserDetails.getId()).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(userRepository.save(mockUser)).thenReturn(mockUser);
+        mockUser.setBio("Bio anterior");
+        var request = new com.trainify.lms.dto.UpdateProfileRequest();
+        request.setName(mockUser.getName());
+        request.setEmail(mockUser.getEmail());
+
+        assertEquals("Bio anterior", userService.updateProfile(request).getBio());
+        request.setBio("");
+        assertEquals("", userService.updateProfile(request).getBio());
+    }
+
+    @Test
+    void getProfileReturnsPersistedFieldsForCurrentUser() {
+        when(mockUserDetails.getId()).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        mockUser.setBio("Bio salva");
+
+        UserDto result = userService.getProfile();
+
+        assertEquals(userId, result.getId());
+        assertEquals(mockUser.getName(), result.getName());
+        assertEquals("Bio salva", result.getBio());
+    }
+
+    @Test
     void updatePasswordEncodesAndSavesNewPassword() {
         when(mockUserDetails.getId()).thenReturn(userId);
         mockUser.setPasswordHash("stored-hash");
