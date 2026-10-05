@@ -173,11 +173,15 @@ public class UserService {
     }
 
     @Transactional
-    public void updatePassword(String newPassword) {
+    public void updatePassword(String currentPassword, String newPassword) {
         CustomUserDetails currentUser = getCurrentUser();
         User user = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
         
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Senha atual incorreta.");
+        }
+
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }

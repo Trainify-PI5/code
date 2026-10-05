@@ -61,6 +61,35 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
+  const changePassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (savingPassword) return;
+    setPasswordError("");
+    if (newPassword !== confirmPassword) {
+      setPasswordError(t("settings.passwordMismatch"));
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await api.patch("/users/me/password", { currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success(t("settings.passwordUpdated"));
+    } catch (error: any) {
+      setPasswordError(error.response?.status === 400 && error.response?.data?.detail
+        ? error.response.data.detail
+        : t("settings.passwordError"));
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "profile", label: t("settings.profile") || "Meu Perfil", icon: User },
@@ -215,19 +244,25 @@ export default function Settings() {
           )}
 
           {activeTab === "security" && (
-            <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 shadow-sm space-y-6">
+            <form onSubmit={changePassword} className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 shadow-sm space-y-6">
               <h3 className="text-lg font-display font-bold border-b border-outline-variant pb-4">
                 {t("settings.changePassword") || "Alterar Senha"}
               </h3>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="current-pwd" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
                     {t("settings.currentPassword") || "Senha Atual"}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
                     <input
+                      id="current-pwd"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                      disabled={savingPassword}
                       type={showCurrentPassword ? "text" : "password"}
                       placeholder="••••••••"
                       className="w-full bg-surface-bright border border-outline-variant rounded-lg pl-10 pr-10 py-2.5 text-sm focus:border-primary outline-none transition-all text-on-surface"
@@ -249,13 +284,19 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="new-pwd" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
                     {t("settings.newPassword") || "Nova Senha"}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
                     <input
                       id="new-pwd"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                      disabled={savingPassword}
                       type={showNewPassword ? "text" : "password"}
                       placeholder="••••••••"
                       className="w-full bg-surface-bright border border-outline-variant rounded-lg pl-10 pr-10 py-2.5 text-sm focus:border-primary outline-none transition-all text-on-surface"
@@ -275,13 +316,19 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="confirm-pwd" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
                     {t("settings.confirmNewPassword") || "Confirmar Nova Senha"}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
                     <input
                       id="confirm-pwd"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                      disabled={savingPassword}
                       type="password"
                       placeholder="••••••••"
                       className="w-full bg-surface-bright border border-outline-variant rounded-lg pl-10 pr-4 py-2.5 text-sm focus:border-primary outline-none transition-all text-on-surface"
@@ -290,33 +337,19 @@ export default function Settings() {
                 </div>
               </div>
 
+              {passwordError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>}
               <div className="flex justify-end pt-2">
-                <button 
-                  onClick={async () => {
-                    const newPwd = (document.getElementById("new-pwd") as HTMLInputElement).value;
-                    const confirmPwd = (document.getElementById("confirm-pwd") as HTMLInputElement).value;
-                    if(newPwd !== confirmPwd) {
-                      toast.warning(t("settings.passwordMismatch") || "As senhas não coincidem.");
-                      return;
-                    }
-                    if(!newPwd) return;
-                    try {
-                      const api = await import("../services/api").then(m => m.default);
-                      await api.patch("/users/me/password", { newPassword: newPwd });
-                      toast.success(t("settings.passwordUpdated") || "Senha atualizada.");
-                      (document.getElementById("new-pwd") as HTMLInputElement).value = "";
-                      (document.getElementById("confirm-pwd") as HTMLInputElement).value = "";
-                    } catch (e) {
-                      toast.error(t("settings.passwordError") || "Não foi possível atualizar a senha.");
-                    }
-                  }}
-                  className="bg-primary-container text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  aria-busy={savingPassword}
+                  className="bg-primary-container text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4" />
                   {t("settings.updatePassword") || "Atualizar Senha"}
                 </button>
               </div>
-            </section>
+            </form>
           )}
         </div>
       </div>

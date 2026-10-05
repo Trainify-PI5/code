@@ -248,6 +248,9 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.newPassword": "New Password",
     "settings.confirmNewPassword": "Confirm New Password",
     "settings.updatePassword": "Update Password",
+    "settings.passwordMismatch": "Passwords do not match.",
+    "settings.passwordUpdated": "Password updated.",
+    "settings.passwordError": "Could not update the password. Try again.",
 
     // Suporte
     "support.heroTitle": "How can we help you?",
@@ -608,6 +611,9 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.newPassword": "Nueva Contraseña",
     "settings.confirmNewPassword": "Confirmar Nueva Contraseña",
     "settings.updatePassword": "Actualizar Contraseña",
+    "settings.passwordMismatch": "Las contraseñas no coinciden.",
+    "settings.passwordUpdated": "Contraseña actualizada.",
+    "settings.passwordError": "No se pudo actualizar la contraseña. Inténtalo de nuevo.",
 
     // Notificações
     "notif.title": "Notificaciones",
@@ -968,6 +974,9 @@ const translations: Record<Language, Record<string, string>> = {
     "settings.newPassword": "Nova Senha",
     "settings.confirmNewPassword": "Confirmar Nova Senha",
     "settings.updatePassword": "Atualizar Senha",
+    "settings.passwordMismatch": "As senhas não coincidem.",
+    "settings.passwordUpdated": "Senha atualizada.",
+    "settings.passwordError": "Não foi possível atualizar a senha. Tente novamente.",
 
     // Suporte
     "support.heroTitle": "Como podemos te ajudar?",

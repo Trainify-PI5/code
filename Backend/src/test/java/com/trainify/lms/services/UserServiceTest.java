@@ -94,6 +94,35 @@ public class UserServiceTest {
         SecurityContextHolder.clearContext();
     }
 
+    @Test
+    void updatePasswordRejectsIncorrectCurrentPassword() {
+        when(mockUserDetails.getId()).thenReturn(userId);
+        mockUser.setPasswordHash("stored-hash");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches("incorrect", "stored-hash")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> userService.updatePassword("incorrect", "new-password"));
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+        assertEquals("stored-hash", mockUser.getPasswordHash());
+    }
+
+    @Test
+    void updatePasswordEncodesAndSavesNewPassword() {
+        when(mockUserDetails.getId()).thenReturn(userId);
+        mockUser.setPasswordHash("stored-hash");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches("current-password", "stored-hash")).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+
+        userService.updatePassword("current-password", "new-password");
+
+        assertEquals("new-hash", mockUser.getPasswordHash());
+        verify(userRepository).save(mockUser);
+    }
+
     private void setupSecurityContext() {
         SecurityContextHolder.setContext(securityContext);
         lenient().when(securityContext.getAuthentication()).thenReturn(authentication);

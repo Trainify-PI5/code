@@ -73,8 +73,7 @@ public class UserController {
     @PatchMapping("/me/password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> updatePassword(@Valid @RequestBody com.trainify.lms.dto.UpdatePasswordRequest request) {
-        // Normally we should verify the current password, but I'll trust the user wants to update it.
-        userService.updatePassword(request.getNewPassword());
+        userService.updatePassword(request.getCurrentPassword(), request.getNewPassword());
         return ResponseEntity.noContent().build();
     }
 }
