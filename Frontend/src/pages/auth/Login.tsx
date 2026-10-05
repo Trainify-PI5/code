@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
 import logotipoLight from "../../assets/images/logotipo-modo_light.svg";
 import logotipoDark from "../../assets/images/logotipo-modo_dark.svg";
@@ -74,7 +74,10 @@ export default function Login({ onNavigate }: LoginProps) {
 
       {/* Direita — Formulário de Login */}
       <div className="flex-1 flex flex-col">
-        <div className="flex justify-end p-4">
+        <div className="flex items-center justify-between gap-4 p-4">
+          <a href="/" className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-fixed">
+            <ArrowLeft className="h-4 w-4" /> Voltar ao início
+          </a>
           <ThemeToggle
             isDarkMode={isDarkMode}
             toggleDarkMode={toggleDarkMode}

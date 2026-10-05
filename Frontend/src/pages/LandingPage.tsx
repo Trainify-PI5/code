@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import logotipoLight from "../assets/images/logotipo-modo_light.svg";
 import logotipoDark from "../assets/images/logotipo-modo_dark.svg";
+import ThemeToggle from "../components/ThemeToggle";
+import { useThemeStore } from "../store/themeStore";
 
 interface LandingPageProps {
   onGoToLogin: () => void;
@@ -23,6 +25,7 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onGoToLogin, onContact }: LandingPageProps) {
+  const { isDarkMode, toggleDarkMode } = useThemeStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -78,19 +81,19 @@ export default function LandingPage({ onGoToLogin, onContact }: LandingPageProps
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-gray-800" : "bg-transparent"}`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
           <img
             src={logotipoLight}
             alt="Trainify"
-            className="h-9 w-auto dark:hidden"
+            className="h-12 sm:h-14 w-auto shrink-0 dark:hidden"
           />
           <img
             src={logotipoDark}
             alt="Trainify"
-            className="h-9 w-auto hidden dark:block"
+            className="h-12 sm:h-14 w-auto shrink-0 hidden dark:block"
           />
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-400">
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-400">
             <a
               href="#features"
               className="hover:text-purple-700 dark:hover:text-purple-400 transition-colors"
@@ -120,7 +123,12 @@ export default function LandingPage({ onGoToLogin, onContact }: LandingPageProps
             </button>
           </div>
 
+          <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
           <button
+            type="button"
+            aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
           >
@@ -130,6 +138,7 @@ export default function LandingPage({ onGoToLogin, onContact }: LandingPageProps
               <Menu className="w-5 h-5" />
             )}
           </button>
+          </div>
         </div>
 
         <AnimatePresence>
@@ -359,7 +368,7 @@ export default function LandingPage({ onGoToLogin, onContact }: LandingPageProps
       <footer className="bg-gray-950 text-gray-400 py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
-            <img src={logotipoDark} alt="Trainify" className="h-8 w-auto" />
+            <img src={logotipoDark} alt="Trainify" className="h-12 sm:h-14 w-auto" />
             <p className="text-xs">
               © {new Date().getFullYear()} Trainify. Todos os direitos
               reservados.

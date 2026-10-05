@@ -62,8 +62,8 @@ export default function SalesContact() {
       <header className="border-b border-outline-variant bg-surface-container-lowest">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
           <Link to="/" aria-label="Trainify — início" className="shrink-0">
-            <img src={logoLight} alt="Trainify" className="h-9 w-auto dark:hidden" />
-            <img src={logoDark} alt="Trainify" className="hidden h-9 w-auto dark:block" />
+            <img src={logoLight} alt="Trainify" className="h-12 sm:h-14 w-auto dark:hidden" />
+            <img src={logoDark} alt="Trainify" className="hidden h-12 sm:h-14 w-auto dark:block" />
           </Link>
           <div className="flex items-center gap-3 sm:gap-6">
             <button type="button" onClick={toggleDarkMode} aria-label={isDarkMode ? "Usar tema claro" : "Usar tema escuro"} className="rounded-full p-2 text-on-surface-variant hover:bg-surface-container">
