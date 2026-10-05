@@ -4,6 +4,7 @@ import Login from "../pages/auth/Login";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
 import LandingPage from "../pages/LandingPage";
+import SalesContact from "../pages/SalesContact";
 
 export default function AuthRouter() {
   const location = useLocation();
@@ -20,7 +21,8 @@ export default function AuthRouter() {
         transition={{ duration: 0.2 }}
       >
         <Routes location={location}>
-          <Route path="/" element={<LandingPage onGoToLogin={() => navigate("/login")} />} />
+          <Route path="/" element={<LandingPage onGoToLogin={() => navigate("/login")} onContact={() => navigate("/contratar")} />} />
+          <Route path="/contratar" element={<SalesContact />} />
           <Route path="/login" element={<Login onNavigate={() => navigate("/forgot-password")} />} />
           <Route path="/forgot-password" element={<ForgotPassword onNavigate={() => navigate("/login")} />} />
           <Route path="/reset-password" element={<ResetPassword key={resetToken} token={resetToken} onNavigate={() => navigate("/login", { replace: true })} />} />

@@ -19,9 +19,10 @@ import logotipoDark from "../assets/images/logotipo-modo_dark.svg";
 
 interface LandingPageProps {
   onGoToLogin: () => void;
+  onContact: () => void;
 }
 
-export default function LandingPage({ onGoToLogin }: LandingPageProps) {
+export default function LandingPage({ onGoToLogin, onContact }: LandingPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -112,10 +113,10 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
               Entrar
             </button>
             <button
-              onClick={onGoToLogin}
+              onClick={onContact}
               className="bg-[#4B2C92] hover:bg-[#3a1f75] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm"
             >
-              Acessar plataforma
+              Solicitar demonstração
             </button>
           </div>
 
@@ -159,10 +160,10 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                   Entrar
                 </button>
                 <button
-                  onClick={onGoToLogin}
+                  onClick={onContact}
                   className="w-full bg-[#4B2C92] text-white text-sm font-semibold py-2.5 rounded-xl"
                 >
-                  Acessar plataforma
+                  Solicitar demonstração
                 </button>
               </div>
             </motion.div>
@@ -219,10 +220,10 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
               className="flex flex-col sm:flex-row gap-3 justify-center"
             >
               <button
-                onClick={onGoToLogin}
+                onClick={onContact}
                 className="bg-[#4B2C92] hover:bg-[#3a1f75] text-white font-bold px-8 py-4 rounded-xl text-base transition-all shadow-lg shadow-purple-200 dark:shadow-purple-900/30 flex items-center justify-center gap-2 active:scale-[0.98]"
               >
-                Acessar plataforma{" "}
+                Solicitar demonstração{" "}
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
@@ -343,10 +344,10 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
             Organize cursos, acompanhe o aprendizado e desenvolva sua equipe.
           </p>
           <button
-            onClick={onGoToLogin}
+            onClick={onContact}
             className="bg-white text-[#4B2C92] hover:bg-purple-50 font-bold px-10 py-4 rounded-xl text-base transition-all shadow-lg flex items-center gap-2 mx-auto active:scale-[0.98]"
           >
-            Acessar plataforma <ArrowRight className="w-4 h-4" />
+            Solicitar demonstração <ArrowRight className="w-4 h-4" />
           </button>
           <p className="mt-4 text-purple-300 text-sm flex items-center justify-center gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Cursos e progresso em um só lugar

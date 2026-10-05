@@ -28,6 +28,8 @@ const LessonPlayer = lazy(() => import("./pages/LessonPlayer"));
 const Forum = lazy(() => import("./pages/Forum"));
 const TenantSettings = lazy(() => import("./pages/TenantSettings"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const SalesRequests = lazy(() => import("./pages/SalesRequests"));
+const SalesContact = lazy(() => import("./pages/SalesContact"));
 const CourseResults = lazy(() => import("./pages/CourseResults"));
 import { useAuthStore } from "./store/authStore";
 import { useThemeStore } from "./store/themeStore";
@@ -82,6 +84,10 @@ export default function App() {
     window.addEventListener("keydown", aoTeclar);
     return () => window.removeEventListener("keydown", aoTeclar);
   }, []);
+
+  if (location.pathname === "/contratar") {
+    return <Suspense fallback={<p role="status">Carregando...</p>}><SalesContact /></Suspense>;
+  }
 
   if (!isAuthenticated) {
     return <AuthRouter />;
@@ -139,6 +145,7 @@ export default function App() {
               >
                 <Suspense fallback={<div className="flex h-full items-center justify-center p-8"><div className="w-8 h-8 rounded-full bg-primary-container text-white flex items-center justify-center animate-pulse">...</div></div>}>
                   <Routes location={location} key={location.pathname}>
+                    <Route path="/sales-requests" element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]}><SalesRequests /></ProtectedRoute>} />
                     <Route
                       path="/"
                       element={

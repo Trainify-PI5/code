@@ -43,6 +43,10 @@ export default function Sidebar({
     { id: "assistant", label: t("nav.assistant") || "IA Assistant", icon: Bot },
   ];
 
+  if (user?.role === "SUPER_ADMIN") {
+    navItems.push({ id: "sales-requests", label: "Comercial", icon: UsersIcon });
+  }
+
   if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.role === "MANAGER") {
     navItems.push({ id: "users", label: "Usuários", icon: UsersIcon });
   }

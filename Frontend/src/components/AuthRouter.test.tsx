@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import AuthRouter from './AuthRouter';
 
-vi.mock('../pages/LandingPage', () => ({ default: ({ onGoToLogin }: any) => <button onClick={onGoToLogin}>Entrar</button> }));
+vi.mock('../pages/LandingPage', () => ({ default: ({ onGoToLogin, onContact }: any) => <><button onClick={onGoToLogin}>Entrar</button><button onClick={onContact}>Solicitar demonstração</button></> }));
 vi.mock('../pages/auth/Login', () => ({ default: ({ onNavigate }: any) => <><h1>Login</h1><button onClick={() => onNavigate('forgot-password')}>Recuperar senha</button></> }));
 vi.mock('../pages/auth/ForgotPassword', () => ({ default: ({ onNavigate }: any) => <><h1>Recuperação</h1><button onClick={() => onNavigate('login')}>Voltar ao login</button></> }));
 vi.mock('../pages/auth/ResetPassword', () => ({ default: ({ token, onNavigate }: any) => <><h1>Redefinição</h1><span>Token: {token}</span><button onClick={() => onNavigate('login')}>Voltar ao login</button></> }));
@@ -24,6 +24,18 @@ function openAt(path: string) {
 }
 
 describe('Rotas de autenticação', () => {
+  it('abre o formulário comercial pela landing e pelo endereço direto', async () => {
+    const user = userEvent.setup();
+    const view = openAt('/');
+    await user.click(screen.getByRole('button', { name: 'Solicitar demonstração' }));
+    expect(await screen.findByRole('heading', { name: 'Conheça a Trainify' })).toBeInTheDocument();
+    expect(screen.getByLabelText('URL')).toHaveTextContent('/contratar');
+    view.unmount();
+    openAt('/contratar');
+    expect(await screen.findByRole('heading', { name: 'Conheça a Trainify' })).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: /Já sou cliente/ }));
+    expect(await screen.findByRole('heading', { name: 'Login' })).toBeInTheDocument();
+  });
   it.each([
     ['/login', 'Login'],
     ['/forgot-password', 'Recuperação'],
