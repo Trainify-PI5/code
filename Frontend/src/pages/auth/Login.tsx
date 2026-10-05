@@ -109,12 +109,12 @@ export default function Login({ onNavigate }: LoginProps) {
           >
             <div className="flex items-center lg:hidden mb-4">
               <img
-                src={logotipoDark}
+                src={logotipoLight}
                 alt="Trainify"
                 className="h-8 w-auto object-contain dark:hidden"
               />
               <img
-                src={logotipoLight}
+                src={logotipoDark}
                 alt="Trainify"
                 className="h-8 w-auto object-contain hidden dark:block"
               />
