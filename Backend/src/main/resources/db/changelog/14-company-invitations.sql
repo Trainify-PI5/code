@@ -16,4 +16,3 @@ CREATE TABLE company_invitations (
 CREATE UNIQUE INDEX company_invitations_pending_email ON company_invitations (lower(email))
     WHERE accepted_at IS NULL AND revoked_at IS NULL;
 CREATE INDEX company_invitations_tenant ON company_invitations (tenant_id, created_at);
-

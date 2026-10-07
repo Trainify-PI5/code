@@ -34,4 +34,3 @@ it('não apresenta lista vazia quando o carregamento falha', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os convites.');
   expect(screen.queryByText('Nenhum convite enviado para esta empresa.')).not.toBeInTheDocument();
 });
-

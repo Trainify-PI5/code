@@ -38,4 +38,3 @@ it('preserva o formulário e o identificador ao tentar novamente após uma falha
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(vi.mocked(api.post).mock.calls[0][1]).toEqual(vi.mocked(api.post).mock.calls[1][1]);
 });
-

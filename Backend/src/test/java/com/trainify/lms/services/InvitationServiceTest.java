@@ -174,4 +174,3 @@ class InvitationServiceTest {
         verifyNoInteractions(invitations);
     }
 }
-

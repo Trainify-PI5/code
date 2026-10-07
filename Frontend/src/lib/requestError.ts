@@ -7,4 +7,3 @@ export function requestError(error: unknown, fallback: string) {
   }
   return fallback;
 }
-

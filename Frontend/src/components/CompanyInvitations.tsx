@@ -96,4 +96,3 @@ export default function CompanyInvitations({ tenantId }: { tenantId: string }) {
     <ConfirmDialog open={!!revoking} onClose={() => setRevoking(null)} onConfirm={async () => { if (revoking) await manage(revoking, true); }} title="Revogar convite" message={'O link enviado para ' + (revoking?.email || '') + ' deixará de funcionar.'} confirmLabel="Revogar" />
   </section>;
 }
-

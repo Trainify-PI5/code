@@ -61,4 +61,3 @@ public class InvitationController {
         return ResponseEntity.noContent().build();
     }
 }
-

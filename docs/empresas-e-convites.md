@@ -41,4 +41,3 @@ Em um ambiente de teste com e-mail autorizado:
 8. Confirmar que o SUPER_ADMIN mantém a identidade Trainify.
 
 Os testes automatizados não enviam e-mails reais.
-

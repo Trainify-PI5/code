@@ -38,4 +38,3 @@ public class CompanyInvitation {
     @Column(name = "version_id", nullable = false)
     private Integer versionId;
 }
-

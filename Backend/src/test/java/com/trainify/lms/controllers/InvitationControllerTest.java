@@ -77,4 +77,3 @@ class InvitationControllerTest {
         verifyNoInteractions(service);
     }
 }
-

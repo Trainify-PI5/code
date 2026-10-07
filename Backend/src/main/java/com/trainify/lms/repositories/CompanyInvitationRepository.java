@@ -20,4 +20,3 @@ public interface CompanyInvitationRepository extends JpaRepository<CompanyInvita
     List<CompanyInvitation> findByTenantIdOrderByCreatedAtDesc(UUID tenantId);
     boolean existsByEmailIgnoreCaseAndAcceptedAtIsNullAndRevokedAtIsNull(String email);
 }
-

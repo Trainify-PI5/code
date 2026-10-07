@@ -46,4 +46,3 @@ it('mantém o formulário disponível quando a ativação falha', async () => {
   expect(screen.queryByText('Conta ativada')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Ativar conta' })).toBeEnabled();
 });
-

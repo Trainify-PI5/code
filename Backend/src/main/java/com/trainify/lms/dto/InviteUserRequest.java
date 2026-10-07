@@ -9,4 +9,3 @@ public record InviteUserRequest(
         @NotBlank @Size(max = 100) String name,
         @NotBlank @Email @Size(max = 150) String email,
         @NotNull Role role) {}
-

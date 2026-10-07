@@ -8,4 +8,3 @@ public record ProvisionCompanyRequest(
         @NotBlank @Size(max = 150) String name,
         @NotBlank @Size(max = 100) String adminName,
         @NotBlank @Email @Size(max = 150) String adminEmail) {}
-
