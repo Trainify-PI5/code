@@ -64,6 +64,14 @@ class InvitationControllerTest {
         verifyNoInteractions(service);
     }
 
+    @Test @WithMockUser(roles = "SUPER_ADMIN") void identifiesEmailFailureWithoutExposingProviderDetails() throws Exception {
+        when(service.provision(any(), any())).thenThrow(new org.springframework.mail.MailSendException("private provider details"));
+        mvc.perform(post("/api/v1/tenants").contentType("application/json").content(company()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("EMAIL_DELIVERY_UNAVAILABLE"))
+                .andExpect(jsonPath("$.detail").value("Não foi possível enviar o e-mail. A equipe responsável precisa verificar o serviço de envio."));
+    }
+
     @Test void anonymousCanAcceptValidInvitation() throws Exception {
         mvc.perform(post("/api/v1/auth/invitations/accept").contentType("application/json")
                 .content("{\"token\":\"" + "a".repeat(64) + "\",\"password\":\"password123\"}"))

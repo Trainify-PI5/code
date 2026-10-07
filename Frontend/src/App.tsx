@@ -80,7 +80,7 @@ export default function App() {
   // porque Cmd+K e atalho nativo do navegador para a barra de endereco.
   useEffect(() => {
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+      if ((e.metaKey || e.ctrlKey) && typeof e.key === "string" && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletaAberta((aberta) => !aberta);
       }

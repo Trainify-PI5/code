@@ -17,8 +17,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.mail.MailException.class)
     public ProblemDetail handleMailFailure(org.springframework.mail.MailException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
-                "Não foi possível enviar o e-mail. Tente novamente mais tarde.");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Não foi possível enviar o e-mail. A equipe responsável precisa verificar o serviço de envio.");
+        problem.setProperty("code", "EMAIL_DELIVERY_UNAVAILABLE");
+        return problem;
     }
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
