@@ -66,7 +66,7 @@ export default function AIChatWidget() {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             role="dialog"
             aria-label="Assistente Trainify"
-            className="fixed bottom-24 right-6 w-96 h-[500px] bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant flex flex-col z-50 overflow-hidden"
+            className="fixed bottom-24 right-4 sm:right-6 w-[calc(100%-2rem)] max-w-96 h-[500px] max-h-[calc(100dvh-7rem)] bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant flex flex-col z-50 overflow-hidden"
           >
             {/* Cabecalho: primary-container e nao primary, porque no tema escuro
                 --primary e um lilas claro e o texto branco some em cima dele. */}

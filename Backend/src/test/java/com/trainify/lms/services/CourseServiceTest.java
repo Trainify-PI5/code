@@ -103,6 +103,38 @@ public class CourseServiceTest {
     }
 
     @Test
+    void addLessonPreservesQuizTypeBeforeQuestionsExist() {
+        Module module = new Module();
+        module.setId(UUID.randomUUID());
+        module.setCourse(mockCourse);
+        module.setTenant(mockTenant);
+        when(moduleRepository.findById(module.getId())).thenReturn(Optional.of(module));
+        when(lessonRepository.save(any(Lesson.class))).thenAnswer(invocation -> {
+            Lesson lesson = invocation.getArgument(0);
+            lesson.setId(UUID.randomUUID());
+            assertEquals("QUIZ", lesson.getLessonType());
+            return lesson;
+        });
+        var request = new com.trainify.lms.dto.CreateLessonRequest();
+        request.setTitle("Avaliação");
+        request.setLessonType("QUIZ");
+        assertEquals("QUIZ", courseService.addLesson(module.getId(), request).getLessonType());
+    }
+
+    @Test
+    void reloadingCourseKeepsPersistedQuizWithoutAssessment() {
+        Module module = new Module();
+        module.setId(UUID.randomUUID());
+        Lesson lesson = new Lesson();
+        lesson.setId(UUID.randomUUID());
+        lesson.setLessonType("QUIZ");
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(mockCourse));
+        when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)).thenReturn(List.of(module));
+        when(lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())).thenReturn(List.of(lesson));
+        assertEquals("QUIZ", courseService.getCourseById(courseId).getModules().get(0).getLessons().get(0).getLessonType());
+    }
+
+    @Test
     void getCourseById_NotFound_ThrowsException() {
         // Arrange
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());

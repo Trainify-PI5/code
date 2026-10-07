@@ -10,6 +10,9 @@ public class CreateLessonRequest {
     private String title;
     
     private String content;
+
+    @jakarta.validation.constraints.Pattern(regexp = "VIDEO|DOCUMENT|ARTICLE|QUIZ")
+    private String lessonType;
     
     private UUID videoAssetId;
 }

@@ -240,6 +240,7 @@ public class CourseService {
         Lesson lesson = new Lesson();
         lesson.setTitle(request.getTitle());
         lesson.setContent(request.getContent());
+        lesson.setLessonType(request.getLessonType());
         lesson.setOrderIndex(nextOrder);
         lesson.setModule(module);
         lesson.setTenant(module.getTenant());
@@ -262,6 +263,7 @@ public class CourseService {
 
         lesson.setTitle(request.getTitle());
         lesson.setContent(request.getContent());
+        if (request.getLessonType() != null) lesson.setLessonType(request.getLessonType());
 
         if (request.getVideoAssetId() != null) {
             MediaAsset asset = mediaAssetRepository.findById(request.getVideoAssetId())
@@ -343,7 +345,8 @@ public class CourseService {
         if (media != null) {
             dto.setDurationSeconds(media.getDurationSeconds());
         }
-        dto.setLessonType(resolveLessonType(media, lessonsWithAssessment.contains(lesson.getId())));
+        dto.setLessonType(lesson.getLessonType() != null ? lesson.getLessonType()
+                : resolveLessonType(media, lessonsWithAssessment.contains(lesson.getId())));
 
         return dto;
     }

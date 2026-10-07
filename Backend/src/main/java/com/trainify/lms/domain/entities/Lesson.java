@@ -24,6 +24,9 @@ public class Lesson extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "lesson_type", length = 16)
+    private String lessonType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "video_asset_id")
     private MediaAsset videoAsset;

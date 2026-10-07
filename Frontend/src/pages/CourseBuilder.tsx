@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, Save, Send, BookOpen, Layers, Video, FileText, CheckCircle2 } from 'lucide-react';
 import { UploadMedia } from '../components/UploadMedia';
 import AssessmentBuilder from '../components/Course/AssessmentBuilder';
@@ -32,6 +32,7 @@ export const CourseBuilder: React.FC = () => {
   const [courseDesc, setCourseDesc] = useState('');
   const [modules, setModules] = useState<Module[]>([]);
   const [savedCourseId, setSavedCourseId] = useState<string | undefined>(id);
+  const saving = useRef(false);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
   // guarda o que sera excluido enquanto o dialogo de confirmacao esta aberto
   const [exclusao, setExclusao] = useState<
@@ -94,9 +95,15 @@ export const CourseBuilder: React.FC = () => {
   };
 
   const handleLessonChange = (moduleIndex: number, lessonIndex: number, field: keyof Lesson, value: string) => {
-    const updatedModules = [...modules];
-    updatedModules[moduleIndex].lessons[lessonIndex] = { ...updatedModules[moduleIndex].lessons[lessonIndex], [field]: value };
-    setModules(updatedModules);
+    setModules(current => current.map((mod, index) => index !== moduleIndex ? mod : {
+      ...mod,
+      lessons: mod.lessons.map((lesson, index) => index !== lessonIndex ? lesson : {
+        ...lesson,
+        ...(field === 'lessonType' && value !== lesson.lessonType
+          ? { videoAssetId: undefined, provider: undefined, externalUrl: undefined } : {}),
+        [field]: value,
+      }),
+    }));
   };
 
   const removerModulo = async (index: number) => {
@@ -138,11 +145,14 @@ export const CourseBuilder: React.FC = () => {
   };
 
   const saveCourse = async (publish: boolean) => {
-    if (!courseTitle) {
+    if (saving.current || loading) return;
+    if (!courseTitle.trim()) {
       setMessage({ type: 'error', text: 'Dê um título ao curso antes de salvar.' });
       return;
     }
 
+    const draftModules = modules.map(mod => ({ ...mod, lessons: mod.lessons.map(lesson => ({ ...lesson })) }));
+    saving.current = true;
     try {
       setLoading(true);
       setMessage(null);
@@ -154,10 +164,11 @@ export const CourseBuilder: React.FC = () => {
       } else {
         const { data: course } = await api.post('/courses', { title: courseTitle, description: courseDesc });
         courseId = course.id;
+        setSavedCourseId(courseId);
       }
       
       // 2. Criar Módulos e Lições
-      for (const mod of modules) {
+      for (const mod of draftModules) {
         if (!mod.title) continue;
         let moduleId = mod.id;
 
@@ -166,6 +177,7 @@ export const CourseBuilder: React.FC = () => {
         } else {
           const { data: createdMod } = await api.post(`/courses/${courseId}/modules`, { title: mod.title, description: mod.description });
           moduleId = createdMod.id;
+          mod.id = moduleId;
         }
         
         for (const less of mod.lessons) {
@@ -179,20 +191,24 @@ export const CourseBuilder: React.FC = () => {
                  url: less.externalUrl
              });
              finalVideoAssetId = mediaRes.id;
+             less.videoAssetId = finalVideoAssetId;
           }
           
           if (less.id) {
             await api.put(`/lessons/${less.id}`, { 
               title: less.title, 
               content: less.description, 
+              lessonType: less.lessonType,
               videoAssetId: finalVideoAssetId
             });
           } else {
-            await api.post(`/modules/${moduleId}/lessons`, { 
+            const { data: createdLesson } = await api.post(`/modules/${moduleId}/lessons`, {
               title: less.title, 
               content: less.description, 
+              lessonType: less.lessonType,
               videoAssetId: finalVideoAssetId
             });
+            less.id = createdLesson.id;
           }
         }
       }
@@ -204,14 +220,9 @@ export const CourseBuilder: React.FC = () => {
         return;
       }
 
-      // Continua na tela: recarregar traz os IDs das aulas recem-criadas, que sao
-      // o que o construtor de quiz precisa para cadastrar as perguntas
       setSavedCourseId(courseId);
       if (courseId && courseId !== id) {
         navigate(`/courses/builder/${courseId}`, { replace: true });
-      }
-      if (courseId) {
-        await loadCourse(courseId);
       }
       setMessage({ type: 'ok', text: 'Rascunho salvo. As aulas de quiz já podem receber perguntas.' });
     } catch (err: any) {
@@ -221,12 +232,15 @@ export const CourseBuilder: React.FC = () => {
         text: 'Erro ao salvar curso: ' + (err.response?.data?.detail || err.response?.data?.message || err.message),
       });
     } finally {
+      setModules(draftModules);
+      saving.current = false;
       setLoading(false);
     }
   };
 
   return (
     <PageContainer className="pb-24">
+      <fieldset disabled={loading} className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant">
         <div className="min-w-0">
           <h1 className="text-3xl font-display font-bold tracking-tight text-on-surface flex items-center gap-3">
@@ -459,6 +473,7 @@ export const CourseBuilder: React.FC = () => {
         </button>
       </div>
 
+      </fieldset>
       <ConfirmDialog
         open={exclusao !== null}
         onClose={() => setExclusao(null)}

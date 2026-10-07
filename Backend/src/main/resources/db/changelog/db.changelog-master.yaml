@@ -23,3 +23,5 @@ databaseChangeLog:
       file: db/changelog/11-allow-unscored-certifications.sql
   - include:
       file: db/changelog/12-sales-leads.sql
+  - include:
+      file: db/changelog/13-persist-lesson-type.sql

@@ -59,7 +59,6 @@ export default function IAAssistant() {
     toast.success("Conversa limpa.");
   };
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,9 +85,8 @@ export default function IAAssistant() {
     setIsTyping(true);
 
     try {
-      const response = await api.post("/chat", {
-        message: input,
-        courseId: selectedCourseId,
+      const response = await api.post("/ia/chat", {
+        query: input.trim(),
       });
 
       const modelMsg: Message = {
