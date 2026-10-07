@@ -52,7 +52,7 @@ export default function Companies() {
       form.reset();
       toast.success('Empresa criada e convite enviado ao administrador.');
     } catch (error) {
-      toast.error(requestError(error, 'Não foi possível concluir a criação. Verifique o serviço de e-mail e tente novamente.'));
+      toast.error(requestError(error, 'Não foi possível concluir a criação. Tente novamente. Se o problema continuar, contate o suporte.'));
     } finally { working.current = false; setSaving(false); }
   }
 

@@ -32,7 +32,7 @@ it('preserva o formulário e o identificador ao tentar novamente após uma falha
   const button = screen.getByRole('button', { name: 'Criar empresa e enviar convite' });
   await waitFor(() => expect(button).toBeEnabled());
   await userEvent.click(button);
-  await screen.findByText('Não foi possível concluir a criação. Verifique o serviço de e-mail e tente novamente.');
+  await screen.findByText('Não foi possível concluir a criação. Tente novamente. Se o problema continuar, contate o suporte.');
   expect(screen.getByLabelText('E-mail do administrador')).toHaveValue('ana@example.com');
   await userEvent.click(button);
   expect(api.post).toHaveBeenCalledTimes(2);

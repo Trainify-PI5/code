@@ -50,7 +50,7 @@ export default function CompanyInvitations({ tenantId }: { tenantId: string }) {
       setReload(value => value + 1);
       toast.success('Convite enviado por e-mail. O destinatário tem 48 horas para definir a senha.');
     } catch (error) {
-      toast.error(requestError(error, 'Não foi possível enviar o convite. Verifique o serviço de e-mail e tente novamente.'));
+      toast.error(requestError(error, 'Não foi possível enviar o convite. Tente novamente. Se o problema continuar, contate o suporte.'));
     } finally { working.current = false; setBusy(false); }
   }
 
