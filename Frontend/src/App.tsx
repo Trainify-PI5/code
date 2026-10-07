@@ -97,7 +97,7 @@ export default function App() {
   const activeTab = location.pathname.split("/")[1] || "home";
 
   return (
-    <CompanyBrandingProvider key={user?.tenantId || user?.id}>
+    <CompanyBrandingProvider key={user?.tenantId || user?.id} enabled={!!user && user.role !== "SUPER_ADMIN"}>
     <div className="flex h-screen w-full bg-surface-bright transition-colors duration-200 overflow-hidden relative">
       {/* Overlay para mobile quando a sidebar estiver expandida */}
       {!isSidebarCollapsed && (

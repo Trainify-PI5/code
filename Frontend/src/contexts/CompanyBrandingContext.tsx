@@ -11,11 +11,16 @@ export interface CompanyBranding {
 const BrandingContext = createContext<{ company: CompanyBranding | null; update: (company: CompanyBranding) => void }>({ company: null, update: () => {} });
 export const useBranding = () => useContext(BrandingContext);
 
-export function CompanyBrandingProvider({ children }: { children: ReactNode }) {
+export function CompanyBrandingProvider({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
   const [company, setCompany] = useState<CompanyBranding | null>(null);
   const revision = useRef(0);
   const { isDarkMode } = useThemeStore();
   useEffect(() => {
+    if (!enabled) {
+      revision.current++;
+      setCompany(null);
+      return;
+    }
     let cancelled = false;
     const load = async () => {
       const current = ++revision.current;
@@ -27,11 +32,16 @@ export function CompanyBrandingProvider({ children }: { children: ReactNode }) {
     load();
     const timer = window.setInterval(load, 6 * 60 * 60 * 1000);
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, []);
+  }, [enabled]);
   useEffect(() => {
+    if (!enabled) return;
     const variables = brandVariables(company?.primaryColor || null, company?.secondaryColor || null, isDarkMode);
     for (const [name, value] of Object.entries(variables)) document.documentElement.style.setProperty(name, value);
     return () => { for (const name of Object.keys(variables)) document.documentElement.style.removeProperty(name); };
-  }, [company, isDarkMode]);
-  return <BrandingContext.Provider value={{ company, update: value => { revision.current++; setCompany(value); } }}>{children}</BrandingContext.Provider>;
+  }, [company, isDarkMode, enabled]);
+  return <BrandingContext.Provider value={{ company: enabled ? company : null, update: value => {
+    if (!enabled) return;
+    revision.current++;
+    setCompany(value);
+  } }}>{children}</BrandingContext.Provider>;
 }
