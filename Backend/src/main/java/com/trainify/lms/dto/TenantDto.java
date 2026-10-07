@@ -11,4 +11,5 @@ public class TenantDto {
     private String primaryColor;
     private String secondaryColor;
     private String logoUrl;
+    private String logoKey;
 }

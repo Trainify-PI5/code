@@ -17,6 +17,8 @@ import { useAuthStore } from "../store/authStore";
 import logomarca from "../assets/images/logomarca.svg";
 import logotipoLight from "../assets/images/logotipo-modo_light.svg";
 import logotipoDark from "../assets/images/logotipo-modo_dark.svg";
+import { useBranding } from "../contexts/CompanyBrandingContext";
+import { useState } from "react";
 
 interface SidebarProps {
   activeTab: string;
@@ -31,6 +33,8 @@ export default function Sidebar({
 }: SidebarProps) {
   const { t } = useLanguage();
   const { user } = useAuthStore();
+  const { company } = useBranding();
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
 
   const navItems = [
     { id: "home", label: t("nav.home"), icon: LayoutDashboard },
@@ -83,7 +87,10 @@ export default function Sidebar({
           isCollapsed ? "justify-center px-0" : "px-6",
         )}
       >
-        {!isCollapsed ? (
+        {company?.logoUrl && failedLogo !== company.logoUrl ? (
+          <img src={company.logoUrl} alt={company.name} onError={() => setFailedLogo(company.logoUrl)}
+            className="max-h-12 max-w-full rounded-lg bg-white p-1 object-contain" />
+        ) : !isCollapsed ? (
           <div className="w-full overflow-hidden flex items-center">
             <img
               src={logotipoLight}

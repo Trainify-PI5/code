@@ -59,6 +59,16 @@ public class S3Service {
         return presignedGetObjectRequest.url().toString();
     }
 
+    public void validateLogo(String key) {
+        var metadata = s3Client.headObject(software.amazon.awssdk.services.s3.model.HeadObjectRequest.builder()
+                .bucket(bucketName).key(key).build());
+        if (metadata.contentLength() == null || metadata.contentType() == null
+                || metadata.contentLength() <= 0 || metadata.contentLength() > 2 * 1024 * 1024
+                || !java.util.Set.of("image/png", "image/jpeg", "image/webp").contains(metadata.contentType())) {
+            throw new IllegalArgumentException("Use uma imagem PNG, JPEG ou WebP de até 2 MB.");
+        }
+    }
+
     @Async
     public void deleteFileAsync(String key) {
         try {

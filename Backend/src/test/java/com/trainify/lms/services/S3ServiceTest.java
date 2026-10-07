@@ -36,6 +36,30 @@ public class S3ServiceTest {
     @InjectMocks
     private S3Service s3Service;
 
+    @Test
+    void rejectsOversizedLogo() {
+        when(s3Client.headObject(any(software.amazon.awssdk.services.s3.model.HeadObjectRequest.class)))
+                .thenReturn(software.amazon.awssdk.services.s3.model.HeadObjectResponse.builder()
+                        .contentLength(2097153L).contentType("image/png").build());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> s3Service.validateLogo("logo"));
+    }
+
+    @Test
+    void rejectsUnsupportedLogoType() {
+        when(s3Client.headObject(any(software.amazon.awssdk.services.s3.model.HeadObjectRequest.class)))
+                .thenReturn(software.amazon.awssdk.services.s3.model.HeadObjectResponse.builder()
+                        .contentLength(1024L).contentType("image/svg+xml").build());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> s3Service.validateLogo("logo"));
+    }
+
+    @Test
+    void acceptsSupportedLogo() {
+        when(s3Client.headObject(any(software.amazon.awssdk.services.s3.model.HeadObjectRequest.class)))
+                .thenReturn(software.amazon.awssdk.services.s3.model.HeadObjectResponse.builder()
+                        .contentLength(1024L).contentType("image/png").build());
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> s3Service.validateLogo("logo"));
+    }
+
     @BeforeEach
     void setUp() {
         // Injeta a propriedade @Value usando ReflectionTestUtils

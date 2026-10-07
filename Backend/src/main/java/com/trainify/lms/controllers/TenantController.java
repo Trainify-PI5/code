@@ -22,6 +22,21 @@ public class TenantController {
 
     private final TenantService tenantService;
 
+    @GetMapping("/branding")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TenantDto> branding(@AuthenticationPrincipal com.trainify.lms.security.CustomUserDetails user) {
+        return ResponseEntity.ok().header("Cache-Control", "no-store")
+                .body(tenantService.getTenantById(user.getTenantId()));
+    }
+
+    @PostMapping("/me/logo-upload-url")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<java.util.Map<String, String>> logoUpload(
+            @AuthenticationPrincipal com.trainify.lms.security.CustomUserDetails user,
+            @Valid @RequestBody com.trainify.lms.dto.GenerateUploadUrlRequest request) {
+        return ResponseEntity.ok(tenantService.createLogoUpload(user.getTenantId(), request.getContentType()));
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<List<TenantDto>> getAllTenants() {

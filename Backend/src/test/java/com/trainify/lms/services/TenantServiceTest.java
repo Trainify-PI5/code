@@ -30,11 +30,61 @@ public class TenantServiceTest {
     @Mock
     private TenantRepository tenantRepository;
 
+    @Mock
+    private S3Service s3Service;
+
     @InjectMocks
     private TenantService tenantService;
 
     private Tenant mockTenant;
     private UUID tenantId;
+
+    @Test
+    void rejectsLogoFromAnotherTenant() {
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
+        UpdateTenantRequest request = new UpdateTenantRequest();
+        request.setName("Company");
+        request.setLogoKey("tenant-" + UUID.randomUUID() + "/logos/" + UUID.randomUUID() + ".png");
+        assertThrows(IllegalArgumentException.class, () -> tenantService.updateTenant(tenantId, request));
+        org.mockito.Mockito.verifyNoInteractions(s3Service);
+        verify(tenantRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void savesLogoKeyAndReturnsFreshDownloadUrl() {
+        String key = "tenant-" + tenantId + "/logos/" + UUID.randomUUID() + ".png";
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
+        when(tenantRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(s3Service.generatePresignedDownloadUrl(key)).thenReturn("https://storage.example/logo");
+        UpdateTenantRequest request = new UpdateTenantRequest();
+        request.setName("Company");
+        request.setDomain(" ");
+        request.setLogoKey(key);
+        TenantDto result = tenantService.updateTenant(tenantId, request);
+        verify(s3Service).validateLogo(key);
+        assertEquals("s3:" + key, mockTenant.getLogoUrl());
+        assertEquals(key, result.getLogoKey());
+        assertEquals("https://storage.example/logo", result.getLogoUrl());
+        org.junit.jupiter.api.Assertions.assertNull(result.getDomain());
+    }
+
+    @Test
+    void removesLogoWithoutDeletingSharedStorage() {
+        mockTenant.setLogoUrl("s3:old-key");
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(mockTenant));
+        when(tenantRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        UpdateTenantRequest request = new UpdateTenantRequest();
+        request.setName("Company");
+        request.setLogoKey("");
+        org.junit.jupiter.api.Assertions.assertNull(tenantService.updateTenant(tenantId, request).getLogoUrl());
+        org.mockito.Mockito.verifyNoInteractions(s3Service);
+    }
+
+    @Test
+    void rejectsUnsupportedLogoUpload() {
+        assertThrows(IllegalArgumentException.class, () -> tenantService.createLogoUpload(tenantId, "image/svg+xml"));
+        org.mockito.Mockito.verifyNoInteractions(s3Service);
+    }
 
     @BeforeEach
     void setUp() {

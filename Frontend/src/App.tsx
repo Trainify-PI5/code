@@ -36,6 +36,7 @@ import { useThemeStore } from "./store/themeStore";
 import AIChatWidget from "./components/AIChatWidget";
 import CommandPalette from "./components/CommandPalette";
 import api from "./services/api";
+import { CompanyBrandingProvider } from "./contexts/CompanyBrandingContext";
 
 
 function ProtectedRoute({
@@ -56,7 +57,7 @@ function ProtectedRoute({
 }
 
 export default function App() {
-  const { isAuthenticated, token, updateUser } = useAuthStore();
+  const { isAuthenticated, token, updateUser, user } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useThemeStore();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [paletaAberta, setPaletaAberta] = useState(false);
@@ -96,6 +97,7 @@ export default function App() {
   const activeTab = location.pathname.split("/")[1] || "home";
 
   return (
+    <CompanyBrandingProvider key={user?.tenantId || user?.id}>
     <div className="flex h-screen w-full bg-surface-bright transition-colors duration-200 overflow-hidden relative">
       {/* Overlay para mobile quando a sidebar estiver expandida */}
       {!isSidebarCollapsed && (
@@ -328,5 +330,6 @@ export default function App() {
       <AIChatWidget />
       <CommandPalette open={paletaAberta} onClose={() => setPaletaAberta(false)} />
     </div>
+    </CompanyBrandingProvider>
   );
 }
