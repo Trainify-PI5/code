@@ -49,6 +49,11 @@ export default function Sidebar({
 
   if (user?.role === "SUPER_ADMIN") {
     navItems.push({ id: "sales-requests", label: "Comercial", icon: UsersIcon });
+    navItems.push({ id: "companies", label: "Empresas", icon: UsersIcon });
+  }
+
+  if (user?.role === "ADMIN") {
+    navItems.push({ id: "invitations", label: "Convites", icon: UsersIcon });
   }
 
   if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.role === "MANAGER") {

@@ -23,7 +23,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<LoginResponse> register(@Valid @RequestBody com.trainify.lms.dto.RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+        throw new org.springframework.security.access.AccessDeniedException("O cadastro é realizado por convite da sua empresa.");
     }
 
     @PostMapping("/login")

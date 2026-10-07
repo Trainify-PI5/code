@@ -40,7 +40,6 @@ public class AuthService {
     private final StringRedisTemplate redisTemplate;
     private final UserDetailsService userDetailsService;
     private final com.trainify.lms.repositories.UserRepository userRepository;
-    private final com.trainify.lms.repositories.TenantRepository tenantRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
 
@@ -51,30 +50,6 @@ public class AuthService {
     private String mailFrom;
 
     private final SecureRandom secureRandom = new SecureRandom();
-
-    public LoginResponse register(com.trainify.lms.dto.RegisterRequest request) {
-        String email = normalizeEmail(request.getEmail());
-        if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new RuntimeException("Email already exists");
-        }
-
-        com.trainify.lms.domain.entities.Tenant tenant = tenantRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new RuntimeException("No tenant found"));
-
-        com.trainify.lms.domain.entities.User user = new com.trainify.lms.domain.entities.User();
-        user.setTenant(tenant);
-        user.setName(request.getName());
-        user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(com.trainify.lms.domain.enums.Role.STUDENT);
-        user.setIsActive(true);
-        userRepository.save(user);
-
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail(email);
-        loginRequest.setPassword(request.getPassword());
-        return login(loginRequest);
-    }
 
     public LoginResponse login(LoginRequest request) {
         String email = normalizeEmail(request.getEmail());

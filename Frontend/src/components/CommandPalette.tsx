@@ -92,6 +92,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
     if (ehAdmin) {
       itens.push(
+        { id: "nav-invitations", titulo: user?.role === "SUPER_ADMIN" ? "Empresas" : "Convites", grupo: "navegacao", icone: <Building2 className="w-4 h-4" />, executar: ir(user?.role === "SUPER_ADMIN" ? "/companies" : "/invitations"), sinonimos: ["clientes", "convites", "cadastro"] },
         { id: "nav-tenant", titulo: "Empresa", grupo: "navegacao", icone: <Building2 className="w-4 h-4" />, executar: ir("/tenant-settings"), sinonimos: ["organizacao", "marca"] },
         { id: "nav-audit", titulo: "Auditoria", grupo: "navegacao", icone: <Activity className="w-4 h-4" />, executar: ir("/audit-logs"), sinonimos: ["logs", "seguranca"] },
       );
@@ -100,7 +101,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       itens.push({ id: "nav-builder", titulo: "Criar Curso", grupo: "navegacao", icone: <PlusCircle className="w-4 h-4" />, executar: ir("/courses/builder"), sinonimos: ["novo curso", "editor"] });
     }
     return itens;
-  }, [ehGestor, ehAdmin, ensina, ir]);
+  }, [ehGestor, ehAdmin, ensina, ir, user?.role]);
 
   const acoes: Comando[] = useMemo(
     () => [
