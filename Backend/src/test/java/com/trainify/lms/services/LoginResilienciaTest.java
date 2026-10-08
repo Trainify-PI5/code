@@ -24,7 +24,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -75,7 +74,6 @@ class LoginResilienciaTest {
         CustomUserDetails detalhes = new CustomUserDetails(user);
         when(userRepository.findAllByEmailIgnoreCaseAndIsActiveTrue(user.getEmail()))
                 .thenReturn(List.of(user));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any()))
                 .thenReturn(new UsernamePasswordAuthenticationToken(detalhes, null, detalhes.getAuthorities()));
         when(jwtUtil.generateToken(any())).thenReturn("token-de-acesso");
@@ -94,7 +92,7 @@ class LoginResilienciaTest {
         User user = conta();
         senhaCorreta(user);
         doThrow(new RuntimeException("banco recusou o registro"))
-                .when(activityLog).recordFor(any(), any(), any(), any(), any());
+                .when(activityLog).recordFor(any(), any(), any(), any(), any(), any());
 
         var resposta = authService.login(pedido(user));
 
@@ -102,16 +100,14 @@ class LoginResilienciaTest {
     }
 
     @Test
-    void entraMesmoQuandoNemDaParaLerOUsuarioParaAAuditoria() {
+    void aAuditoriaRecebeOsIdentificadoresEmVezDaEntidade() {
         User user = conta();
         senhaCorreta(user);
-        when(userRepository.findById(user.getId()))
-                .thenThrow(new RuntimeException("sessão já encerrada"));
 
-        var resposta = authService.login(pedido(user));
+        authService.login(pedido(user));
 
-        assertEquals("token-de-acesso", resposta.getAccessToken());
-        verify(activityLog, never()).recordFor(any(), any(), any(), any(), any());
+        // Passar a entidade fazia o Hibernate tentar lê-la fora da transação dela
+        verify(activityLog).recordFor(EMPRESA, user.getId(), "LOGIN", "USER", user.getId(), java.util.Map.of());
     }
 
     @Test

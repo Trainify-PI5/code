@@ -40,22 +40,20 @@ public class ActivityLogService {
         gravar(usuario.getTenantId(), usuario.getId(), actionType, entityType, entityId, details);
     }
 
-    /** Acao sem usuario logado ainda, como o proprio login e o aceite de convite. */
+    /**
+     * Acao de quem ainda nao esta logado, como o proprio login.
+     *
+     * Recebe os identificadores em vez da entidade: o usuario do login e lido em
+     * outra transacao, ja encerrada quando a auditoria roda, e so de tocar na
+     * empresa dele o Hibernate reclamava e derrubava a entrada.
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void recordFor(User user, String actionType, String entityType, UUID entityId,
+    public void recordFor(UUID tenantId, UUID userId, String actionType, String entityType, UUID entityId,
                           Map<String, Object> details) {
-        UUID tenantId;
-        try {
-            // O usuario costuma vir de outra transacao, entao ate ler a empresa pode falhar
-            if (user == null || user.getTenant() == null) {
-                return;
-            }
-            tenantId = user.getTenant().getId();
-        } catch (Exception e) {
-            log.warn("Falha ao identificar a empresa para a auditoria {}: {}", actionType, e.getMessage());
+        if (tenantId == null) {
             return;
         }
-        gravar(tenantId, user.getId(), actionType, entityType, entityId, details);
+        gravar(tenantId, userId, actionType, entityType, entityId, details);
     }
 
     private void gravar(UUID tenantId, UUID userId, String actionType, String entityType, UUID entityId,

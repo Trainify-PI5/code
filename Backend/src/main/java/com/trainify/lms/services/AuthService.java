@@ -93,8 +93,8 @@ public class AuthService {
 
         // Registrar o acesso e desejavel; impedir o acesso por causa disso, nunca
         try {
-            userRepository.findById(userDetails.getId()).ifPresent(conta ->
-                    activityLog.recordFor(conta, "LOGIN", "USER", conta.getId(), java.util.Map.of()));
+            activityLog.recordFor(userDetails.getTenantId(), userDetails.getId(),
+                    "LOGIN", "USER", userDetails.getId(), java.util.Map.of());
         } catch (Exception e) {
             log.warn("AUTH_LOGIN_AUDIT_SKIPPED motivo={}", e.getMessage());
         }
