@@ -4,12 +4,15 @@ import {
   BarChart3,
   Bot,
   Settings,
-  HelpCircle,
-  Play,
+  LifeBuoy,
   Award,
   Users as UsersIcon,
   PlusCircle,
   Activity,
+  Handshake,
+  Building2,
+  Palette,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -39,7 +42,6 @@ export default function Sidebar({
   const navItems = [
     { id: "home", label: t("nav.home"), icon: LayoutDashboard },
     { id: "courses", label: t("nav.courses"), icon: BookOpen },
-    // FIX 1: Dashboards visível apenas para ADMIN e MANAGER
     ...(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.role === "MANAGER"
       ? [{ id: "dashboards", label: t("nav.analytics"), icon: BarChart3 }]
       : []),
@@ -48,12 +50,12 @@ export default function Sidebar({
   ];
 
   if (user?.role === "SUPER_ADMIN") {
-    navItems.push({ id: "sales-requests", label: "Comercial", icon: UsersIcon });
-    navItems.push({ id: "companies", label: "Empresas", icon: UsersIcon });
+    navItems.push({ id: "sales-requests", label: "Comercial", icon: Handshake });
+    navItems.push({ id: "companies", label: "Empresas clientes", icon: Building2 });
   }
 
   if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
-    navItems.push({ id: "invitations", label: "Convites", icon: UsersIcon });
+    navItems.push({ id: "invitations", label: "Convites", icon: UserPlus });
   }
 
   if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.role === "MANAGER") {
@@ -61,7 +63,7 @@ export default function Sidebar({
   }
 
   if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
-    navItems.push({ id: "tenant-settings", label: "Empresa", icon: Settings });
+    navItems.push({ id: "tenant-settings", label: "Identidade visual", icon: Palette });
     navItems.push({ id: "audit-logs", label: "Auditoria", icon: Activity });
   }
 
@@ -128,6 +130,7 @@ export default function Sidebar({
             key={item.id}
             onClick={() => onTabChange(item.id)}
             title={isCollapsed ? item.label : undefined}
+            aria-label={item.label}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 active:translate-y-[1px] w-full",
               activeTab === item.id
@@ -150,26 +153,11 @@ export default function Sidebar({
           isCollapsed ? "p-3" : "p-4",
         )}
       >
-        <button
-          onClick={() => onTabChange("courses")}
-          title={isCollapsed ? t("sidebar.startLearning") : undefined}
-          className={cn(
-            "w-full bg-primary-container text-white rounded-lg font-medium hover:opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm active:translate-y-[1px]",
-            isCollapsed ? "p-2.5" : "px-4 py-2.5",
-          )}
-        >
-          <Play className="w-4 h-4 fill-current shrink-0" />
-          {!isCollapsed && (
-            <span className="text-sm truncate">
-              {t("sidebar.startLearning")}
-            </span>
-          )}
-        </button>
-
         <div className="flex flex-col gap-1">
           <button
             onClick={() => onTabChange("settings")}
             title={isCollapsed ? t("nav.settings") : undefined}
+            aria-label={t("nav.settings")}
             className={cn(
               "flex items-center gap-3 py-2 transition-all rounded-lg text-sm w-full",
               activeTab === "settings"
@@ -186,6 +174,7 @@ export default function Sidebar({
           <button
             onClick={() => onTabChange("support")}
             title={isCollapsed ? t("nav.support") : undefined}
+            aria-label={t("nav.support")}
             className={cn(
               "flex items-center gap-3 py-2 transition-all rounded-lg text-sm w-full",
               activeTab === "support"
@@ -194,7 +183,7 @@ export default function Sidebar({
               isCollapsed ? "justify-center px-0" : "px-3",
             )}
           >
-            <HelpCircle className="w-4 h-4 shrink-0" />
+            <LifeBuoy className="w-4 h-4 shrink-0" />
             {!isCollapsed && (
               <span className="truncate">{t("nav.support")}</span>
             )}

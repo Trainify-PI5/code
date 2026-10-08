@@ -8,6 +8,8 @@ import {
   Bot,
   BookOpen,
   Building2,
+  Palette,
+  UserPlus,
   CornerDownLeft,
   LayoutDashboard,
   LifeBuoy,
@@ -17,6 +19,8 @@ import {
   Settings,
   Sun,
   User,
+  LogOut,
+  Handshake,
   Users as UsersIcon,
 } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -80,20 +84,24 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       { id: "nav-ia", titulo: "Assistente IA", grupo: "navegacao", icone: <Bot className="w-4 h-4" />, executar: ir("/assistant"), sinonimos: ["chat", "inteligencia artificial"] },
       { id: "nav-notif", titulo: "Notificações", grupo: "navegacao", icone: <Bell className="w-4 h-4" />, executar: ir("/notifications"), sinonimos: ["avisos", "alertas"] },
       { id: "nav-profile", titulo: "Meu perfil", grupo: "navegacao", icone: <User className="w-4 h-4" />, executar: ir("/profile"), sinonimos: ["conta"] },
-      { id: "nav-settings", titulo: "Configurações", grupo: "navegacao", icone: <Settings className="w-4 h-4" />, executar: ir("/settings"), sinonimos: ["preferencias", "ajustes"] },
+      { id: "nav-settings", titulo: "Conta e segurança", grupo: "navegacao", icone: <Settings className="w-4 h-4" />, executar: ir("/settings"), sinonimos: ["configuracoes", "preferencias", "ajustes", "senha"] },
       { id: "nav-support", titulo: "Suporte", grupo: "navegacao", icone: <LifeBuoy className="w-4 h-4" />, executar: ir("/support"), sinonimos: ["ajuda", "faq"] },
     ];
 
     if (ehGestor) {
       itens.push(
-        { id: "nav-dash", titulo: "Dashboards", grupo: "navegacao", icone: <BarChart3 className="w-4 h-4" />, executar: ir("/dashboards"), sinonimos: ["analises", "relatorio", "metricas"] },
+        { id: "nav-dash", titulo: "Análises", grupo: "navegacao", icone: <BarChart3 className="w-4 h-4" />, executar: ir("/dashboards"), sinonimos: ["dashboards", "relatorio", "metricas"] },
         { id: "nav-users", titulo: "Usuários", grupo: "navegacao", icone: <UsersIcon className="w-4 h-4" />, executar: ir("/users"), sinonimos: ["pessoas", "equipe", "acessos"] },
       );
     }
+    if (user?.role === "SUPER_ADMIN") {
+      itens.push({ id: "nav-sales", titulo: "Comercial", grupo: "navegacao", icone: <Handshake className="w-4 h-4" />, executar: ir("/sales-requests"), sinonimos: ["atendimento", "demonstracao", "solicitacoes"] });
+      itens.push({ id: "nav-companies", titulo: "Empresas clientes", grupo: "navegacao", icone: <Building2 className="w-4 h-4" />, executar: ir("/companies"), sinonimos: ["clientes", "empresas", "cadastro"] });
+    }
     if (ehAdmin) {
       itens.push(
-        { id: "nav-invitations", titulo: user?.role === "SUPER_ADMIN" ? "Empresas" : "Convites", grupo: "navegacao", icone: <Building2 className="w-4 h-4" />, executar: ir(user?.role === "SUPER_ADMIN" ? "/companies" : "/invitations"), sinonimos: ["clientes", "convites", "cadastro"] },
-        { id: "nav-tenant", titulo: "Empresa", grupo: "navegacao", icone: <Building2 className="w-4 h-4" />, executar: ir("/tenant-settings"), sinonimos: ["organizacao", "marca"] },
+        { id: "nav-invitations", titulo: "Convites", grupo: "navegacao", icone: <UserPlus className="w-4 h-4" />, executar: ir("/invitations"), sinonimos: ["convidar", "acesso", "cadastro"] },
+        { id: "nav-tenant", titulo: "Identidade visual", grupo: "navegacao", icone: <Palette className="w-4 h-4" />, executar: ir("/tenant-settings"), sinonimos: ["empresa", "organizacao", "marca", "logo", "cores"] },
         { id: "nav-audit", titulo: "Auditoria", grupo: "navegacao", icone: <Activity className="w-4 h-4" />, executar: ir("/audit-logs"), sinonimos: ["logs", "seguranca"] },
       );
     }
@@ -120,7 +128,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         id: "acao-sair",
         titulo: "Sair da conta",
         grupo: "acao",
-        icone: <User className="w-4 h-4" />,
+        icone: <LogOut className="w-4 h-4" />,
         sinonimos: ["logout", "deslogar", "encerrar sessao"],
         executar: () => {
           onClose();

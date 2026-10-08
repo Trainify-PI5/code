@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from 'react';
 import axios from 'axios';
-import { Building2, Save } from 'lucide-react';
+import { Palette, Save } from 'lucide-react';
 import api from '../services/api';
 import { PageContainer, PageHeader, useToast } from '../components/ui';
 import { useBranding, type CompanyBranding } from '../contexts/CompanyBrandingContext';
@@ -75,7 +75,7 @@ export default function TenantSettings() {
   if (failed || !tenant) return <div className="p-8 space-y-4" role="alert"><p>Não foi possível carregar as configurações.</p><button onClick={() => setAttempt(value => value + 1)} className="text-primary underline">Tentar novamente</button></div>;
 
   return <PageContainer className="pb-16">
-    <PageHeader icon={<Building2 className="w-6 h-6" />} title="Configurações da Empresa" subtitle="Personalize a identidade visual do ambiente da sua empresa." />
+    <PageHeader icon={<Palette className="w-6 h-6" />} title="Identidade visual" subtitle="Personalize a identidade visual do ambiente da sua empresa." />
     <form onSubmit={save} className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 sm:p-8">
       <fieldset disabled={busy !== null} className="space-y-8 disabled:opacity-70">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

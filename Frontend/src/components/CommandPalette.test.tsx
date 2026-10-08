@@ -93,7 +93,7 @@ describe("CommandPalette — busca", () => {
   it("acha por sinônimo que não está escrito na tela", () => {
     montar();
     fireEvent.change(campo(), { target: { value: "metricas" } });
-    expect(opcoes()[0]).toHaveTextContent("Dashboards");
+    expect(opcoes()[0]).toHaveTextContent("Análises");
   });
 
   it("explica quando não encontra, em vez de ficar em branco", () => {
@@ -211,11 +211,11 @@ describe("CommandPalette — regras de perfil", () => {
   // oferecer atalho para uma tela bloqueada so levaria a pessoa a /unauthorized
   const titulos = () => opcoes().map((o) => o.textContent);
 
-  it("aluno não vê Dashboards, Usuários, Empresa nem Auditoria", async () => {
+  it("aluno não vê Análises, Usuários, Empresa nem Auditoria", async () => {
     definirPerfil("STUDENT");
     montar();
     const texto = titulos().join(" ");
-    expect(texto).not.toMatch(/Dashboards|Usuários|Empresa|Auditoria|Criar Curso/);
+    expect(texto).not.toMatch(/Análises|Usuários|Empresas clientes|Identidade visual|Auditoria|Criar Curso/);
     expect(texto).toMatch(/Cursos/);
   });
 
@@ -226,11 +226,11 @@ describe("CommandPalette — regras de perfil", () => {
     expect((globalThis as any).__get).not.toHaveBeenCalledWith("/users");
   });
 
-  it("gestor vê Dashboards e Usuários, mas não Auditoria", () => {
+  it("gestor vê Análises e Usuários, mas não Auditoria", () => {
     definirPerfil("MANAGER");
     montar();
     const texto = titulos().join(" ");
-    expect(texto).toMatch(/Dashboards/);
+    expect(texto).toMatch(/Análises/);
     expect(texto).toMatch(/Usuários/);
     expect(texto).not.toMatch(/Auditoria/);
   });
@@ -245,9 +245,9 @@ describe("CommandPalette — regras de perfil", () => {
     definirPerfil("ADMIN");
     montar();
     const texto = titulos().join(" ");
-    expect(texto).toMatch(/Dashboards/);
+    expect(texto).toMatch(/Análises/);
     expect(texto).toMatch(/Auditoria/);
-    expect(texto).toMatch(/Empresa/);
+    expect(texto).toMatch(/Identidade visual/);
   });
 });
 

@@ -60,7 +60,7 @@ export default function Companies() {
   }
 
   return <PageContainer className="pb-12">
-    <PageHeader icon={<Building2 className="h-6 w-6" />} title="Empresas" subtitle="Crie o ambiente do cliente após a contratação e convide o administrador responsável." />
+    <PageHeader icon={<Building2 className="h-6 w-6" />} title="Empresas clientes" subtitle="Crie o ambiente do cliente após a contratação e convide o administrador responsável." />
     <form onSubmit={create} className="mb-8 space-y-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 sm:p-6">
       <h2 className="text-lg font-bold">Nova empresa</h2>
       <fieldset disabled={saving || loading} className="grid gap-4 sm:grid-cols-2">

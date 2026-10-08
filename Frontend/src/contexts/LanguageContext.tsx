@@ -15,7 +15,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.courses": "Courses",
     "nav.analytics": "Analytics",
     "nav.certifications": "Certifications",
-    "nav.settings": "Settings",
+    "nav.settings": "Account & security",
     "nav.support": "Support",
     "nav.notifications": "Notifications",
     "sidebar.startLearning": "Start Learning",
@@ -193,9 +193,9 @@ const translations: Record<Language, Record<string, string>> = {
       "IA Assistant can make mistakes. Consider verifying important data.",
 
     // Configurações
-    "settings.title": "Settings",
+    "settings.title": "Account & security",
     "settings.subtitle": "Manage your account preferences.",
-    "settings.profile": "My Profile",
+    "settings.profile": "Personal details",
     "settings.security": "Security",
     "settings.personalInfo": "Personal Information",
     "settings.fullName": "Full Name",
@@ -326,7 +326,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.courses": "Cursos",
     "nav.analytics": "Análisis",
     "nav.certifications": "Certificaciones",
-    "nav.settings": "Ajustes",
+    "nav.settings": "Cuenta y seguridad",
     "nav.support": "Soporte",
     "nav.notifications": "Notificaciones",
     "sidebar.startLearning": "Empezar a Aprender",
@@ -503,9 +503,9 @@ const translations: Record<Language, Record<string, string>> = {
       "El Asistente IA puede cometer errores. Considera verificar datos importantes.",
 
     // Configurações
-    "settings.title": "Configuraciones",
+    "settings.title": "Cuenta y seguridad",
     "settings.subtitle": "Gestiona las preferencias de tu cuenta.",
-    "settings.profile": "Mi Perfil",
+    "settings.profile": "Datos personales",
     "settings.security": "Seguridad",
     "settings.personalInfo": "Información Personal",
     "settings.fullName": "Nombre Completo",
@@ -635,7 +635,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.courses": "Cursos",
     "nav.analytics": "Análises",
     "nav.certifications": "Certificados",
-    "nav.settings": "Configurações",
+    "nav.settings": "Conta e segurança",
     "nav.support": "Suporte",
     "nav.notifications": "Notificações",
     "sidebar.startLearning": "Começar a Aprender",
@@ -813,9 +813,9 @@ const translations: Record<Language, Record<string, string>> = {
       "O Assistente IA pode cometer erros. Considere verificar informações importantes.",
 
     // Configurações
-    "settings.title": "Configurações",
+    "settings.title": "Conta e segurança",
     "settings.subtitle": "Gerencie as preferências da sua conta.",
-    "settings.profile": "Meu Perfil",
+    "settings.profile": "Dados pessoais",
     "settings.security": "Segurança",
     "settings.personalInfo": "Informações Pessoais",
     "settings.fullName": "Nome Completo",
