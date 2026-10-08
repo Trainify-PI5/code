@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Companies from './Companies';
+import CompanyRegistration from '../components/CompanyRegistration';
 import { ToastProvider } from '../components/ui';
 import api from '../services/api';
 
@@ -11,7 +12,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.get).mockResolvedValue({ data: [] });
 });
-const show = () => render(<MemoryRouter initialEntries={[{ pathname: '/companies', state: { companyName: 'Cliente', adminName: 'Ana', adminEmail: 'ana@example.com' } }]}><ToastProvider><Companies /></ToastProvider></MemoryRouter>);
+const show = () => render(<MemoryRouter><ToastProvider><CompanyRegistration prefill={{ companyName: 'Cliente', adminName: 'Ana', adminEmail: 'ana@example.com' }} onClose={() => {}} /></ToastProvider></MemoryRouter>);
 
 it('usa os dados comerciais apenas como preenchimento e cria a empresa após enviar o formulário', async () => {
   vi.mocked(api.post).mockResolvedValue({ data: { id: 'company-1', name: 'Cliente', invitationToken: 'a'.repeat(64) } });
@@ -23,7 +24,7 @@ it('usa os dados comerciais apenas como preenchimento e cria a empresa após env
   await userEvent.click(button);
   expect(await screen.findByText('Empresa criada. Copie o convite do administrador abaixo.')).toBeInTheDocument();
   expect(api.post).toHaveBeenCalledWith('/tenants?delivery=LINK', expect.objectContaining({ name: 'Cliente', adminName: 'Ana', adminEmail: 'ana@example.com', requestId: expect.any(String) }));
-  expect(screen.getByLabelText('Empresa para gerenciar convites')).toHaveValue('company-1');
+  expect(screen.getByRole('link', { name: 'Ver empresa' })).toHaveAttribute('href', '/companies?company=company-1');
 });
 
 it('preserva o formulário e o identificador ao tentar novamente após uma falha', async () => {
@@ -37,4 +38,15 @@ it('preserva o formulário e o identificador ao tentar novamente após uma falha
   await userEvent.click(button);
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(vi.mocked(api.post).mock.calls[0][1]).toEqual(vi.mocked(api.post).mock.calls[1][1]);
+});
+
+it('mostra empresas cadastradas e abre cadastro somente pela ação Nova empresa', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: [{ id: 'company-1', name: 'Cliente existente' }] });
+  render(<MemoryRouter><ToastProvider><Companies /></ToastProvider></MemoryRouter>);
+  expect(await screen.findByRole('heading', { name: 'Cliente existente' })).toBeInTheDocument();
+  expect(screen.queryByLabelText('Nome da empresa')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Nova empresa' }));
+  expect(screen.getByRole('dialog', { name: 'Cadastrar empresa' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Nome da empresa')).toHaveValue('');
+  expect(api.post).not.toHaveBeenCalled();
 });

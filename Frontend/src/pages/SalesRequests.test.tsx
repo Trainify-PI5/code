@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SalesRequests from './SalesRequests';
+import { ToastProvider } from '../components/ui';
 import api from '../services/api';
 
 vi.mock('../services/api', () => ({ default: { get: vi.fn(), patch: vi.fn() } }));
@@ -85,4 +86,17 @@ describe('Atendimento comercial', () => {
     expect(screen.getByRole('tab', { name: /Em contato/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('Nenhuma solicitação em contato.')).toBeInTheDocument();
   });
+});
+
+it('abre cadastro preenchido dentro do atendimento sem navegar para a listagem', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: { items: [lead], total: 1 } });
+  render(<MemoryRouter><ToastProvider><SalesRequests /></ToastProvider></MemoryRouter>);
+  await userEvent.click(await screen.findByRole('button', { name: 'Cadastrar empresa após contratação' }));
+  expect(screen.getByRole('dialog', { name: 'Cadastrar empresa' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Nome da empresa')).toHaveValue('Empresa');
+  expect(screen.getByLabelText('Nome do administrador')).toHaveValue('Ana Silva');
+  expect(screen.getByLabelText('E-mail do administrador')).toHaveValue('ana@example.com');
+  await userEvent.click(screen.getByRole('button', { name: 'Fechar' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Atendimento de Empresa')).toBeInTheDocument();
 });
