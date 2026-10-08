@@ -126,9 +126,20 @@ public class MediaController {
     }
 
     @GetMapping("/{id}/play")
-    public ResponseEntity<Map<String, String>> getPlayUrl(@PathVariable UUID id) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> getPlayUrl(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
         MediaAsset mediaAsset = mediaAssetRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("MediaAsset not found"));
+
+        // Sem isto, o link do video ou do documento de outra empresa era entregue
+        // a qualquer pessoa logada que soubesse o identificador
+        if (mediaAsset.getTenant() == null
+                || !mediaAsset.getTenant().getId().equals(userDetails.getTenantId())) {
+            throw new jakarta.persistence.EntityNotFoundException("Arquivo não encontrado.");
+        }
 
         if (mediaAsset.getProvider() != null && mediaAsset.getProvider() != com.trainify.lms.domain.enums.MediaProvider.S3) {
             return ResponseEntity.ok(Map.of("url", mediaAsset.getExternalUrl()));

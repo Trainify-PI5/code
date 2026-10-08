@@ -25,7 +25,7 @@ public class AssessmentController {
             @PathVariable UUID lessonId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        return ResponseEntity.ok(assessmentService.getAssessmentByLessonId(lessonId, userDetails.getId()));
+        return ResponseEntity.ok(assessmentService.getAssessmentByLessonId(lessonId, userDetails));
     }
 
     @PostMapping("/lessons/{lessonId}")

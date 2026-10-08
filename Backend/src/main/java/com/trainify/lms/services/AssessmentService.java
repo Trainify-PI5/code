@@ -32,14 +32,29 @@ public class AssessmentService {
      * a avaliacao.
      */
     @Transactional(readOnly = true)
-    public AssessmentDto getAssessmentByLessonId(UUID lessonId, UUID userId) {
+    public AssessmentDto getAssessmentByLessonId(UUID lessonId, com.trainify.lms.security.CustomUserDetails usuario) {
         Assessment assessment = assessmentRepository.findByLessonId(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Assessment not found for lesson " + lessonId));
 
+        // Sem isto, qualquer pessoa logada lia as perguntas de qualquer empresa
+        if (!assessment.getTenant().getId().equals(usuario.getTenantId())) {
+            throw new EntityNotFoundException("Assessment not found for lesson " + lessonId);
+        }
+
+        UUID userId = usuario.getId();
+        var matricula = enrollmentRepository
+                .findByUserIdAndCourseId(userId, assessment.getLesson().getModule().getCourse().getId());
+
+        // Quem estuda só vê a prova do curso em que está matriculado; quem ensina
+        // ou administra precisa ver para conferir
+        if (matricula.isEmpty() && !podeAcompanhar(usuario)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Matricule-se no curso para acessar esta avaliação.");
+        }
+
         AssessmentDto dto = mapToDto(assessment);
 
-        enrollmentRepository
-                .findByUserIdAndCourseId(userId, assessment.getLesson().getModule().getCourse().getId())
+        matricula
                 .ifPresent(enrollment -> {
                     List<AssessmentAttempt> attempts = attemptRepository
                             .findByEnrollmentIdAndAssessmentIdOrderByAttemptNumberAsc(enrollment.getId(), assessment.getId());
@@ -274,6 +289,13 @@ public class AssessmentService {
         }
 
         return dto;
+    }
+
+    private boolean podeAcompanhar(com.trainify.lms.security.CustomUserDetails usuario) {
+        return usuario.getAuthorities().stream()
+                .map(a -> a.getAuthority())
+                .anyMatch(papel -> papel.equals("ROLE_SUPER_ADMIN") || papel.equals("ROLE_ADMIN")
+                        || papel.equals("ROLE_MANAGER") || papel.equals("ROLE_INSTRUCTOR"));
     }
 
     private AssessmentDto mapToDto(Assessment assessment) {

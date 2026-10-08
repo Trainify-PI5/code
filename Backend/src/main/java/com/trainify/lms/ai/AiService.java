@@ -123,6 +123,12 @@ public class AiService {
         Assessment assessment = assessmentRepository.findByLessonId(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Avaliação não encontrada para esta aula"));
 
+        UUID empresaDoUsuario = empresaAtual();
+        if (empresaDoUsuario != null && assessment.getTenant() != null
+                && !assessment.getTenant().getId().equals(empresaDoUsuario)) {
+            throw new EntityNotFoundException("Avaliação não encontrada para esta aula");
+        }
+
         List<AssessmentQuestion> perguntas = assessment.getQuestions().stream()
                 .filter(q -> questoesErradas.contains(q.getId()))
                 .toList();
@@ -167,9 +173,30 @@ public class AiService {
 
     // ── apoio ──
 
+    /**
+     * A aula precisa ser da empresa de quem perguntou: sem esta checagem, o tutor
+     * respondia usando o conteudo de outra empresa.
+     */
     private Lesson buscarAula(UUID lessonId) {
-        return lessonRepository.findById(lessonId)
+        Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Aula não encontrada"));
+
+        UUID empresaDoUsuario = empresaAtual();
+        if (empresaDoUsuario != null && lesson.getTenant() != null
+                && !lesson.getTenant().getId().equals(empresaDoUsuario)) {
+            throw new EntityNotFoundException("Aula não encontrada");
+        }
+        return lesson;
+    }
+
+    private UUID empresaAtual() {
+        var autenticacao = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        if (autenticacao == null
+                || !(autenticacao.getPrincipal() instanceof com.trainify.lms.security.CustomUserDetails usuario)) {
+            return null;
+        }
+        return usuario.getTenantId();
     }
 
     /**
