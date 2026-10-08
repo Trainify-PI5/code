@@ -1,10 +1,22 @@
 # Perfil usado no servidor (Render). Ative com SPRING_PROFILES_ACTIVE=prod.
 spring:
+  main:
+    # O plano gratuito tem pouca CPU e a subida levava de 3 a 4 minutos. Criando
+    # os componentes sob demanda, o servico comeca a responder bem antes.
+    lazy-initialization: ${LAZY_INIT:true}
+
   datasource:
     hikari:
       # O pooler do Supabase (plano free) aceita poucas conexoes simultaneas
       maximum-pool-size: ${DB_POOL_SIZE:5}
       minimum-idle: ${DB_POOL_MIN_IDLE:1}
+
+  jpa:
+    # Sem isso o Hibernate so monta as consultas na primeira chamada de cada tela
+    properties:
+      hibernate:
+        query:
+          plan_cache_max_size: 512
 
 logging:
   level:

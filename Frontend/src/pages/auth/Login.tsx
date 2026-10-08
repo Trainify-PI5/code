@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
 import logotipoLight from "../../assets/images/logotipo-modo_light.svg";
 import logotipoDark from "../../assets/images/logotipo-modo_dark.svg";
 import { useAuthStore } from "../../store/authStore";
+import { aoAcordarServidor } from "../../services/api";
 import { useThemeStore } from "../../store/themeStore";
 import { cn } from "../../lib/utils";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -14,6 +15,11 @@ interface LoginProps {
 
 export default function Login({ onNavigate }: LoginProps) {
   const { login, isLoading, error, clearError } = useAuthStore();
+
+  // O servidor do plano gratuito hiberna; enquanto ele sobe, avisamos em vez de
+  // deixar a pessoa achando que travou
+  const [servidorAcordando, setServidorAcordando] = useState(false);
+  useEffect(() => aoAcordarServidor(setServidorAcordando), []);
   const { isDarkMode, toggleDarkMode } = useThemeStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -116,6 +122,13 @@ export default function Login({ onNavigate }: LoginProps) {
 
 
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              {servidorAcordando && !error && (
+                <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                  <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                  <span>Iniciando o servidor. O primeiro acesso do dia pode levar até um minuto.</span>
+                </div>
+              )}
+
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
@@ -251,7 +264,8 @@ export default function Login({ onNavigate }: LoginProps) {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Entrando...
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {servidorAcordando ? "Iniciando o servidor..." : "Entrando..."}
                   </>
                 ) : (
                   "Entrar na plataforma"
