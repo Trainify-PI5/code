@@ -1,6 +1,6 @@
 package com.trainify.lms.controllers;
 
-import com.trainify.lms.domain.entities.ActivityLog;
+import com.trainify.lms.dto.AuditLogDto;
 import com.trainify.lms.repositories.ActivityLogRepository;
 import com.trainify.lms.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +22,11 @@ public class AuditLogController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<Page<ActivityLog>> getLogs(
+    public ResponseEntity<Page<AuditLogDto>> getLogs(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Pageable pageable
     ) {
         var logs = repository.findByTenantIdOrderByCreatedAtDesc(userDetails.getTenantId(), pageable);
-        return ResponseEntity.ok(logs);
+        return ResponseEntity.ok(logs.map(AuditLogDto::from));
     }
 }

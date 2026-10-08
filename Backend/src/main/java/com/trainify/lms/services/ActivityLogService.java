@@ -56,6 +56,34 @@ public class ActivityLogService {
         gravar(tenantId, userId, actionType, entityType, entityId, details);
     }
 
+    /**
+     * A coluna de IP ja existia na tela de Auditoria, mas nada a preenchia: ela
+     * sempre mostrava um endereco inventado. Atras do proxy da hospedagem o
+     * endereco real vem no cabecalho de encaminhamento, nao na conexao.
+     */
+    private String ipDaRequisicao() {
+        try {
+            var atributos = (org.springframework.web.context.request.ServletRequestAttributes)
+                    org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (atributos == null) {
+                return null;
+            }
+
+            var requisicao = atributos.getRequest();
+            String encaminhado = requisicao.getHeader("X-Forwarded-For");
+            String endereco = (encaminhado == null || encaminhado.isBlank())
+                    ? requisicao.getRemoteAddr()
+                    : encaminhado.split(",")[0].trim();
+
+            if (endereco == null || endereco.isBlank()) {
+                return null;
+            }
+            return endereco.length() > 45 ? endereco.substring(0, 45) : endereco;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void gravar(UUID tenantId, UUID userId, String actionType, String entityType, UUID entityId,
                         Map<String, Object> details) {
         try {
@@ -72,6 +100,7 @@ public class ActivityLogService {
             registro.setEntityType(entityType);
             registro.setEntityId(entityId);
             registro.setDetails(details == null ? Map.of() : details);
+            registro.setIpAddress(ipDaRequisicao());
 
             // saveAndFlush para o erro do banco estourar aqui dentro, e nao no commit,
             // quando ja estaria fora deste try e derrubaria a acao do usuario

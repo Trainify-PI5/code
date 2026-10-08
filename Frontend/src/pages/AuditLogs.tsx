@@ -68,7 +68,7 @@ export default function AuditLogs() {
       sortValue: (log) => log.ipAddress,
       render: (log) => (
         <span className="text-xs font-mono text-on-surface-variant">
-          {log.ipAddress || "0.0.0.0"}
+          {log.ipAddress || "-"}
         </span>
       ),
     },
