@@ -157,8 +157,8 @@ public class AuthServiceTest {
     void requestPasswordReset_UnknownEmail_ReturnsWithoutSendingMail() {
         ForgotPasswordRequest request = new ForgotPasswordRequest();
         request.setEmail("unknown@example.com");
-        when(userRepository.findByEmailIgnoreCaseAndIsActiveTrue("unknown@example.com"))
-                .thenReturn(java.util.Optional.empty());
+        when(userRepository.findAllByEmailIgnoreCaseAndIsActiveTrue("unknown@example.com"))
+                .thenReturn(java.util.List.of());
 
         assertDoesNotThrow(() -> authService.requestPasswordReset(request));
         verify(mailSender, never()).send(any(org.springframework.mail.SimpleMailMessage.class));

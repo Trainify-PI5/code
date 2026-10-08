@@ -59,7 +59,8 @@ public class InvitationService {
             }
             return new CompanyCreated(invitation.getTenant().getId(), invitation.getTenant().getName(), invitation.getId(), null);
         }
-        ensureAvailable(request.adminEmail());
+        // Empresa nova nao tem como ter conflito de e-mail: a mesma pessoa pode
+        // administrar mais de uma empresa
         Tenant tenant = new Tenant();
         tenant.setName(request.name().trim());
         tenant.setPrimaryColor("#4B2C92");
@@ -88,7 +89,7 @@ public class InvitationService {
             }
             return dto(invitation);
         }
-        ensureAvailable(request.email());
+        ensureAvailable(request.email(), tenantId);
         Tenant tenant = tenants.findById(tenantId).orElseThrow(() -> new EntityNotFoundException("Empresa não encontrada."));
         return create(tenant, request, manual);
     }
@@ -98,7 +99,7 @@ public class InvitationService {
         requireManagement(tenantId, actor);
         var invitation = managed(tenantId, id);
         requirePending(invitation);
-        if (users.existsByEmailIgnoreCase(invitation.getEmail())) throw new IllegalArgumentException("Este e-mail já possui uma conta.");
+        if (users.existsByEmailIgnoreCaseAndTenantId(invitation.getEmail(), invitation.getTenant().getId())) throw new IllegalArgumentException("Esta empresa já tem uma conta com este e-mail.");
         return new InvitationLink(issueToken(invitation));
     }
 
@@ -113,7 +114,7 @@ public class InvitationService {
         requireManagement(tenantId, actor);
         var invitation = managed(tenantId, id);
         requirePending(invitation);
-        if (users.existsByEmailIgnoreCase(invitation.getEmail())) throw new IllegalArgumentException("Este e-mail já possui uma conta.");
+        if (users.existsByEmailIgnoreCaseAndTenantId(invitation.getEmail(), invitation.getTenant().getId())) throw new IllegalArgumentException("Esta empresa já tem uma conta com este e-mail.");
         send(invitation);
     }
 
@@ -138,7 +139,7 @@ public class InvitationService {
         if (!invitation.getExpiresAt().isAfter(Instant.now()) || invitation.getTenant().getDeletedAt() != null) {
             throw new IllegalArgumentException("Convite expirado ou indisponível. Solicite um novo ao administrador.");
         }
-        if (users.existsByEmailIgnoreCase(invitation.getEmail())) throw new IllegalArgumentException("Este e-mail já possui uma conta. Entre pela tela de login.");
+        if (users.existsByEmailIgnoreCaseAndTenantId(invitation.getEmail(), invitation.getTenant().getId())) throw new IllegalArgumentException("Você já tem conta nesta empresa. Entre pela tela de login.");
         User user = new User();
         user.setTenant(invitation.getTenant());
         user.setName(invitation.getName());
@@ -191,11 +192,15 @@ public class InvitationService {
         mail.send(message);
     }
 
-    private void ensureAvailable(String email) {
+    /**
+     * O mesmo e-mail pode ter conta em outra empresa, por exemplo um consultor que
+     * atende duas clientes. O conflito so existe dentro da mesma empresa.
+     */
+    private void ensureAvailable(String email, java.util.UUID tenantId) {
         String normalized = normalize(email);
-        if (users.existsByEmailIgnoreCase(normalized)
-                || invitations.existsByEmailIgnoreCaseAndAcceptedAtIsNullAndRevokedAtIsNull(normalized)) {
-            throw new IllegalArgumentException("Este e-mail já possui uma conta ou convite pendente. Reenvie ou revogue o convite existente.");
+        if (users.existsByEmailIgnoreCaseAndTenantId(normalized, tenantId)
+                || invitations.existsByEmailIgnoreCaseAndTenantIdAndAcceptedAtIsNullAndRevokedAtIsNull(normalized, tenantId)) {
+            throw new IllegalArgumentException("Esta empresa já tem uma conta ou convite pendente para este e-mail. Reenvie ou revogue o convite existente.");
         }
     }
 

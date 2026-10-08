@@ -71,6 +71,15 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(TenantSelectionRequiredException.class)
+    public ProblemDetail handleTenantSelectionRequired(TenantSelectionRequiredException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problemDetail.setType(URI.create("urn:problem-type:tenant-selection-required"));
+        problemDetail.setTitle("Tenant Selection Required");
+        problemDetail.setProperty("tenants", ex.getTenants());
+        return problemDetail;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgumentException(IllegalArgumentException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());

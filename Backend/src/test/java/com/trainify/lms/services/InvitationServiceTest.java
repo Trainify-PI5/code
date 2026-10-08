@@ -90,12 +90,21 @@ class InvitationServiceTest {
         verifyNoInteractions(tenants, users, mail);
     }
 
-    @Test void duplicateEmailDoesNotCreateCompany() {
-        when(users.existsByEmailIgnoreCase("pessoa@example.com")).thenReturn(true);
-        assertThrows(IllegalArgumentException.class, () -> service.provision(
+    @Test void mesmoEmailPodeAdministrarOutraEmpresa() {
+        // A pessoa ja tem conta em outra empresa: isso nao impede mais a criacao
+        when(tenants.saveAndFlush(org.mockito.ArgumentMatchers.any())).thenAnswer(invocacao -> {
+            Tenant salvo = invocacao.getArgument(0);
+            salvo.setId(UUID.randomUUID());
+            return salvo;
+        });
+
+        var criada = service.provision(
                 new ProvisionCompanyRequest(UUID.randomUUID(), "Cliente", "Pessoa", "pessoa@example.com"),
-                actor(Role.SUPER_ADMIN, UUID.randomUUID())));
-        verifyNoInteractions(tenants, mail);
+                actor(Role.SUPER_ADMIN, UUID.randomUUID()));
+
+        assertNotNull(criada.id());
+        // A conta existente em outra empresa nem chega a ser consultada
+        verify(users, never()).existsByEmailIgnoreCase(org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test void tenantAdminCannotInviteIntoAnotherCompany() {

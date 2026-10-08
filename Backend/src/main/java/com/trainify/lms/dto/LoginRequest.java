@@ -12,4 +12,7 @@ public class LoginRequest {
 
     @NotBlank
     private String password;
+
+    /** Preenchido só quando o e-mail tem conta em mais de uma empresa. */
+    private java.util.UUID tenantId;
 }

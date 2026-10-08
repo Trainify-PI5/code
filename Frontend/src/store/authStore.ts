@@ -13,6 +13,12 @@ export interface User {
   tenantId?: string;
 }
 
+/** Empresa oferecida quando o mesmo e-mail tem conta em mais de uma. */
+export interface TenantOption {
+  id: string;
+  name: string;
+}
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -21,7 +27,11 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
 
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  /** Empresas para escolher; preenchido quando o e-mail tem mais de uma conta. */
+  tenantOptions: TenantOption[];
+  clearTenantOptions: () => void;
+
+  login: (email: string, password: string, rememberMe?: boolean, tenantId?: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, password: string) => Promise<void>;
@@ -112,15 +122,22 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   isAuthenticated: Boolean(storedAuth),
   isLoading: false,
   error: null,
+  tenantOptions: [],
 
-  login: async (email: string, password: string, rememberMe = false) => {
-    set({ isLoading: true, error: null });
+  clearTenantOptions: () => set({ tenantOptions: [] }),
+
+  login: async (email: string, password: string, rememberMe = false, tenantId?: string) => {
+    set({ isLoading: true, error: null, tenantOptions: [] });
 
 
 
     try {
       const normalizedEmail = email.trim();
-      const response = await api.post("/auth/login", { email: normalizedEmail, password });
+      const response = await api.post("/auth/login", {
+        email: normalizedEmail,
+        password,
+        ...(tenantId ? { tenantId } : {}),
+      });
       const { accessToken, refreshToken: rToken } = response.data;
       const user = userFromToken(accessToken, normalizedEmail);
 
@@ -135,8 +152,19 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         error: null,
       });
     } catch (err: any) {
+      // O e-mail tem conta em mais de uma empresa: a tela precisa perguntar qual
+      if (err.response?.data?.type === "urn:problem-type:tenant-selection-required") {
+        set({
+          isLoading: false,
+          isAuthenticated: false,
+          error: null,
+          tenantOptions: err.response.data.tenants || [],
+        });
+        return;
+      }
+
       const message = getErrorMessage(err);
-      set({ isLoading: false, error: message, isAuthenticated: false });
+      set({ isLoading: false, error: message, isAuthenticated: false, tenantOptions: [] });
     }
   },
 

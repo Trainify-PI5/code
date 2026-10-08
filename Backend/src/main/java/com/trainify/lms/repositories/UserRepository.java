@@ -14,7 +14,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmailIgnoreCaseAndIsActiveTrue(String email);
         Optional<User> findByPasswordResetTokenHashAndPasswordResetTokenExpiresAtAfterAndIsActiveTrue(
             String tokenHash, java.time.Instant now);
+    java.util.List<User> findAllByEmailIgnoreCaseAndIsActiveTrue(String email);
+    Optional<User> findByEmailIgnoreCaseAndTenantIdAndIsActiveTrue(String email, UUID tenantId);
+
     boolean existsByEmailIgnoreCase(String email);
+    boolean existsByEmailIgnoreCaseAndTenantId(String email, UUID tenantId);
     boolean existsByEmail(String email);
     
     java.util.List<User> findByTenantIdAndIsActiveTrue(UUID tenantId);

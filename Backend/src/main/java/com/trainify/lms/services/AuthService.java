@@ -55,10 +55,31 @@ public class AuthService {
         String email = normalizeEmail(request.getEmail());
         log.info("AUTH_LOGIN_START emailDomain={}", email.substring(email.indexOf('@') + 1));
 
+        // O mesmo e-mail pode ter conta em empresas diferentes
+        java.util.UUID empresa = request.getTenantId();
+        if (empresa == null) {
+            var contas = userRepository.findAllByEmailIgnoreCaseAndIsActiveTrue(email);
+            if (contas.size() > 1) {
+                log.info("AUTH_LOGIN_TENANT_CHOICE contas={}", contas.size());
+                throw new com.trainify.lms.exceptions.TenantSelectionRequiredException(
+                        contas.stream()
+                                .map(conta -> new com.trainify.lms.exceptions.TenantSelectionRequiredException.TenantOption(
+                                        conta.getTenant().getId(), conta.getTenant().getName()))
+                                .sorted(java.util.Comparator.comparing(
+                                        com.trainify.lms.exceptions.TenantSelectionRequiredException.TenantOption::name))
+                                .toList());
+            }
+            if (contas.size() == 1) {
+                empresa = contas.get(0).getTenant().getId();
+            }
+        }
+
         final Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+                    new UsernamePasswordAuthenticationToken(
+                            com.trainify.lms.security.CustomUserDetailsService.usernameFor(email, empresa),
+                            request.getPassword())
             );
         } catch (AuthenticationException ex) {
             log.info("AUTH_LOGIN_FAILED reason=INVALID_CREDENTIALS emailDomain={}",
@@ -78,12 +99,14 @@ public class AuthService {
     @Transactional
     public void requestPasswordReset(ForgotPasswordRequest request) {
         String email = normalizeEmail(request.getEmail());
-        var user = userRepository.findByEmailIgnoreCaseAndIsActiveTrue(email).orElse(null);
-        if (user == null) {
+        var contas = userRepository.findAllByEmailIgnoreCaseAndIsActiveTrue(email);
+        if (contas.isEmpty()) {
             log.info("AUTH_PASSWORD_RESET_REQUEST result=accepted emailDomain={}", emailDomain(email));
             return;
         }
 
+        // Com conta em mais de uma empresa, cada uma recebe o proprio link
+        for (var user : contas) {
         byte[] tokenBytes = new byte[32];
         secureRandom.nextBytes(tokenBytes);
         String token = java.util.HexFormat.of().formatHex(tokenBytes);
@@ -98,7 +121,8 @@ public class AuthService {
         message.setText("Use este link para redefinir sua senha (válido por 30 minutos):\n"
                 + frontendUrl + "/reset-password?token=" + token);
         mailSender.send(message);
-        log.info("AUTH_PASSWORD_RESET_REQUEST result=sent emailDomain={}", emailDomain(email));
+        }
+        log.info("AUTH_PASSWORD_RESET_REQUEST result=sent contas={} emailDomain={}", contas.size(), emailDomain(email));
     }
 
     @Transactional
@@ -141,7 +165,10 @@ public class AuthService {
         }
 
         String username = jwtUtil.extractUsername(refreshToken);
-        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
+        String tenantDoToken = jwtUtil.extractTenantId(refreshToken);
+        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(
+                com.trainify.lms.security.CustomUserDetailsService.usernameFor(
+                        username, tenantDoToken == null ? null : java.util.UUID.fromString(tenantDoToken)));
 
         if (!jwtUtil.validateToken(refreshToken, userDetails)) {
             throw new RuntimeException("Invalid refresh token");

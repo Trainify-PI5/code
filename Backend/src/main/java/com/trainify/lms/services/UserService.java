@@ -90,7 +90,9 @@ public class UserService {
     public UserDto createUser(CreateUserRequest request) {
         checkCanAssignRole(request.getRole());
 
-        if (userRepository.existsByEmailIgnoreCase(request.getEmail().trim())) {
+        // O mesmo e-mail pode existir em outra empresa; o que nao pode e repetir aqui
+        if (userRepository.existsByEmailIgnoreCaseAndTenantId(
+                normalizeEmail(request.getEmail()), getCurrentUser().getTenantId())) {
             throw new RuntimeException("Email already exists");
         }
 
@@ -120,7 +122,8 @@ public class UserService {
         checkCanAssignRole(user.getRole());
 
         if (!user.getEmail().equalsIgnoreCase(request.getEmail())
-                && userRepository.existsByEmailIgnoreCase(request.getEmail().trim())) {
+                && userRepository.existsByEmailIgnoreCaseAndTenantId(
+                        normalizeEmail(request.getEmail()), user.getTenant().getId())) {
             throw new RuntimeException("Email already exists");
         }
 
@@ -159,7 +162,8 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         if (!user.getEmail().equalsIgnoreCase(request.getEmail())
-                && userRepository.existsByEmailIgnoreCase(request.getEmail().trim())) {
+                && userRepository.existsByEmailIgnoreCaseAndTenantId(
+                        normalizeEmail(request.getEmail()), user.getTenant().getId())) {
             throw new RuntimeException("Email already exists");
         }
 

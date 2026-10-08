@@ -14,7 +14,7 @@ interface LoginProps {
 }
 
 export default function Login({ onNavigate }: LoginProps) {
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading, error, clearError, tenantOptions, clearTenantOptions } = useAuthStore();
 
   // O servidor do plano gratuito hiberna; enquanto ele sobe, avisamos em vez de
   // deixar a pessoa achando que travou
@@ -29,6 +29,10 @@ export default function Login({ onNavigate }: LoginProps) {
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordValid = password.length >= 6;
+
+  const entrarNaEmpresa = async (tenantId: string) => {
+    await login(email, password, rememberMe, tenantId);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +125,44 @@ export default function Login({ onNavigate }: LoginProps) {
 
 
 
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {tenantOptions.length > 0 && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-bold text-on-surface">Escolha a empresa</h2>
+                  <p className="text-sm text-on-surface-variant">
+                    Este e-mail tem acesso a mais de uma empresa. Em qual você quer entrar?
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {tenantOptions.map((empresa) => (
+                    <button
+                      key={empresa.id}
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => entrarNaEmpresa(empresa.id)}
+                      className="w-full text-left px-4 py-3 rounded-xl border border-outline-variant hover:border-primary hover:bg-primary-fixed transition-colors font-medium text-on-surface disabled:opacity-60"
+                    >
+                      {empresa.name}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={clearTenantOptions}
+                  className="text-sm text-on-surface-variant underline"
+                >
+                  Usar outro e-mail
+                </button>
+              </div>
+            )}
+
+            <form
+              onSubmit={handleSubmit}
+              className={cn("space-y-5", tenantOptions.length > 0 && "hidden")}
+              noValidate
+            >
               {servidorAcordando && !error && (
                 <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
                   <Loader2 className="w-4 h-4 shrink-0 animate-spin" />

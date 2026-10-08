@@ -62,7 +62,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             userEmail = jwtUtil.extractUsername(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                // A empresa vem do proprio token: sem isso, um e-mail com conta em
+                // duas empresas ficaria ambiguo a cada requisicao
+                String tenantId = jwtUtil.extractTenantId(jwt);
+                java.util.UUID empresa = tenantId == null ? null : java.util.UUID.fromString(tenantId);
+                UserDetails userDetails = this.userDetailsService
+                        .loadUserByUsername(CustomUserDetailsService.usernameFor(userEmail, empresa));
 
                 if (jwtUtil.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

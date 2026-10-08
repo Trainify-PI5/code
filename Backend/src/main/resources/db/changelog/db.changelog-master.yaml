@@ -27,3 +27,5 @@ databaseChangeLog:
       file: db/changelog/13-persist-lesson-type.sql
   - include:
       file: db/changelog/14-company-invitations.sql
+  - include:
+      file: db/changelog/15-email-por-empresa.sql

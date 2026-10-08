@@ -18,5 +18,5 @@ public interface CompanyInvitationRepository extends JpaRepository<CompanyInvita
     Optional<CompanyInvitation> findForManagement(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
 
     List<CompanyInvitation> findByTenantIdOrderByCreatedAtDesc(UUID tenantId);
-    boolean existsByEmailIgnoreCaseAndAcceptedAtIsNullAndRevokedAtIsNull(String email);
+    boolean existsByEmailIgnoreCaseAndTenantIdAndAcceptedAtIsNullAndRevokedAtIsNull(String email, java.util.UUID tenantId);
 }
