@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@lombok.extern.slf4j.Slf4j
 @RequiredArgsConstructor
 public class CourseService {
 
@@ -38,6 +39,8 @@ public class CourseService {
     private final MediaAssetRepository mediaAssetRepository;
     private final AssessmentRepository assessmentRepository;
     private final UserRepository userRepository;
+    private final ActivityLogService activityLog;
+    private final NotificationService notificationService;
 
     private CustomUserDetails getCurrentUser() {
         return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -167,7 +170,13 @@ public class CourseService {
         }
 
         course.setStatus(CourseStatus.PUBLISHED);
-        return mapToDto(courseRepository.save(course));
+        Course publicado = courseRepository.save(course);
+
+        activityLog.record("COURSE_PUBLISHED", "COURSE", publicado.getId(),
+                java.util.Map.of("title", publicado.getTitle()));
+        avisarAlunosDoCursoNovo(publicado);
+
+        return mapToDto(publicado);
     }
 
     @Transactional
@@ -391,6 +400,29 @@ public class CourseService {
      * QUIZ tem precedencia por ser o unico tipo que muda o fluxo do player,
      * levando o aluno para a avaliacao em vez do conteudo.
      */
+    /** Curso novo no ar: quem estuda fica sabendo. */
+    private void avisarAlunosDoCursoNovo(Course course) {
+        try {
+            for (User aluno : userRepository.findByTenantIdAndIsActiveTrue(course.getTenant().getId())) {
+                if (aluno.getRole() != com.trainify.lms.domain.enums.Role.STUDENT) {
+                    continue;
+                }
+
+                com.trainify.lms.domain.entities.Notification aviso = new com.trainify.lms.domain.entities.Notification();
+                aviso.setTenant(course.getTenant());
+                aviso.setUser(aluno);
+                aviso.setType("COURSE_PUBLISHED");
+                aviso.setTitle("Novo curso disponível");
+                aviso.setMessage("O curso \"" + course.getTitle() + "\" foi publicado e já pode ser feito.");
+                aviso.setReferenceId(course.getId());
+                notificationService.createAndSendNotification(aviso);
+            }
+        } catch (Exception e) {
+            // Avisar e desejável, publicar o curso e obrigatório
+            log.warn("Falha ao avisar alunos do curso {}: {}", course.getId(), e.getMessage());
+        }
+    }
+
     private String resolveLessonType(MediaAsset media, boolean hasAssessment) {
         if (hasAssessment) {
             return "QUIZ";

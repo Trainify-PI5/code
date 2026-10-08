@@ -156,7 +156,7 @@ export default function App() {
                   <Routes location={location} key={location.pathname}>
                     <Route path="/sales-requests" element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]}><SalesRequests /></ProtectedRoute>} />
                     <Route path="/companies" element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]}><Companies /></ProtectedRoute>} />
-                    <Route path="/invitations" element={<ProtectedRoute allowedRoles={["ADMIN"]}><Invitations /></ProtectedRoute>} />
+                    <Route path="/invitations" element={<ProtectedRoute allowedRoles={["ADMIN", "SUPER_ADMIN"]}><Invitations /></ProtectedRoute>} />
                     <Route
                       path="/"
                       element={

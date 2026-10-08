@@ -42,6 +42,12 @@ public class CourseServiceTest {
     private CourseRepository courseRepository;
 
     @Mock
+    private ActivityLogService activityLog;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
     private ModuleRepository moduleRepository;
 
     @Mock

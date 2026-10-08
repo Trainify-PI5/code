@@ -18,15 +18,26 @@ describe('Dados reais nas páginas', () => {
   beforeEach(() => { vi.mocked(api.get).mockReset(); });
 
   it('exibe cursos e atividades da API sem métricas inventadas', async () => {
-    vi.mocked(api.get).mockImplementation(async (url) => ({ data: url === '/courses'
-      ? [{ id: 'course', title: 'Curso da API', description: 'Descrição real' }]
-      : [{ id: 'notification', title: 'Aviso da API', message: 'Mensagem real', createdAt: '2026-10-05T12:00:00Z' }] }));
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      // O perfil ADMIN enxerga os próprios cursos, por isso /courses/all
+      if (url === '/home/summary') {
+        return { data: { role: 'ADMIN', userName: 'Ana', headline: 'Sua empresa', subtitle: 'Gerencie as pessoas.',
+          cards: [{ label: 'Pessoas ativas', value: 11, link: 'users' }] } };
+      }
+      if (url === '/courses/all' || url === '/courses') {
+        return { data: [{ id: 'course', title: 'Curso da API', description: 'Descrição real', status: 'PUBLISHED' }] };
+      }
+      return { data: [{ id: 'notification', title: 'Aviso da API', message: 'Mensagem real', createdAt: '2026-10-05T12:00:00Z' }] };
+    });
     render(<MemoryRouter><Home /></MemoryRouter>);
     expect(await screen.findByText('Curso da API')).toBeInTheDocument();
     expect(screen.getByText(/Aviso da API/)).toBeInTheDocument();
     expect(screen.queryByText('68%')).not.toBeInTheDocument();
     expect(screen.queryByText('3,492')).not.toBeInTheDocument();
     expect(screen.queryByText('2h 00m')).not.toBeInTheDocument();
+    // Os números vêm do resumo da API, conforme o perfil de quem entrou
+    expect(screen.getByText('Sua empresa')).toBeInTheDocument();
+    expect(screen.getByText('11')).toBeInTheDocument();
   });
 
   it('usa o curso e a data de conclusão da matrícula sem criar notas ou horas', async () => {

@@ -31,6 +31,7 @@ public class UserService {
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private final AvatarUrlResolver avatarUrlResolver;
+    private final ActivityLogService activityLog;
 
     /** Mesma normalizacao do login, que compara sem diferenciar maiusculas. */
     private static String normalizeEmail(String email) {
@@ -108,7 +109,10 @@ public class UserService {
         user.setRole(request.getRole());
         user.setIsActive(true);
 
-        return mapToDto(userRepository.save(user));
+        User salvo = userRepository.save(user);
+        activityLog.record("USER_CREATED", "USER", salvo.getId(),
+                java.util.Map.of("email", salvo.getEmail(), "role", salvo.getRole().name()));
+        return mapToDto(salvo);
     }
 
     @Transactional
@@ -132,7 +136,11 @@ public class UserService {
         user.setRole(request.getRole());
         user.setIsActive(request.getIsActive());
 
-        return mapToDto(userRepository.save(user));
+        User salvo = userRepository.save(user);
+        activityLog.record("USER_UPDATED", "USER", salvo.getId(),
+                java.util.Map.of("email", salvo.getEmail(), "role", salvo.getRole().name(),
+                        "active", String.valueOf(Boolean.TRUE.equals(salvo.getIsActive()))));
+        return mapToDto(salvo);
     }
 
     @Transactional
@@ -144,6 +152,8 @@ public class UserService {
         // Exclusão Lógica
         user.setIsActive(false);
         userRepository.save(user);
+        activityLog.record("USER_DEACTIVATED", "USER", user.getId(),
+                java.util.Map.of("email", user.getEmail()));
     }
 
     @Transactional

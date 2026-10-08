@@ -54,6 +54,9 @@ public class UserServiceTest {
     private AvatarUrlResolver avatarUrlResolver;
 
     @Mock
+    private ActivityLogService activityLog;
+
+    @Mock
     private SecurityContext securityContext;
 
     @Mock

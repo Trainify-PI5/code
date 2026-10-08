@@ -42,6 +42,7 @@ public class AuthService {
     private final com.trainify.lms.repositories.UserRepository userRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
+    private final ActivityLogService activityLog;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -89,6 +90,9 @@ public class AuthService {
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         log.info("AUTH_PASSWORD_VALIDATION result=success");
+
+        userRepository.findById(userDetails.getId()).ifPresent(conta ->
+                activityLog.recordFor(conta, "LOGIN", "USER", conta.getId(), java.util.Map.of()));
         String accessToken = jwtUtil.generateToken(userDetails);
         String refreshToken = jwtUtil.generateRefreshToken(userDetails);
         log.info("AUTH_TOKEN_GENERATION result=success");

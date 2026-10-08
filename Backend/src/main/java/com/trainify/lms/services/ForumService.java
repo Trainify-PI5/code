@@ -9,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -21,6 +23,38 @@ public class ForumService {
     private final ForumPostRepository postRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final com.trainify.lms.repositories.EnrollmentRepository enrollmentRepository;
+
+    /**
+     * Fórum é do curso: participa quem está matriculado, e quem ensina, gerencia
+     * ou administra a empresa. Antes qualquer pessoa logada entrava em qualquer
+     * fórum da plataforma.
+     */
+    private void garantirAcessoAoCurso(UUID courseId, UUID userId) {
+        var autenticacao = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+
+        if (autenticacao != null
+                && autenticacao.getPrincipal() instanceof com.trainify.lms.security.CustomUserDetails usuario) {
+
+            Course course = courseRepository.findById(courseId)
+                    .orElseThrow(() -> new EntityNotFoundException("Curso não encontrado"));
+
+            if (course.getTenant() != null && !course.getTenant().getId().equals(usuario.getTenantId())) {
+                throw new EntityNotFoundException("Curso não encontrado");
+            }
+
+            boolean acompanha = usuario.getAuthorities().stream()
+                    .map(a -> a.getAuthority())
+                    .anyMatch(papel -> papel.equals("ROLE_SUPER_ADMIN") || papel.equals("ROLE_ADMIN")
+                            || papel.equals("ROLE_MANAGER") || papel.equals("ROLE_INSTRUCTOR"));
+
+            if (!acompanha && enrollmentRepository.findByUserIdAndCourseId(userId, courseId).isEmpty()) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Matricule-se no curso para participar do fórum.");
+            }
+        }
+    }
 
     public Page<ForumThreadDto> getThreadsByCourse(UUID courseId, Pageable pageable) {
         return threadRepository.findByCourseIdOrderByCreatedAtDesc(courseId, pageable)
@@ -28,6 +62,7 @@ public class ForumService {
     }
 
     public ForumThreadDto createThread(UUID courseId, UUID authorId, String title, String initialPostContent) {
+        garantirAcessoAoCurso(courseId, authorId);
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("Course not found"));
         User author = userRepository.findById(authorId)

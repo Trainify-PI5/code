@@ -52,7 +52,7 @@ export default function Sidebar({
     navItems.push({ id: "companies", label: "Empresas", icon: UsersIcon });
   }
 
-  if (user?.role === "ADMIN") {
+  if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
     navItems.push({ id: "invitations", label: "Convites", icon: UsersIcon });
   }
 

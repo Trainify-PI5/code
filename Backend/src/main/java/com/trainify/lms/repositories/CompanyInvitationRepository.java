@@ -19,4 +19,14 @@ public interface CompanyInvitationRepository extends JpaRepository<CompanyInvita
 
     List<CompanyInvitation> findByTenantIdOrderByCreatedAtDesc(UUID tenantId);
     boolean existsByEmailIgnoreCaseAndTenantIdAndAcceptedAtIsNullAndRevokedAtIsNull(String email, java.util.UUID tenantId);
+
+    // Convites que ainda aguardam aceite, para a tela inicial
+    @org.springframework.data.jpa.repository.Query("select count(c) from CompanyInvitation c "
+            + "where c.acceptedAt is null and c.revokedAt is null and c.expiresAt > current_timestamp")
+    long countPendentes();
+
+    @org.springframework.data.jpa.repository.Query("select count(c) from CompanyInvitation c "
+            + "where c.tenant.id = :tenantId and c.acceptedAt is null and c.revokedAt is null "
+            + "and c.expiresAt > current_timestamp")
+    long countPendentesPorEmpresa(@org.springframework.data.repository.query.Param("tenantId") java.util.UUID tenantId);
 }

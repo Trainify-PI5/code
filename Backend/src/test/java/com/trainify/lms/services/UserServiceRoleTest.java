@@ -46,6 +46,9 @@ class UserServiceRoleTest {
     @Mock
     private AvatarUrlResolver avatarUrlResolver;
 
+    @Mock
+    private ActivityLogService activityLog;
+
     @InjectMocks
     private UserService userService;
 
