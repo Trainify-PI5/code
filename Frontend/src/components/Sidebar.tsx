@@ -12,7 +12,6 @@ import {
   Handshake,
   Building2,
   Palette,
-  UserPlus,
 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -52,10 +51,6 @@ export default function Sidebar({
   if (user?.role === "SUPER_ADMIN") {
     navItems.push({ id: "sales-requests", label: "Comercial", icon: Handshake });
     navItems.push({ id: "companies", label: "Empresas clientes", icon: Building2 });
-  }
-
-  if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
-    navItems.push({ id: "invitations", label: "Convites", icon: UserPlus });
   }
 
   if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.role === "MANAGER") {

@@ -30,7 +30,6 @@ const TenantSettings = lazy(() => import("./pages/TenantSettings"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
 const SalesRequests = lazy(() => import("./pages/SalesRequests"));
 const Companies = lazy(() => import("./pages/Companies"));
-const Invitations = lazy(() => import("./pages/Invitations"));
 const AcceptInvitation = lazy(() => import("./pages/auth/AcceptInvitation"));
 const SalesContact = lazy(() => import("./pages/SalesContact"));
 const CourseResults = lazy(() => import("./pages/CourseResults"));
@@ -156,7 +155,7 @@ export default function App() {
                   <Routes location={location} key={location.pathname}>
                     <Route path="/sales-requests" element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]}><SalesRequests /></ProtectedRoute>} />
                     <Route path="/companies" element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]}><Companies /></ProtectedRoute>} />
-                    <Route path="/invitations" element={<ProtectedRoute allowedRoles={["ADMIN", "SUPER_ADMIN"]}><Invitations /></ProtectedRoute>} />
+                    <Route path="/invitations" element={<ProtectedRoute allowedRoles={["ADMIN", "SUPER_ADMIN"]}><Navigate to="/users?tab=invitations" replace /></ProtectedRoute>} />
                     <Route
                       path="/"
                       element={

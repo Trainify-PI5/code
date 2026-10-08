@@ -21,6 +21,6 @@ it.each(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'INSTRUCTOR', 'STUDENT'])('mantém n
   expect(new Set(destinations).size).toBe(buttons.length);
   expect(destinations.includes('sales-requests')).toBe(role === 'SUPER_ADMIN');
   expect(destinations.includes('companies')).toBe(role === 'SUPER_ADMIN');
-  expect(destinations.includes('invitations')).toBe(['ADMIN', 'SUPER_ADMIN'].includes(role));
+  expect(destinations.includes('invitations')).toBe(false);
   expect(destinations.includes('tenant-settings')).toBe(['ADMIN', 'SUPER_ADMIN'].includes(role));
 });

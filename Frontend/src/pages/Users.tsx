@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, MoreVertical, Edit2, Trash2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Search, Plus, UserPlus, Edit2, Trash2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
+import { useSearchParams, Link } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import CompanyInvitations from '../components/CompanyInvitations';
 import { Badge, Button, Card, ConfirmDialog, DataTable, Input, PageContainer, PageHeader, useToast, type Coluna } from "../components/ui";
 
 interface User {
@@ -14,6 +17,11 @@ interface User {
 }
 
 export const Users: React.FC = () => {
+  const actor = useAuthStore(state => state.user);
+  const canInvite = actor?.role === 'ADMIN' || actor?.role === 'SUPER_ADMIN';
+  const [params, setParams] = useSearchParams();
+  const tab = canInvite && params.get('tab') === 'invitations' ? 'invitations' : 'users';
+  const [showInvite, setShowInvite] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +53,7 @@ export const Users: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [tab]);
 
   const openCreateModal = () => {
     setIsEditMode(false);
@@ -210,13 +218,39 @@ export const Users: React.FC = () => {
         title="Gestão de Usuários"
         subtitle="Administre os acessos e permissões da plataforma."
         actions={
-          <Button onClick={openCreateModal}>
+          canInvite ? <Button disabled={!actor?.tenantId} onClick={() => { setParams({ tab: 'invitations' }); setShowInvite(true); }}>
+            <UserPlus className="w-4 h-4" />
+            Convidar pessoa
+          </Button> : <Button onClick={openCreateModal}>
             <Plus className="w-4 h-4" />
             <span>Novo Usuário</span>
           </Button>
         }
       />
 
+      {actor?.role === 'SUPER_ADMIN' && <p className="mb-4 text-sm text-on-surface-variant">
+        Esta tela gerencia os acessos da empresa vinculada à sua sessão. Para convidar pessoas de outra empresa, acesse <Link to="/companies" className="text-primary underline">Empresas clientes</Link>.
+      </p>}
+      {canInvite && <div role="tablist" aria-label="Gestão de pessoas" className="mb-6 flex gap-2 border-b border-outline-variant">
+        {(['users', 'invitations'] as const).map(value => <button key={value} id={'tab-' + value} role="tab"
+          aria-selected={tab === value} aria-controls={'panel-' + value} tabIndex={tab === value ? 0 : -1}
+          onClick={() => setParams(value === 'users' ? {} : { tab: value })}
+          onKeyDown={event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const next = event.key === 'Home' ? 'users' : event.key === 'End' ? 'invitations' : tab === 'users' ? 'invitations' : 'users';
+            setParams(next === 'users' ? {} : { tab: next });
+            document.getElementById('tab-' + next)?.focus();
+          }}
+          className={'px-4 py-3 text-sm font-semibold border-b-2 ' + (tab === value ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant')}>
+          {value === 'users' ? 'Usuários' : 'Convites'}
+        </button>)}
+      </div>}
+      {tab === 'invitations' && <div role="tabpanel" id="panel-invitations" aria-labelledby="tab-invitations">
+        {actor?.tenantId ? <CompanyInvitations key={actor.tenantId} tenantId={actor.tenantId} pendingOnly showForm={showInvite} onCancel={() => setShowInvite(false)} onInvited={() => setShowInvite(false)} />
+          : <p role="alert">Não foi possível identificar sua empresa. Entre novamente na plataforma.</p>}
+      </div>}
+      {tab === 'users' && <div role={canInvite ? 'tabpanel' : undefined} id="panel-users" aria-labelledby={canInvite ? 'tab-users' : undefined}>
       <Card padding="none" className="overflow-hidden">
         <div className="p-4 border-b border-outline-variant bg-surface-container-low">
           <div className="max-w-md">
@@ -242,6 +276,7 @@ export const Users: React.FC = () => {
           emptyMessage="Nenhum usuário encontrado."
         />
       </Card>
+      </div>}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

@@ -11,7 +11,8 @@ const labels: Record<string, string> = { PENDING: 'Pendente', ACCEPTED: 'Aceito'
 const roles: Record<string, string> = { STUDENT: 'Aluno', INSTRUCTOR: 'Instrutor', MANAGER: 'Gestor', ADMIN: 'Administrador' };
 const inputClass = 'mt-2 w-full rounded-lg border border-outline-variant bg-surface-bright px-3 py-2 text-on-surface';
 
-export default function CompanyInvitations({ tenantId, onLinkChanged }: { tenantId: string; onLinkChanged?: () => void }) {
+export default function CompanyInvitations({ tenantId, onLinkChanged, showForm = true, onInvited, pendingOnly = false, onCancel }: { tenantId: string; onLinkChanged?: () => void; showForm?: boolean; onInvited?: () => void; pendingOnly?: boolean; onCancel?: () => void }) {
+  const [showHistory, setShowHistory] = useState(false);
   const [items, setItems] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,6 +25,7 @@ export default function CompanyInvitations({ tenantId, onLinkChanged }: { tenant
   const request = useRef<{ payload: string; id: string } | null>(null);
   const toast = useToast();
   const base = '/tenants/' + tenantId + '/invitations';
+  const visibleItems = items.filter(item => !pendingOnly || (showHistory ? item.status !== 'PENDING' : item.status === 'PENDING'));
 
   useEffect(() => {
     let active = true;
@@ -52,6 +54,7 @@ export default function CompanyInvitations({ tenantId, onLinkChanged }: { tenant
       onLinkChanged?.();
       request.current = null;
       form.reset();
+      onInvited?.();
       setReload(value => value + 1);
       toast.success(data.invitationToken ? 'Convite gerado. Copie o link abaixo.' : 'Convite já cadastrado. Gere um novo link pela lista.');
     } catch (error) {
@@ -80,8 +83,8 @@ export default function CompanyInvitations({ tenantId, onLinkChanged }: { tenant
   }
 
   return <section className="space-y-6" aria-label="Convites da empresa">
-    <form onSubmit={invite} className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
-      <h2 className="text-lg font-bold">Convidar colaborador</h2>
+    {showForm && <form onSubmit={invite} className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+      <h2 className="text-lg font-bold">Convidar pessoa</h2>
       <p className="mt-1 text-sm text-on-surface-variant">O convite vincula o destinatário a esta empresa. Cada pessoa define sua própria senha.</p>
       <fieldset disabled={busy} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="text-sm">Nome<input name="name" required maxLength={100} className={inputClass} /></label>
@@ -89,13 +92,17 @@ export default function CompanyInvitations({ tenantId, onLinkChanged }: { tenant
         <label className="text-sm">Perfil<select name="role" defaultValue="STUDENT" className={inputClass}>{Object.entries(roles).map(([role, name]) => <option key={role} value={role}>{name}</option>)}</select></label>
         <button className="self-end rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-white disabled:opacity-50" type="submit">{busy ? 'Aguarde...' : 'Gerar convite'}</button>
       </fieldset>
-    </form>
+      {onCancel && <button type="button" disabled={busy} onClick={onCancel} className="mt-4 text-sm text-primary underline">Cancelar</button>}
+    </form>}
     {link && <InvitationLink key={link.invitationToken} {...link} />}
     <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold">Convites cadastrados</h2><button disabled={loading || busy} onClick={() => setReload(value => value + 1)} className="text-primary underline disabled:opacity-50">Atualizar convites</button></div>
+    {pendingOnly && <label className="block text-sm">Exibir<select className={inputClass} value={showHistory ? 'history' : 'pending'} onChange={event => setShowHistory(event.target.value === 'history')}>
+      <option value="pending">Aguardando aceite</option><option value="history">Histórico: aceitos, expirados e revogados</option>
+    </select></label>}
     {error && <p role="alert">{error}</p>}
     {loading ? <p role="status">Carregando convites...</p> : !error && <>
-      {items.length === 0 && <p className="text-on-surface-variant">Nenhum convite enviado para esta empresa.</p>}
-      {items.map(item => <article key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-outline-variant p-4">
+      {visibleItems.length === 0 && <p className="text-on-surface-variant">{pendingOnly ? showHistory ? 'Nenhum convite no histórico.' : 'Nenhum convite aguardando aceite.' : 'Nenhum convite enviado para esta empresa.'}</p>}
+      {visibleItems.map(item => <article key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-outline-variant p-4">
         <div className="min-w-0"><h3 className="font-bold">{item.name}</h3><p className="break-all text-sm">{item.email}</p><p className="text-sm text-on-surface-variant">{roles[item.role]} · {labels[item.status]}</p>
           {['PENDING', 'EXPIRED'].includes(item.status) && <p className="text-xs text-on-surface-variant">Validade: {new Date(item.expiresAt).toLocaleString('pt-BR')}</p>}
         </div>
