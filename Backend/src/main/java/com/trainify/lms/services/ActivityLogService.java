@@ -44,30 +44,40 @@ public class ActivityLogService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordFor(User user, String actionType, String entityType, UUID entityId,
                           Map<String, Object> details) {
-        if (user == null || user.getTenant() == null) {
+        UUID tenantId;
+        try {
+            // O usuario costuma vir de outra transacao, entao ate ler a empresa pode falhar
+            if (user == null || user.getTenant() == null) {
+                return;
+            }
+            tenantId = user.getTenant().getId();
+        } catch (Exception e) {
+            log.warn("Falha ao identificar a empresa para a auditoria {}: {}", actionType, e.getMessage());
             return;
         }
-        gravar(user.getTenant().getId(), user.getId(), actionType, entityType, entityId, details);
+        gravar(tenantId, user.getId(), actionType, entityType, entityId, details);
     }
 
     private void gravar(UUID tenantId, UUID userId, String actionType, String entityType, UUID entityId,
                         Map<String, Object> details) {
         try {
-            ActivityLog log = new ActivityLog();
-            log.setTenantId(tenantId);
+            ActivityLog registro = new ActivityLog();
+            registro.setTenantId(tenantId);
 
             if (userId != null) {
                 User referencia = new User();
                 referencia.setId(userId);
-                log.setUser(referencia);
+                registro.setUser(referencia);
             }
 
-            log.setActionType(actionType);
-            log.setEntityType(entityType);
-            log.setEntityId(entityId);
-            log.setDetails(details == null ? Map.of() : details);
+            registro.setActionType(actionType);
+            registro.setEntityType(entityType);
+            registro.setEntityId(entityId);
+            registro.setDetails(details == null ? Map.of() : details);
 
-            repository.save(log);
+            // saveAndFlush para o erro do banco estourar aqui dentro, e nao no commit,
+            // quando ja estaria fora deste try e derrubaria a acao do usuario
+            repository.saveAndFlush(registro);
         } catch (Exception e) {
             // Auditoria e importante, mas nunca mais do que a acao do usuario
             log.warn("Falha ao registrar auditoria {}: {}", actionType, e.getMessage());

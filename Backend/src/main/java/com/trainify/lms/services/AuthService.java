@@ -91,8 +91,13 @@ public class AuthService {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         log.info("AUTH_PASSWORD_VALIDATION result=success");
 
-        userRepository.findById(userDetails.getId()).ifPresent(conta ->
-                activityLog.recordFor(conta, "LOGIN", "USER", conta.getId(), java.util.Map.of()));
+        // Registrar o acesso e desejavel; impedir o acesso por causa disso, nunca
+        try {
+            userRepository.findById(userDetails.getId()).ifPresent(conta ->
+                    activityLog.recordFor(conta, "LOGIN", "USER", conta.getId(), java.util.Map.of()));
+        } catch (Exception e) {
+            log.warn("AUTH_LOGIN_AUDIT_SKIPPED motivo={}", e.getMessage());
+        }
         String accessToken = jwtUtil.generateToken(userDetails);
         String refreshToken = jwtUtil.generateRefreshToken(userDetails);
         log.info("AUTH_TOKEN_GENERATION result=success");

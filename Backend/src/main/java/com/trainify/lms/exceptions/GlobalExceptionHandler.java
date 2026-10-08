@@ -1,6 +1,8 @@
 package com.trainify.lms.exceptions;
 
 import java.net.URI;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
@@ -10,8 +12,12 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -125,5 +131,28 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    // Outros handlers podem ser adicionados conforme a necessidade (ex: AccessDeniedException para 403)
+    /**
+     * Qualquer erro sem tratamento proprio cai aqui. Sem isto a resposta saia no
+     * formato padrao do Spring, sem o campo "detail" que o site usa para explicar
+     * o que houve: o usuario via apenas "tente novamente mais tarde" e o motivo
+     * real nao aparecia em lugar nenhum.
+     */
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleUnexpected(Exception ex) {
+        // Erros que o proprio Spring ja sabe traduzir (metodo invalido, corpo ilegivel...)
+        if (ex instanceof ErrorResponse resposta) {
+            return resposta.updateAndGetBody(null, Locale.getDefault());
+        }
+
+        String referencia = UUID.randomUUID().toString().substring(0, 8);
+        log.error("ERRO_NAO_TRATADO ref={} tipo={}", referencia, ex.getClass().getName(), ex);
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Algo deu errado do nosso lado. Tente novamente; se continuar, informe o código " + referencia + ".");
+        problemDetail.setType(URI.create("urn:problem-type:internal-error"));
+        problemDetail.setTitle("Internal Server Error");
+        problemDetail.setProperty("code", "INTERNAL_ERROR");
+        problemDetail.setProperty("reference", referencia);
+        return problemDetail;
+    }
 }
