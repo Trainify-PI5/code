@@ -10,6 +10,24 @@ vi.mock('../../store/authStore', () => ({ useAuthStore: () => session }));
 beforeEach(() => { vi.clearAllMocks(); session.isAuthenticated = false; });
 const show = (hash = '#token=' + 'a'.repeat(64)) => render(<MemoryRouter initialEntries={['/accept-invitation' + hash]}><AcceptInvitation /></MemoryRouter>);
 
+it('sinaliza senhas diferentes no campo e remove o erro após corrigir', async () => {
+  show();
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText('Senha'), 'password123');
+  const confirmation = screen.getByLabelText('Confirmar senha');
+  await user.type(confirmation, 'different123');
+  expect(confirmation).toHaveAttribute('aria-invalid', 'true');
+  expect(confirmation).toHaveAccessibleDescription('As senhas não coincidem.');
+  expect(screen.getByRole('alert')).toHaveTextContent('As senhas não coincidem.');
+  expect(screen.getByRole('button', { name: 'Ativar conta' })).toBeDisabled();
+  expect(post).not.toHaveBeenCalled();
+  await user.clear(confirmation);
+  await user.type(confirmation, 'password123');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(confirmation).toHaveAttribute('aria-invalid', 'false');
+  expect(screen.getByRole('button', { name: 'Ativar conta' })).toBeEnabled();
+});
+
 it('ativa a conta apenas com o token e a senha, sem aceitar empresa ou perfil do navegador', async () => {
   post.mockResolvedValue({});
   show();

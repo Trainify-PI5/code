@@ -1,5 +1,6 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../../lib/utils";
+import FieldError from './FieldError';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -31,7 +32,7 @@ export default function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+          className="block text-sm font-semibold text-on-surface"
         >
           {label}
         </label>
@@ -60,9 +61,9 @@ export default function Input({
       </div>
 
       {error && (
-        <p id={erroId} className="text-xs text-red-600 dark:text-red-400">
+        <FieldError id={erroId}>
           {error}
-        </p>
+        </FieldError>
       )}
     </div>
   );

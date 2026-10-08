@@ -319,7 +319,7 @@ export const Users: React.FC = () => {
               <div className="space-y-2">
                 <label
                   htmlFor="user-role"
-                  className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+                  className="block text-sm font-semibold text-on-surface"
                 >
                   Função (Role)
                 </label>

@@ -1,3 +1,4 @@
+import FieldError from "../../components/ui/FieldError";
 import { useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -58,13 +59,13 @@ export default function AcceptInvitation() {
       </> : <form onSubmit={accept} className="space-y-5">
         <h1 className="text-3xl font-bold">Ative sua conta</h1>
         <p className="text-on-surface-variant">O convite já define sua empresa, e-mail e perfil. Escolha uma senha para começar.</p>
-        {error && <p role="alert" className="text-red-700 dark:text-red-300">{error}</p>}
+        {error && <FieldError>{error}</FieldError>}
         <fieldset disabled={saving} className="space-y-5">
-          <label className="block text-sm font-bold">Senha<input type="password" required minLength={8} maxLength={72} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest p-3" /></label>
-          <label className="block text-sm font-bold">Confirmar senha<input type="password" required autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest p-3" /></label>
+          <label className="block text-sm font-bold">Senha<input type="password" required minLength={8} maxLength={72} autoComplete="new-password" aria-invalid={password.length >= 8 && !validPassword} aria-describedby={password.length >= 8 && !validPassword ? "invitation-password-error" : undefined} value={password} onChange={event => setPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest p-3" /></label>
+          <label className="block text-sm font-bold">Confirmar senha<input type="password" required autoComplete="new-password" aria-invalid={!!confirmation && confirmation !== password} aria-describedby={confirmation && confirmation !== password ? "invitation-confirmation-error" : undefined} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest p-3" /></label>
           <p className="text-sm text-on-surface-variant">Use pelo menos 8 caracteres.</p>
-          {password.length >= 8 && !validPassword && <p role="alert">A senha ficou longa demais. Use uma senha mais curta.</p>}
-          {confirmation && confirmation !== password && <p role="alert">As senhas não coincidem.</p>}
+          {password.length >= 8 && !validPassword && <FieldError id="invitation-password-error">A senha ficou longa demais. Use uma senha mais curta.</FieldError>}
+          {confirmation && confirmation !== password && <FieldError id="invitation-confirmation-error">As senhas não coincidem.</FieldError>}
           <button type="submit" disabled={!validPassword || confirmation !== password} className="w-full rounded-xl bg-primary-container p-3 font-bold text-white disabled:opacity-50">{saving ? 'Ativando...' : 'Ativar conta'}</button>
         </fieldset>
       </form>}

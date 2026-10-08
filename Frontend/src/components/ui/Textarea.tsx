@@ -24,7 +24,7 @@ export default function Textarea({
       {label && (
         <label
           htmlFor={campoId}
-          className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+          className="block text-sm font-semibold text-on-surface"
         >
           {label}
         </label>

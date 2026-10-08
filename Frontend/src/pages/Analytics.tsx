@@ -683,7 +683,7 @@ export default function Analytics() {
           <div className="space-y-2">
             <label
               htmlFor="filtro-curso"
-              className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+              className="block text-sm font-semibold text-on-surface"
             >
               {t("analytics.filterCourse")}
             </label>
@@ -705,7 +705,7 @@ export default function Analytics() {
           <div className="space-y-2">
             <label
               htmlFor="filtro-situacao"
-              className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+              className="block text-sm font-semibold text-on-surface"
             >
               {t("analytics.filterStatus")}
             </label>

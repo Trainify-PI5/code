@@ -1,3 +1,4 @@
+import FieldError from "../components/ui/FieldError";
 import { useEffect, useState } from "react";
 import { User, Shield, Save, Eye, EyeOff, Lock } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -119,7 +120,7 @@ export default function Settings() {
     if (savingPassword) return;
     setPasswordError("");
     if (newPassword !== confirmPassword) {
-      setPasswordError(t("settings.passwordMismatch"));
+      document.getElementById("confirm-pwd")?.focus();
       return;
     }
     setSavingPassword(true);
@@ -232,7 +233,7 @@ export default function Settings() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="profile-name" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="profile-name" className="text-sm font-semibold text-on-surface">
                     {t("settings.fullName") || "Nome Completo"}
                   </label>
                   <input
@@ -247,7 +248,7 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label className="text-sm font-semibold text-on-surface">
                     {t("settings.email") || "Email"}
                   </label>
                   <input
@@ -258,7 +259,7 @@ export default function Settings() {
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <label htmlFor="profile-bio" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="profile-bio" className="text-sm font-semibold text-on-surface">
                     {t("settings.bio") || "Bio"}
                   </label>
                   <textarea
@@ -304,7 +305,7 @@ export default function Settings() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="current-pwd" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="current-pwd" className="text-sm font-semibold text-on-surface">
                     {t("settings.currentPassword") || "Senha Atual"}
                   </label>
                   <div className="relative">
@@ -337,7 +338,7 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="new-pwd" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="new-pwd" className="text-sm font-semibold text-on-surface">
                     {t("settings.newPassword") || "Nova Senha"}
                   </label>
                   <div className="relative">
@@ -369,13 +370,15 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="confirm-pwd" className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  <label htmlFor="confirm-pwd" className="text-sm font-semibold text-on-surface">
                     {t("settings.confirmNewPassword") || "Confirmar Nova Senha"}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
                     <input
                       id="confirm-pwd"
+                      aria-invalid={!!confirmPassword && newPassword !== confirmPassword}
+                      aria-describedby={confirmPassword && newPassword !== confirmPassword ? "settings-confirmation-error" : undefined}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       autoComplete="new-password"
@@ -390,7 +393,8 @@ export default function Settings() {
                 </div>
               </div>
 
-              {passwordError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>}
+              {confirmPassword && newPassword !== confirmPassword && <FieldError id="settings-confirmation-error">{t("settings.passwordMismatch")}</FieldError>}
+              {passwordError && <FieldError>{passwordError}</FieldError>}
               <div className="flex justify-end pt-2">
                 <button
                   type="submit"

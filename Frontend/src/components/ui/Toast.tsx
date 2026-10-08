@@ -30,12 +30,12 @@ const ToastContext = createContext<ToastAPI | undefined>(undefined);
 
 const estilos: Record<Tom, string> = {
   success:
-    "border-green-200 bg-green-50 text-green-800 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300",
+    "border-green-200 bg-green-50 text-green-800 dark:border-green-500/30 dark:bg-green-950 dark:text-green-300",
   error:
-    "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300",
+    "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-950 dark:text-red-300",
   warning:
-    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300",
-  info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300",
+    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-950 dark:text-amber-300",
+  info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-950 dark:text-blue-300",
 };
 
 const icones: Record<Tom, typeof Info> = {
@@ -90,7 +90,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               key={aviso.id}
               role={aviso.tom === "error" ? "alert" : "status"}
               className={cn(
-                "w-full flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg",
+                "w-full flex items-start gap-3 rounded-xl border border-l-4 px-4 py-3 text-sm font-medium leading-relaxed shadow-lg",
                 "pointer-events-auto animate-in slide-in-from-bottom-4 fade-in duration-200",
                 estilos[aviso.tom],
               )}

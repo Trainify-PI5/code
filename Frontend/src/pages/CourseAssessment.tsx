@@ -360,7 +360,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
           </button>
           <h2 className="text-xl font-display font-bold">{quiz.title}</h2>
         </div>
-        <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+        <span className="text-sm font-semibold text-on-surface">
           {t("assessment.attempt")} {quiz.attemptsUsed + 1}/{quiz.maxAttempts}
         </span>
       </div>

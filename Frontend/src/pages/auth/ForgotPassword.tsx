@@ -159,7 +159,7 @@ export default function ForgotPassword({ onNavigate }: ForgotPasswordProps) {
                       </motion.div>
                     )}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                      <label className="text-sm font-semibold text-on-surface">
                         E-mail cadastrado
                       </label>
                       <div className="relative">

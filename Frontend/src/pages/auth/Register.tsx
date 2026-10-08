@@ -1,3 +1,4 @@
+import FieldError from "../../components/ui/FieldError";
 import { useState } from "react";
 import {
   Eye,
@@ -272,7 +273,7 @@ export default function Register({ onNavigate }: RegisterProps) {
               )}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                <label className="text-sm font-semibold text-on-surface">
                   Nome completo
                 </label>
                 <div className="relative">
@@ -300,7 +301,7 @@ export default function Register({ onNavigate }: RegisterProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                <label className="text-sm font-semibold text-on-surface">
                   E-mail corporativo
                 </label>
                 <div className="relative">
@@ -328,7 +329,7 @@ export default function Register({ onNavigate }: RegisterProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                <label className="text-sm font-semibold text-on-surface">
                   Departamento{" "}
                   <span className="normal-case font-normal">(opcional)</span>
                 </label>
@@ -350,7 +351,7 @@ export default function Register({ onNavigate }: RegisterProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                <label className="text-sm font-semibold text-on-surface">
                   Senha
                 </label>
                 <div className="relative">
@@ -385,13 +386,15 @@ export default function Register({ onNavigate }: RegisterProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                <label className="text-sm font-semibold text-on-surface">
                   Confirmar senha
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
                   <input
                     type={showConfirm ? "text" : "password"}
+                    aria-invalid={!!touched.confirmPassword && !validations.confirmPassword}
+                    aria-describedby={touched.confirmPassword && !validations.confirmPassword ? "register-confirmation-error" : undefined}
                     value={form.confirmPassword}
                     onChange={(e) => update("confirmPassword", e.target.value)}
                     onBlur={() => blur("confirmPassword")}
@@ -419,9 +422,7 @@ export default function Register({ onNavigate }: RegisterProps) {
                   </button>
                 </div>
                 {touched.confirmPassword && !validations.confirmPassword && (
-                  <p className="text-xs text-red-500">
-                    As senhas não coincidem.
-                  </p>
+                  <FieldError id="register-confirmation-error">As senhas não coincidem.</FieldError>
                 )}
                 {form.confirmPassword && validations.confirmPassword && (
                   <p className="text-xs text-green-600 flex items-center gap-1">
