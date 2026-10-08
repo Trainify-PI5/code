@@ -36,11 +36,17 @@ public class InvitationService {
     @Value("${spring.mail.username:no-reply@trainify.local}")
     private String mailFrom;
 
-    public record InvitationDto(UUID id, String name, String email, Role role, String status, Instant expiresAt) {}
-    public record CompanyCreated(UUID id, String name) {}
+    public record InvitationDto(UUID id, String name, String email, Role role, String status, Instant expiresAt, String invitationToken) {}
+    public record CompanyCreated(UUID id, String name, UUID invitationId, String invitationToken) {}
+    public record InvitationLink(String invitationToken) {}
 
     @Transactional
     public CompanyCreated provision(ProvisionCompanyRequest request, CustomUserDetails actor) {
+        return provision(request, actor, false);
+    }
+
+    @Transactional
+    public CompanyCreated provision(ProvisionCompanyRequest request, CustomUserDetails actor, boolean manual) {
         requireSuperAdmin(actor);
         var existing = invitations.findById(request.requestId());
         if (existing.isPresent()) {
@@ -51,7 +57,7 @@ public class InvitationService {
                     || invitation.getRole() != Role.ADMIN) {
                 throw new IllegalArgumentException("Esta solicitação já foi utilizada. Atualize a página.");
             }
-            return new CompanyCreated(invitation.getTenant().getId(), invitation.getTenant().getName());
+            return new CompanyCreated(invitation.getTenant().getId(), invitation.getTenant().getName(), invitation.getId(), null);
         }
         ensureAvailable(request.adminEmail());
         Tenant tenant = new Tenant();
@@ -59,12 +65,17 @@ public class InvitationService {
         tenant.setPrimaryColor("#4B2C92");
         tenant.setSecondaryColor("#9D84B7");
         tenant = tenants.saveAndFlush(tenant);
-        create(tenant, new InviteUserRequest(request.requestId(), request.adminName(), request.adminEmail(), Role.ADMIN));
-        return new CompanyCreated(tenant.getId(), tenant.getName());
+        var created = create(tenant, new InviteUserRequest(request.requestId(), request.adminName(), request.adminEmail(), Role.ADMIN), manual);
+        return new CompanyCreated(tenant.getId(), tenant.getName(), created.id(), created.invitationToken());
     }
 
     @Transactional
     public InvitationDto invite(UUID tenantId, InviteUserRequest request, CustomUserDetails actor) {
+        return invite(tenantId, request, actor, false);
+    }
+
+    @Transactional
+    public InvitationDto invite(UUID tenantId, InviteUserRequest request, CustomUserDetails actor, boolean manual) {
         requireManagement(tenantId, actor);
         if (request.role() == Role.SUPER_ADMIN) throw new AccessDeniedException("Convites não concedem acesso supremo.");
         var existing = invitations.findById(request.requestId());
@@ -79,7 +90,16 @@ public class InvitationService {
         }
         ensureAvailable(request.email());
         Tenant tenant = tenants.findById(tenantId).orElseThrow(() -> new EntityNotFoundException("Empresa não encontrada."));
-        return dto(create(tenant, request));
+        return create(tenant, request, manual);
+    }
+
+    @Transactional
+    public InvitationLink generateLink(UUID tenantId, UUID id, CustomUserDetails actor) {
+        requireManagement(tenantId, actor);
+        var invitation = managed(tenantId, id);
+        requirePending(invitation);
+        if (users.existsByEmailIgnoreCase(invitation.getEmail())) throw new IllegalArgumentException("Este e-mail já possui uma conta.");
+        return new InvitationLink(issueToken(invitation));
     }
 
     @Transactional(readOnly = true)
@@ -132,24 +152,34 @@ public class InvitationService {
         invitations.save(invitation);
     }
 
-    private CompanyInvitation create(Tenant tenant, InviteUserRequest request) {
+    private InvitationDto create(Tenant tenant, InviteUserRequest request, boolean manual) {
         CompanyInvitation invitation = new CompanyInvitation();
         invitation.setId(request.requestId());
         invitation.setTenant(tenant);
         invitation.setName(request.name().trim());
         invitation.setEmail(normalize(request.email()));
         invitation.setRole(request.role());
-        send(invitation);
-        return invitation;
+        if (!manual) {
+            send(invitation);
+            return dto(invitation);
+        }
+        String token = issueToken(invitation);
+        return new InvitationDto(invitation.getId(), invitation.getName(), invitation.getEmail(), invitation.getRole(),
+                "PENDING", invitation.getExpiresAt(), token);
     }
 
-    private void send(CompanyInvitation invitation) {
+    private String issueToken(CompanyInvitation invitation) {
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
         String token = HexFormat.of().formatHex(bytes);
         invitation.setTokenHash(hash(token));
         invitation.setExpiresAt(Instant.now().plusSeconds(48 * 60 * 60));
         invitations.saveAndFlush(invitation);
+        return token;
+    }
+
+    private void send(CompanyInvitation invitation) {
+        String token = issueToken(invitation);
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(mailFrom);
         message.setTo(invitation.getEmail());
@@ -199,7 +229,7 @@ public class InvitationService {
         String status = invitation.getAcceptedAt() != null ? "ACCEPTED" : invitation.getRevokedAt() != null ? "REVOKED"
                 : invitation.getExpiresAt().isAfter(Instant.now()) ? "PENDING" : "EXPIRED";
         return new InvitationDto(invitation.getId(), invitation.getName(), invitation.getEmail(),
-                invitation.getRole(), status, invitation.getExpiresAt());
+                invitation.getRole(), status, invitation.getExpiresAt(), null);
     }
 
     private String normalize(String email) {

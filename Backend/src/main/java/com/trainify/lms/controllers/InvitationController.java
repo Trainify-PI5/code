@@ -17,12 +17,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class InvitationController {
     private final InvitationService service;
+    public enum Delivery { EMAIL, LINK }
 
     @PostMapping("/tenants")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<InvitationService.CompanyCreated> provision(@Valid @RequestBody ProvisionCompanyRequest request,
-            @AuthenticationPrincipal CustomUserDetails actor) {
-        return ResponseEntity.status(201).body(service.provision(request, actor));
+            @AuthenticationPrincipal CustomUserDetails actor,
+            @RequestParam(defaultValue = "EMAIL") Delivery delivery) {
+        var result = delivery == Delivery.LINK ? service.provision(request, actor, true) : service.provision(request, actor);
+        return ResponseEntity.status(201).header("Cache-Control", "no-store").body(result);
     }
 
     @GetMapping("/tenants/{tenantId}/invitations")
@@ -35,8 +38,17 @@ public class InvitationController {
     @PostMapping("/tenants/{tenantId}/invitations")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<InvitationService.InvitationDto> invite(@PathVariable UUID tenantId,
-            @Valid @RequestBody InviteUserRequest request, @AuthenticationPrincipal CustomUserDetails actor) {
-        return ResponseEntity.status(201).body(service.invite(tenantId, request, actor));
+            @Valid @RequestBody InviteUserRequest request, @AuthenticationPrincipal CustomUserDetails actor,
+            @RequestParam(defaultValue = "EMAIL") Delivery delivery) {
+        var result = delivery == Delivery.LINK ? service.invite(tenantId, request, actor, true) : service.invite(tenantId, request, actor);
+        return ResponseEntity.status(201).header("Cache-Control", "no-store").body(result);
+    }
+
+    @PostMapping("/tenants/{tenantId}/invitations/{id}/link")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<InvitationService.InvitationLink> generateLink(@PathVariable UUID tenantId, @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails actor) {
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(service.generateLink(tenantId, id, actor));
     }
 
     @PostMapping("/tenants/{tenantId}/invitations/{id}/resend")

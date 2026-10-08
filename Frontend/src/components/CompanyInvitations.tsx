@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import api from '../services/api';
 import { ConfirmDialog, useToast } from './ui';
 import { requestError } from '../lib/requestError';
+import InvitationLink, { type GeneratedInvitationLink } from './InvitationLink';
 
 interface Invitation {
   id: string; name: string; email: string; role: string; status: string; expiresAt: string;
@@ -10,13 +11,15 @@ const labels: Record<string, string> = { PENDING: 'Pendente', ACCEPTED: 'Aceito'
 const roles: Record<string, string> = { STUDENT: 'Aluno', INSTRUCTOR: 'Instrutor', MANAGER: 'Gestor', ADMIN: 'Administrador' };
 const inputClass = 'mt-2 w-full rounded-lg border border-outline-variant bg-surface-bright px-3 py-2 text-on-surface';
 
-export default function CompanyInvitations({ tenantId }: { tenantId: string }) {
+export default function CompanyInvitations({ tenantId, onLinkChanged }: { tenantId: string; onLinkChanged?: () => void }) {
   const [items, setItems] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   const [busy, setBusy] = useState(false);
   const [revoking, setRevoking] = useState<Invitation | null>(null);
+  const [regenerating, setRegenerating] = useState<Invitation | null>(null);
+  const [link, setLink] = useState<GeneratedInvitationLink | null>(null);
   const working = useRef(false);
   const request = useRef<{ payload: string; id: string } | null>(null);
   const toast = useToast();
@@ -44,11 +47,13 @@ export default function CompanyInvitations({ tenantId }: { tenantId: string }) {
     working.current = true;
     setBusy(true);
     try {
-      await api.post(base, { ...payload, requestId: request.current.id });
+      const { data } = await api.post<{ invitationToken: string | null }>(base + '?delivery=LINK', { ...payload, requestId: request.current.id });
+      setLink(data.invitationToken ? { invitationToken: data.invitationToken, email: payload.email } : null);
+      onLinkChanged?.();
       request.current = null;
       form.reset();
       setReload(value => value + 1);
-      toast.success('Convite enviado por e-mail. O destinatário tem 48 horas para definir a senha.');
+      toast.success(data.invitationToken ? 'Convite gerado. Copie o link abaixo.' : 'Convite já cadastrado. Gere um novo link pela lista.');
     } catch (error) {
       toast.error(requestError(error, 'Não foi possível enviar o convite. Tente novamente. Se o problema continuar, contate o suporte.'));
     } finally { working.current = false; setBusy(false); }
@@ -59,10 +64,16 @@ export default function CompanyInvitations({ tenantId }: { tenantId: string }) {
     working.current = true;
     setBusy(true);
     try {
-      if (revoke) await api.delete(base + '/' + invitation.id);
-      else await api.post(base + '/' + invitation.id + '/resend');
+      if (revoke) {
+        await api.delete(base + '/' + invitation.id);
+        setLink(null);
+      } else {
+        const { data } = await api.post<{ invitationToken: string }>(base + '/' + invitation.id + '/link');
+        setLink({ invitationToken: data.invitationToken, email: invitation.email });
+      }
+      onLinkChanged?.();
       setReload(value => value + 1);
-      toast.success(revoke ? 'Convite revogado.' : 'Convite reenviado. O link anterior deixou de funcionar.');
+      toast.success(revoke ? 'Convite revogado.' : 'Novo link gerado. O anterior deixou de funcionar.');
     } catch (error) {
       toast.error(requestError(error, 'Não foi possível atualizar o convite. Tente novamente.'));
     } finally { working.current = false; setBusy(false); }
@@ -76,10 +87,11 @@ export default function CompanyInvitations({ tenantId }: { tenantId: string }) {
         <label className="text-sm">Nome<input name="name" required maxLength={100} className={inputClass} /></label>
         <label className="text-sm">E-mail<input name="email" type="email" required maxLength={150} className={inputClass} /></label>
         <label className="text-sm">Perfil<select name="role" defaultValue="STUDENT" className={inputClass}>{Object.entries(roles).map(([role, name]) => <option key={role} value={role}>{name}</option>)}</select></label>
-        <button className="self-end rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-white disabled:opacity-50" type="submit">{busy ? 'Aguarde...' : 'Enviar convite'}</button>
+        <button className="self-end rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-white disabled:opacity-50" type="submit">{busy ? 'Aguarde...' : 'Gerar convite'}</button>
       </fieldset>
     </form>
-    <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold">Convites enviados</h2><button disabled={loading || busy} onClick={() => setReload(value => value + 1)} className="text-primary underline disabled:opacity-50">Atualizar convites</button></div>
+    {link && <InvitationLink key={link.invitationToken} {...link} />}
+    <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold">Convites cadastrados</h2><button disabled={loading || busy} onClick={() => setReload(value => value + 1)} className="text-primary underline disabled:opacity-50">Atualizar convites</button></div>
     {error && <p role="alert">{error}</p>}
     {loading ? <p role="status">Carregando convites...</p> : !error && <>
       {items.length === 0 && <p className="text-on-surface-variant">Nenhum convite enviado para esta empresa.</p>}
@@ -88,11 +100,12 @@ export default function CompanyInvitations({ tenantId }: { tenantId: string }) {
           {['PENDING', 'EXPIRED'].includes(item.status) && <p className="text-xs text-on-surface-variant">Validade: {new Date(item.expiresAt).toLocaleString('pt-BR')}</p>}
         </div>
         {['PENDING', 'EXPIRED'].includes(item.status) && <div className="flex gap-4">
-          <button disabled={busy} onClick={() => manage(item, false)} className="text-sm text-primary underline disabled:opacity-50">Reenviar</button>
+          <button disabled={busy} onClick={() => setRegenerating(item)} className="text-sm text-primary underline disabled:opacity-50">Gerar novo link</button>
           <button disabled={busy} onClick={() => setRevoking(item)} className="text-sm text-primary underline disabled:opacity-50">Revogar</button>
         </div>}
       </article>)}
     </>}
     <ConfirmDialog open={!!revoking} onClose={() => setRevoking(null)} onConfirm={async () => { if (revoking) await manage(revoking, true); }} title="Revogar convite" message={'O link enviado para ' + (revoking?.email || '') + ' deixará de funcionar.'} confirmLabel="Revogar" />
+    <ConfirmDialog open={!!regenerating} onClose={() => setRegenerating(null)} onConfirm={async () => { if (regenerating) await manage(regenerating, false); }} title="Gerar outro link de convite" message="O link anterior deixará de funcionar. O novo terá validade de 48 horas." confirmLabel="Gerar link" />
   </section>;
 }

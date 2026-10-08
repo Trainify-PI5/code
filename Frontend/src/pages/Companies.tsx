@@ -4,6 +4,7 @@ import { Building2 } from 'lucide-react';
 import api from '../services/api';
 import { PageContainer, PageHeader, useToast } from '../components/ui';
 import CompanyInvitations from '../components/CompanyInvitations';
+import InvitationLink, { type GeneratedInvitationLink } from '../components/InvitationLink';
 import { requestError } from '../lib/requestError';
 
 interface Company { id: string; name: string; }
@@ -19,6 +20,7 @@ export default function Companies() {
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [link, setLink] = useState<GeneratedInvitationLink | null>(null);
   const working = useRef(false);
   const request = useRef<{ payload: string; id: string } | null>(null);
   const toast = useToast();
@@ -45,12 +47,13 @@ export default function Companies() {
     working.current = true;
     setSaving(true);
     try {
-      const { data } = await api.post<Company>('/tenants', { ...payload, requestId: request.current.id });
+      const { data } = await api.post<Company & { invitationToken: string | null }>('/tenants?delivery=LINK', { ...payload, requestId: request.current.id });
       request.current = null;
       setSelected(data.id);
-      setCompanies(current => [...current.filter(company => company.id !== data.id), data]);
+      setLink(data.invitationToken ? { invitationToken: data.invitationToken, email: payload.adminEmail } : null);
+      setCompanies(current => [...current.filter(company => company.id !== data.id), { id: data.id, name: data.name }]);
       form.reset();
-      toast.success('Empresa criada e convite enviado ao administrador.');
+      toast.success(data.invitationToken ? 'Empresa criada. Copie o convite do administrador abaixo.' : 'Empresa já cadastrada. Gere um novo link na lista de convites.');
     } catch (error) {
       toast.error(requestError(error, 'Não foi possível concluir a criação. Tente novamente. Se o problema continuar, contate o suporte.'));
     } finally { working.current = false; setSaving(false); }
@@ -64,18 +67,19 @@ export default function Companies() {
         <label className="text-sm sm:col-span-2">Nome da empresa<input name="name" required maxLength={150} defaultValue={prefill.companyName || ''} className={inputClass} /></label>
         <label className="text-sm">Nome do administrador<input name="adminName" required maxLength={100} defaultValue={prefill.adminName || ''} className={inputClass} /></label>
         <label className="text-sm">E-mail do administrador<input name="adminEmail" type="email" required maxLength={150} defaultValue={prefill.adminEmail || ''} className={inputClass} /></label>
-        <p className="text-sm text-on-surface-variant sm:col-span-2">O responsável receberá um convite válido por 48 horas para definir a senha. Esta ação não realiza cobrança nem configura um domínio.</p>
-        <button type="submit" className="rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-white disabled:opacity-50 sm:col-span-2">{saving ? 'Criando empresa...' : 'Criar empresa e enviar convite'}</button>
+        <p className="text-sm text-on-surface-variant sm:col-span-2">Você receberá um link para entregar ao administrador. Ele terá 48 horas para definir a senha. Não há envio de e-mail, cobrança ou configuração de domínio.</p>
+        <button type="submit" className="rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-white disabled:opacity-50 sm:col-span-2">{saving ? 'Criando empresa...' : 'Criar empresa e gerar convite'}</button>
       </fieldset>
     </form>
     <div className="mb-5 flex items-end gap-4">
-      <label className="min-w-0 flex-1 text-sm font-bold">Empresa para gerenciar convites<select value={selected} onChange={event => setSelected(event.target.value)} className={inputClass} disabled={saving}>
+      <label className="min-w-0 flex-1 text-sm font-bold">Empresa para gerenciar convites<select value={selected} onChange={event => { setSelected(event.target.value); setLink(null); }} className={inputClass} disabled={saving}>
         <option value="">Selecione uma empresa</option>{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
       </select></label>
       <button disabled={loading || saving} onClick={() => setReload(value => value + 1)} className="pb-2 text-primary underline disabled:opacity-50">Atualizar</button>
     </div>
     {loading && <p role="status">Carregando empresas...</p>}
     {error && <p role="alert" className="mb-4">{error}</p>}
-    {selected && <CompanyInvitations key={selected} tenantId={selected} />}
+    {link && <InvitationLink key={link.invitationToken} {...link} />}
+    {selected && <CompanyInvitations key={selected} tenantId={selected} onLinkChanged={() => setLink(null)} />}
   </PageContainer>;
 }

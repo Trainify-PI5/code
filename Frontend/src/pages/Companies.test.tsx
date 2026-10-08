@@ -14,22 +14,22 @@ beforeEach(() => {
 const show = () => render(<MemoryRouter initialEntries={[{ pathname: '/companies', state: { companyName: 'Cliente', adminName: 'Ana', adminEmail: 'ana@example.com' } }]}><ToastProvider><Companies /></ToastProvider></MemoryRouter>);
 
 it('usa os dados comerciais apenas como preenchimento e cria a empresa após enviar o formulário', async () => {
-  vi.mocked(api.post).mockResolvedValue({ data: { id: 'company-1', name: 'Cliente' } });
+  vi.mocked(api.post).mockResolvedValue({ data: { id: 'company-1', name: 'Cliente', invitationToken: 'a'.repeat(64) } });
   show();
   expect(screen.getByLabelText('Nome da empresa')).toHaveValue('Cliente');
   expect(api.post).not.toHaveBeenCalled();
-  const button = screen.getByRole('button', { name: 'Criar empresa e enviar convite' });
+  const button = screen.getByRole('button', { name: 'Criar empresa e gerar convite' });
   await waitFor(() => expect(button).toBeEnabled());
   await userEvent.click(button);
-  expect(await screen.findByText('Empresa criada e convite enviado ao administrador.')).toBeInTheDocument();
-  expect(api.post).toHaveBeenCalledWith('/tenants', expect.objectContaining({ name: 'Cliente', adminName: 'Ana', adminEmail: 'ana@example.com', requestId: expect.any(String) }));
+  expect(await screen.findByText('Empresa criada. Copie o convite do administrador abaixo.')).toBeInTheDocument();
+  expect(api.post).toHaveBeenCalledWith('/tenants?delivery=LINK', expect.objectContaining({ name: 'Cliente', adminName: 'Ana', adminEmail: 'ana@example.com', requestId: expect.any(String) }));
   expect(screen.getByLabelText('Empresa para gerenciar convites')).toHaveValue('company-1');
 });
 
 it('preserva o formulário e o identificador ao tentar novamente após uma falha', async () => {
   vi.mocked(api.post).mockRejectedValue(new Error('offline'));
   show();
-  const button = screen.getByRole('button', { name: 'Criar empresa e enviar convite' });
+  const button = screen.getByRole('button', { name: 'Criar empresa e gerar convite' });
   await waitFor(() => expect(button).toBeEnabled());
   await userEvent.click(button);
   await screen.findByText('Não foi possível concluir a criação. Tente novamente. Se o problema continuar, contate o suporte.');

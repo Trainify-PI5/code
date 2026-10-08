@@ -9,23 +9,24 @@ vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn(), dele
 beforeEach(() => { vi.clearAllMocks(); vi.mocked(api.get).mockResolvedValue({ data: [] }); });
 
 it('envia o convite para a empresa selecionada sem permitir perfil supremo', async () => {
-  vi.mocked(api.post).mockResolvedValue({});
+  vi.mocked(api.post).mockResolvedValue({ data: { invitationToken: 'a'.repeat(64) } });
   render(<ToastProvider><CompanyInvitations tenantId="company-1" /></ToastProvider>);
   const user = userEvent.setup();
   await user.type(screen.getByLabelText('Nome'), 'Ana');
   await user.type(screen.getByLabelText('E-mail'), 'ana@example.com');
   expect(screen.queryByRole('option', { name: /supremo/i })).not.toBeInTheDocument();
   await user.selectOptions(screen.getByLabelText('Perfil'), 'MANAGER');
-  await user.click(screen.getByRole('button', { name: 'Enviar convite' }));
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith('/tenants/company-1/invitations', expect.objectContaining({ name: 'Ana', email: 'ana@example.com', role: 'MANAGER' })));
+  await user.click(screen.getByRole('button', { name: 'Gerar convite' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith('/tenants/company-1/invitations?delivery=LINK', expect.objectContaining({ name: 'Ana', email: 'ana@example.com', role: 'MANAGER' })));
 });
 
-it('permite reenviar um convite expirado sem criar outro', async () => {
+it('permite renovar o link de um convite expirado sem criar outro', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: [{ id: 'invite-1', name: 'Ana', email: 'ana@example.com', role: 'ADMIN', status: 'EXPIRED', expiresAt: '2026-01-01T00:00:00Z' }] });
-  vi.mocked(api.post).mockResolvedValue({});
+  vi.mocked(api.post).mockResolvedValue({ data: { invitationToken: 'a'.repeat(64) } });
   render(<ToastProvider><CompanyInvitations tenantId="company-1" /></ToastProvider>);
-  await userEvent.click(await screen.findByRole('button', { name: 'Reenviar' }));
-  expect(api.post).toHaveBeenCalledWith('/tenants/company-1/invitations/invite-1/resend');
+  await userEvent.click(await screen.findByRole('button', { name: 'Gerar novo link' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Gerar link' }));
+  expect(api.post).toHaveBeenCalledWith('/tenants/company-1/invitations/invite-1/link');
 });
 
 it('não apresenta lista vazia quando o carregamento falha', async () => {

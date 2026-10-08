@@ -84,4 +84,16 @@ class InvitationControllerTest {
                 .andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }
+
+    @Test @WithMockUser(roles = "SUPER_ADMIN") void manualCreationUsesLinkDeliveryAndDisablesCaching() throws Exception {
+        mvc.perform(post("/api/v1/tenants?delivery=LINK").contentType("application/json").content(company()))
+                .andExpect(status().isCreated()).andExpect(header().string("Cache-Control", "no-store"));
+        verify(service).provision(any(), any(), eq(true));
+    }
+
+    @Test @WithMockUser(roles = "STUDENT") void studentCannotGenerateLink() throws Exception {
+        mvc.perform(post("/api/v1/tenants/ea366000-7488-49d2-8d6f-44f77fcbbfb2/invitations/ea366000-7488-49d2-8d6f-44f77fcbbfb3/link"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(service);
+    }
 }

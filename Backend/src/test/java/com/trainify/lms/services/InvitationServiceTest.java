@@ -171,6 +171,53 @@ class InvitationServiceTest {
         assertThrows(AccessDeniedException.class, () -> service.list(tenant.getId(), admin));
         assertThrows(AccessDeniedException.class, () -> service.resend(tenant.getId(), invitation.getId(), admin));
         assertThrows(AccessDeniedException.class, () -> service.revoke(tenant.getId(), invitation.getId(), admin));
+        assertThrows(AccessDeniedException.class, () -> service.generateLink(tenant.getId(), invitation.getId(), admin));
         verifyNoInteractions(invitations);
+    }
+
+    @Test void createsCompanyWithManualLinkWithoutContactingEmailService() {
+        when(tenants.saveAndFlush(any())).thenAnswer(call -> {
+            Tenant saved = call.getArgument(0);
+            saved.setId(tenant.getId());
+            return saved;
+        });
+        var result = service.provision(new ProvisionCompanyRequest(UUID.randomUUID(), "Cliente", "Admin", "admin@example.com"),
+                actor(Role.SUPER_ADMIN, UUID.randomUUID()), true);
+        assertEquals(64, result.invitationToken().length());
+        ArgumentCaptor<CompanyInvitation> captured = ArgumentCaptor.forClass(CompanyInvitation.class);
+        verify(invitations).saveAndFlush(captured.capture());
+        assertEquals(result.invitationId(), captured.getValue().getId());
+        assertNotEquals(result.invitationToken(), captured.getValue().getTokenHash());
+        verifyNoInteractions(mail);
+    }
+
+    @Test void manualInvitationDoesNotSendEmailAndListDoesNotExposeToken() {
+        when(tenants.findById(tenant.getId())).thenReturn(Optional.of(tenant));
+        var result = service.invite(tenant.getId(), new InviteUserRequest(UUID.randomUUID(), "Pessoa", "pessoa@example.com", Role.STUDENT),
+                actor(Role.ADMIN, tenant.getId()), true);
+        assertEquals(64, result.invitationToken().length());
+        when(invitations.findByTenantIdOrderByCreatedAtDesc(tenant.getId())).thenReturn(List.of(invitation));
+        assertNull(service.list(tenant.getId(), actor(Role.ADMIN, tenant.getId())).get(0).invitationToken());
+        verifyNoInteractions(mail);
+    }
+
+    @Test void generatingLinkReplacesHashAndDoesNotSendEmail() {
+        when(invitations.findForManagement(invitation.getId(), tenant.getId())).thenReturn(Optional.of(invitation));
+        var result = service.generateLink(tenant.getId(), invitation.getId(), actor(Role.ADMIN, tenant.getId()));
+        assertEquals(64, result.invitationToken().length());
+        assertNotEquals("stored-hash", invitation.getTokenHash());
+        assertNotEquals(result.invitationToken(), invitation.getTokenHash());
+        assertTrue(invitation.getExpiresAt().isAfter(Instant.now().plusSeconds(47 * 3600)));
+        verifyNoInteractions(mail);
+    }
+
+    @Test void usedOrRevokedInvitationCannotGetNewLink() {
+        when(invitations.findForManagement(invitation.getId(), tenant.getId())).thenReturn(Optional.of(invitation));
+        invitation.setAcceptedAt(Instant.now());
+        assertThrows(IllegalArgumentException.class, () -> service.generateLink(tenant.getId(), invitation.getId(), actor(Role.ADMIN, tenant.getId())));
+        invitation.setAcceptedAt(null);
+        invitation.setRevokedAt(Instant.now());
+        assertThrows(IllegalArgumentException.class, () -> service.generateLink(tenant.getId(), invitation.getId(), actor(Role.ADMIN, tenant.getId())));
+        verifyNoInteractions(mail);
     }
 }
