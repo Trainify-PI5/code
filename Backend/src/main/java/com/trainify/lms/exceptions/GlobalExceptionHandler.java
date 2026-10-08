@@ -132,6 +132,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Dados que o Spring nao conseguiu ler: JSON malformado, campo com tipo
+     * errado, identificador que nao e um UUID. Sao erros de quem chamou, nao
+     * nossos, e precisam vir antes do tratamento geral para nao virarem 500.
+     */
+    @ExceptionHandler({
+            org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.validation.BindException.class
+    })
+    public ProblemDetail handleRequisicaoIlegivel(Exception ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Não foi possível ler os dados enviados. Confira o formato e tente novamente.");
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("code", "MALFORMED_REQUEST");
+        return problemDetail;
+    }
+
+    /**
      * Qualquer erro sem tratamento proprio cai aqui. Sem isto a resposta saia no
      * formato padrao do Spring, sem o campo "detail" que o site usa para explicar
      * o que houve: o usuario via apenas "tente novamente mais tarde" e o motivo

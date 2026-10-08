@@ -123,6 +123,27 @@ class LoginResilienciaTest {
     }
 
     @Test
+    void dadosIlegiveisContinuamSendoErroDeQuemChamouNaoNosso() {
+        var handler = new GlobalExceptionHandler();
+
+        var corpoInvalido = handler.handleRequisicaoIlegivel(
+                new org.springframework.http.converter.HttpMessageNotReadableException("json quebrado", (Throwable) null, null));
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), corpoInvalido.getStatus(),
+                "o tratamento geral não pode transformar erro do cliente em falha do servidor");
+    }
+
+    @Test
+    void erroQueOSpringJaSabeTraduzirMantemOProprioStatus() {
+        var handler = new GlobalExceptionHandler();
+
+        var metodoErrado = handler.handleUnexpected(
+                new org.springframework.web.HttpRequestMethodNotSupportedException("DELETE"));
+
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED.value(), metodoErrado.getStatus());
+    }
+
+    @Test
     void erroSemTratamentoExplicaOQueHouveEmVezDeSairEmBranco() {
         var problema = new GlobalExceptionHandler()
                 .handleUnexpected(new NullPointerException("algo nulo"));
