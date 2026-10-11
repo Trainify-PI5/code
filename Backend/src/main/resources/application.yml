@@ -6,6 +6,11 @@ spring:
     allow-bean-definition-overriding: true
   application:
     name: trainify-backend
+  servlet:
+    multipart:
+      # "Criar curso com IA" recebe PDFs direto (o padrao do Spring e 1 MB)
+      max-file-size: 20MB
+      max-request-size: 55MB
   profiles:
     active: dev
   datasource:
