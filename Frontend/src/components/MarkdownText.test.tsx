@@ -34,3 +34,8 @@ it('lista cada aula de origem uma vez', () => {
   ]} />);
   expect(screen.getAllByText(/NR-/)).toHaveLength(2);
 });
+
+it('mostra citações (>) como bloco, sem o sinal', () => {
+  const { container } = render(<MarkdownText text={'> **Observação:** o material não cobre isso.'} />);
+  expect(container.querySelector('blockquote')?.textContent).toBe('Observação: o material não cobre isso.');
+});
