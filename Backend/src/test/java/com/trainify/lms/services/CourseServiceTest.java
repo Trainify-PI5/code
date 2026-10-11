@@ -62,6 +62,9 @@ public class CourseServiceTest {
     @Mock
     private AssessmentRepository assessmentRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher events;
+
     @InjectMocks
     private CourseService courseService;
 
@@ -125,6 +128,58 @@ public class CourseServiceTest {
         request.setTitle("Avaliação");
         request.setLessonType("QUIZ");
         assertEquals("QUIZ", courseService.addLesson(module.getId(), request).getLessonType());
+    }
+
+    @Test
+    void addLessonAvisaAIaParaIndexarAAula() {
+        Module module = new Module();
+        module.setId(UUID.randomUUID());
+        module.setCourse(mockCourse);
+        module.setTenant(mockTenant);
+        UUID lessonId = UUID.randomUUID();
+        when(moduleRepository.findById(module.getId())).thenReturn(Optional.of(module));
+        when(lessonRepository.save(any(Lesson.class))).thenAnswer(invocation -> {
+            Lesson lesson = invocation.getArgument(0);
+            lesson.setId(lessonId);
+            return lesson;
+        });
+        var request = new com.trainify.lms.dto.CreateLessonRequest();
+        request.setTitle("Uso de EPI");
+        request.setContent("O EPI deve ser fornecido gratuitamente.");
+
+        courseService.addLesson(module.getId(), request);
+
+        verify(events).publishEvent(new com.trainify.lms.ai.AiIndexEvents.LessonChanged(lessonId));
+    }
+
+    @Test
+    void deleteLessonTiraAAulaDoIndiceDaIa() {
+        Module module = new Module();
+        module.setId(UUID.randomUUID());
+        module.setCourse(mockCourse);
+        Lesson lesson = new Lesson();
+        lesson.setId(UUID.randomUUID());
+        lesson.setModule(module);
+        when(lessonRepository.findById(lesson.getId())).thenReturn(Optional.of(lesson));
+        comoInstrutorDoCurso();
+
+        try {
+            courseService.deleteLesson(lesson.getId());
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+
+        verify(events).publishEvent(new com.trainify.lms.ai.AiIndexEvents.LessonRemoved(courseId, lesson.getId()));
+    }
+
+    private void comoInstrutorDoCurso() {
+        mockInstructor.setTenant(mockTenant);
+        mockInstructor.setRole(com.trainify.lms.domain.enums.Role.INSTRUCTOR);
+        mockInstructor.setIsActive(true);
+        var usuario = new com.trainify.lms.security.CustomUserDetails(mockInstructor);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        usuario, null, usuario.getAuthorities()));
     }
 
     @Test
