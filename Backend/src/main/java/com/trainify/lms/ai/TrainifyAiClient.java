@@ -43,6 +43,15 @@ public interface TrainifyAiClient {
     @GetMapping("/api/courses")
     IndexedCourses indexedCourses();
 
+    @PostMapping("/api/course-drafts")
+    CourseDraftStatus createCourseDraft(@RequestBody CourseDraftRequest request);
+
+    @GetMapping("/api/course-drafts/{draftId}")
+    CourseDraftStatus courseDraft(@PathVariable("draftId") String draftId);
+
+    @DeleteMapping("/api/course-drafts/{draftId}")
+    Map<String, Object> deleteCourseDraft(@PathVariable("draftId") String draftId);
+
     // ── contratos (mesmos nomes de campo do servico Python) ──
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -50,6 +59,21 @@ public interface TrainifyAiClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record IndexedCourses(@JsonProperty("course_ids") List<String> courseIds) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record DraftDocument(String name, @JsonProperty("pdf_base64") String pdfBase64, String text) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record CourseDraftRequest(
+            @JsonProperty("draft_id") String draftId,
+            List<DraftDocument> documents,
+            @JsonProperty("min_modules") int minModules,
+            @JsonProperty("max_modules") int maxModules,
+            String instructions) {}
+
+    /** Andamento da geracao. {@code result} so vem com status READY. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record CourseDraftStatus(String status, Integer progress, String step, Map<String, Object> result, String error) {}
 
     record HistoryMessage(String role, String content) {}
 

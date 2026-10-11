@@ -86,6 +86,16 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    /** Arquivo maior que o limite: mensagem clara em vez de erro 500. */
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ProblemDetail handleMaxUploadSize(org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE,
+                "Arquivo grande demais: envie documentos de até 20 MB cada (50 MB no total).");
+        problemDetail.setType(URI.create("urn:problem-type:payload-too-large"));
+        problemDetail.setTitle("Payload Too Large");
+        return problemDetail;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgumentException(IllegalArgumentException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
