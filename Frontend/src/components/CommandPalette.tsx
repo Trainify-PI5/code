@@ -21,6 +21,7 @@ import {
   LogOut,
   Handshake,
   Users as UsersIcon,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import api from "../services/api";
@@ -105,6 +106,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     }
     if (ensina) {
       itens.push({ id: "nav-builder", titulo: "Criar Curso", grupo: "navegacao", icone: <PlusCircle className="w-4 h-4" />, executar: ir("/courses/builder"), sinonimos: ["novo curso", "editor"] });
+      itens.push({ id: "nav-curso-ia", titulo: "Criar curso com IA", grupo: "navegacao", icone: <Sparkles className="w-4 h-4" />, executar: ir("/courses/ai"), sinonimos: ["gerar curso", "documentos", "pdf", "inteligencia artificial"] });
     }
     return itens;
   }, [ehGestor, ehAdmin, ensina, ir, user?.role]);

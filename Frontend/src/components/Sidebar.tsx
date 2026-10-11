@@ -8,6 +8,7 @@ import {
   Award,
   Users as UsersIcon,
   PlusCircle,
+  Sparkles,
   Activity,
   Handshake,
   Building2,
@@ -67,6 +68,11 @@ export default function Sidebar({
       id: "courses/builder",
       label: "Criar Curso",
       icon: PlusCircle,
+    });
+    navItems.push({
+      id: "courses/ai",
+      label: "Criar com IA",
+      icon: Sparkles,
     });
   }
 

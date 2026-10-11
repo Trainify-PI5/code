@@ -14,6 +14,7 @@ import AuthRouter from "./components/AuthRouter";
 const Home = lazy(() => import("./pages/Home"));
 const Courses = lazy(() => import("./pages/Courses"));
 const CourseBuilder = lazy(() => import("./pages/CourseBuilder"));
+const CourseAIGenerator = lazy(() => import("./pages/CourseAIGenerator"));
 const CourseDetail = lazy(() => import("./pages/CourseDetail"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const IAAssistant = lazy(() => import("./pages/IAAssistant"));
@@ -179,6 +180,14 @@ export default function App() {
                       element={
                         <ProtectedRoute allowedRoles={["ADMIN", "INSTRUCTOR"]}>
                           <CourseBuilder />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/courses/ai"
+                      element={
+                        <ProtectedRoute allowedRoles={["ADMIN", "INSTRUCTOR"]}>
+                          <CourseAIGenerator />
                         </ProtectedRoute>
                       }
                     />
