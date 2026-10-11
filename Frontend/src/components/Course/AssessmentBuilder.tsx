@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Save, CheckCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { PlusCircle, Trash2, Save, CheckCircle, AlertTriangle, CheckCircle2, Sparkles, Loader2 } from "lucide-react";
 import api from "../../services/api";
 
 interface Option {
@@ -21,6 +21,19 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // Sugestao de perguntas pela IA, a partir do material das outras aulas do modulo
+  const [iaDisponivel, setIaDisponivel] = useState(false);
+  const [gerando, setGerando] = useState(false);
+  const [quantidadeIa, setQuantidadeIa] = useState(5);
+  const [focoIa, setFocoIa] = useState("");
+  const [avisoIa, setAvisoIa] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get("/ai/status")
+      .then((res) => setIaDisponivel(Boolean(res.data?.enabled)))
+      .catch(() => setIaDisponivel(false));
+  }, []);
 
   useEffect(() => {
     // Load assessment if exists
@@ -116,6 +129,35 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
     }
   };
 
+  const gerarComIa = async () => {
+    setGerando(true);
+    setError(null);
+    setSaved(false);
+    setAvisoIa(null);
+    try {
+      const params: Record<string, string | number> = { questions: quantidadeIa };
+      if (focoIa.trim()) params.topic = focoIa.trim();
+      const { data } = await api.post(`/ai/lessons/${lessonId}/quiz`, null, { params });
+
+      const sugeridas: Question[] = (data.questions || []).map((q: Question) => ({
+        text: q.text,
+        options: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect })),
+      }));
+      const substituir = questions.length === 0;
+      setQuestions(substituir ? sugeridas : [...questions, ...sugeridas]);
+      if (substituir && data.title) setTitle(data.title);
+      setAvisoIa(
+        `${sugeridas.length} perguntas sugeridas pela IA a partir do material deste módulo` +
+          (substituir ? "" : ", adicionadas ao fim da lista") +
+          ". Revise o texto e a alternativa correta de cada uma antes de salvar.",
+      );
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || "A IA não conseguiu sugerir perguntas agora. Tente novamente.");
+    } finally {
+      setGerando(false);
+    }
+  };
+
   if (loading) return <div>Carregando avaliação...</div>;
 
   return (
@@ -168,6 +210,60 @@ export default function AssessmentBuilder({ lessonId }: { lessonId: string }) {
           </p>
         </div>
       </div>
+
+      {iaDisponivel && (
+        <div className="rounded-lg border border-outline-variant bg-surface-container p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold text-on-surface">Gerar perguntas com IA</p>
+              <p className="text-xs text-on-surface-variant">
+                A IA lê o material das outras aulas deste módulo (textos, PDFs e transcrições) e sugere perguntas. Nada é salvo sem você revisar.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-xs font-bold uppercase text-on-surface-variant flex flex-col gap-1 w-28">
+              Perguntas
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={quantidadeIa}
+                onChange={(e) => setQuantidadeIa(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+                className="bg-surface-bright border border-outline-variant px-3 py-2 rounded-lg text-sm font-normal normal-case text-on-surface"
+              />
+            </label>
+            <label className="text-xs font-bold uppercase text-on-surface-variant flex flex-col gap-1 flex-1 min-w-[12rem]">
+              Foco (opcional)
+              <input
+                type="text"
+                maxLength={300}
+                value={focoIa}
+                placeholder="Ex.: uso e conservação de EPI"
+                onChange={(e) => setFocoIa(e.target.value)}
+                className="bg-surface-bright border border-outline-variant px-3 py-2 rounded-lg text-sm font-normal normal-case text-on-surface"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={gerarComIa}
+              disabled={gerando}
+              className="border border-primary text-primary px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
+              {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {gerando ? "Gerando..." : "Gerar com IA"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {avisoIa && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-800 px-4 py-3 text-sm flex items-start gap-2 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300">
+          <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
+          {avisoIa}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm flex items-start gap-2 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">

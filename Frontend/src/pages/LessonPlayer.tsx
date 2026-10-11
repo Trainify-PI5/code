@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { montarHistorico, perguntarAssistente, type FonteIa } from '../lib/iaChat';
+import MarkdownText from '../components/MarkdownText';
 import { ArrowLeft, CheckCircle2, Circle, FileText, List, Lock, MessageSquare } from 'lucide-react';
 import api from '../services/api';
 import { VideoPlayer } from '../components/VideoPlayer';
@@ -61,7 +63,7 @@ export default function LessonPlayer() {
   const [baixandoTranscricao, setBaixandoTranscricao] = useState(false);
   const [perguntaIa, setPerguntaIa] = useState('');
   const [enviandoIa, setEnviandoIa] = useState(false);
-  const [respostaIa, setRespostaIa] = useState<string | null>(null);
+  const [conversaIa, setConversaIa] = useState<{ role: 'user' | 'assistant'; text: string; sources?: FonteIa[]; erro?: boolean }[]>([]);
 
   const baixarTranscricao = async () => {
     if (!activeLesson?.id) return;
@@ -90,19 +92,17 @@ export default function LessonPlayer() {
     const pergunta = perguntaIa.trim();
     if (!pergunta) return;
 
+    const historico = montarHistorico(conversaIa.map((m) => ({ role: m.role, text: m.text, historico: !m.erro })));
     setEnviandoIa(true);
-    setRespostaIa(null);
+    setConversaIa((atual) => [...atual, { role: 'user', text: pergunta }]);
+    setPerguntaIa('');
     try {
-      // lessonId da o contexto da aula para o assistente
-      const { data } = await api.post('/ia/chat', {
-        query: pergunta,
-        lessonId: activeLesson?.id,
-      });
-      setRespostaIa(data.response);
-      setPerguntaIa('');
+      // A aula aberta ganha prioridade e a busca fica restrita a este curso
+      const resposta = await perguntarAssistente(pergunta, historico, { lessonId: activeLesson?.id, courseId: id });
+      setConversaIa((atual) => [...atual, { role: 'assistant', text: resposta.response, sources: resposta.sources }]);
     } catch (err) {
       console.error('Erro ao consultar o assistente', err);
-      toast.error('O assistente não respondeu. Tente novamente.');
+      setConversaIa((atual) => [...atual, { role: 'assistant', text: 'O assistente não respondeu. Tente novamente.', erro: true }]);
     } finally {
       setEnviandoIa(false);
     }
@@ -374,14 +374,20 @@ export default function LessonPlayer() {
                     <div className="bg-surface-container p-3 rounded-xl text-sm text-on-surface-variant max-w-[85%]">
                        Olá! Estou aqui para ajudar com qualquer dúvida sobre "{course.title}". O que você gostaria de saber?
                     </div>
+                    {conversaIa.map((m, i) => (
+                      m.role === 'user' ? (
+                        <div key={i} className="self-end bg-primary-container text-white p-3 rounded-xl text-sm max-w-[85%] whitespace-pre-wrap break-words">
+                          {m.text}
+                        </div>
+                      ) : (
+                        <div key={i} className={`p-3 rounded-xl text-sm max-w-[90%] ${m.erro ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300' : 'bg-primary-fixed text-on-surface'}`}>
+                          <MarkdownText text={m.text} sources={m.sources} />
+                        </div>
+                      )
+                    ))}
                     {enviandoIa && (
                       <div className="bg-surface-container p-3 rounded-xl text-sm text-on-surface-variant max-w-[85%] animate-pulse">
                         Pensando...
-                      </div>
-                    )}
-                    {respostaIa && (
-                      <div className="bg-primary-fixed p-3 rounded-xl text-sm text-on-surface max-w-[85%] whitespace-pre-wrap">
-                        {respostaIa}
                       </div>
                     )}
                  </div>
