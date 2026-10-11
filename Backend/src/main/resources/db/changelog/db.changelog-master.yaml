@@ -29,3 +29,5 @@ databaseChangeLog:
       file: db/changelog/14-company-invitations.sql
   - include:
       file: db/changelog/15-email-por-empresa.sql
+  - include:
+      file: db/changelog/16-course-generation-drafts.sql
