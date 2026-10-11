@@ -1,5 +1,6 @@
 package com.trainify.lms.services;
 
+import com.trainify.lms.ai.AiIndexEvents;
 import com.trainify.lms.domain.entities.*;
 import com.trainify.lms.domain.entities.Module;
 import com.trainify.lms.domain.enums.CourseStatus;
@@ -14,6 +15,7 @@ import com.trainify.lms.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,7 @@ public class CourseService {
     private final UserRepository userRepository;
     private final ActivityLogService activityLog;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher events;
 
     private CustomUserDetails getCurrentUser() {
         return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -103,6 +106,7 @@ public class CourseService {
         checkInstructorAccess(lesson.getModule().getCourse());
         lesson.getVideoAsset().setTranscript(transcript);
         mediaAssetRepository.save(lesson.getVideoAsset());
+        events.publishEvent(new AiIndexEvents.LessonChanged(lessonId));
     }
 
     @Transactional(readOnly = true)
@@ -149,6 +153,7 @@ public class CourseService {
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));
         checkInstructorAccess(course);
         courseRepository.deleteById(id);
+        events.publishEvent(new AiIndexEvents.CourseRemoved(id));
     }
 
     @Transactional
@@ -234,7 +239,10 @@ public class CourseService {
         Module module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new EntityNotFoundException("Module not found"));
         checkInstructorAccess(module.getCourse());
+        UUID courseId = module.getCourse().getId();
+        List<Lesson> aulas = lessonRepository.findByModuleIdOrderByOrderIndexAsc(moduleId);
         moduleRepository.delete(module);
+        aulas.forEach(aula -> events.publishEvent(new AiIndexEvents.LessonRemoved(courseId, aula.getId())));
     }
 
     @Transactional
@@ -260,7 +268,9 @@ public class CourseService {
             lesson.setVideoAsset(asset);
         }
 
-        return mapLessonToDto(lessonRepository.save(lesson));
+        Lesson salva = lessonRepository.save(lesson);
+        events.publishEvent(new AiIndexEvents.LessonChanged(salva.getId()));
+        return mapLessonToDto(salva);
     }
 
     @Transactional
@@ -282,7 +292,9 @@ public class CourseService {
             lesson.setVideoAsset(null);
         }
 
-        return mapLessonToDto(lessonRepository.save(lesson));
+        Lesson salva = lessonRepository.save(lesson);
+        events.publishEvent(new AiIndexEvents.LessonChanged(salva.getId()));
+        return mapLessonToDto(salva);
     }
 
     @Transactional
@@ -291,7 +303,9 @@ public class CourseService {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson not found"));
         checkInstructorAccess(lesson.getModule().getCourse());
+        UUID courseId = lesson.getModule().getCourse().getId();
         lessonRepository.delete(lesson);
+        events.publishEvent(new AiIndexEvents.LessonRemoved(courseId, lessonId));
     }
 
     private CourseDto mapToDto(Course course) {
