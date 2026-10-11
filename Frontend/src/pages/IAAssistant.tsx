@@ -10,8 +10,10 @@ import {
   MessageSquarePlus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import api from "../services/api";
 import { cn } from "../lib/utils";
+import { montarHistorico, perguntarAssistente, type FonteIa } from "../lib/iaChat";
+import MarkdownText from "../components/MarkdownText";
+import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import { ConfirmDialog, useToast } from "../components/ui";
 
@@ -20,16 +22,30 @@ interface Message {
   role: "user" | "model";
   text: string;
   timestamp: string;
+  sources?: FonteIa[];
+  /** false = saudacao ou aviso de erro, que nao entram no historico enviado a IA */
+  historico?: boolean;
 }
+
+/** Sugestoes de pergunta de acordo com o que cada perfil faz no Trainify. */
+const SUGESTOES: Record<string, [string, string]> = {
+  STUDENT: ["ia.suggest.student1", "ia.suggest.student2"],
+  INSTRUCTOR: ["ia.suggest.instructor1", "ia.suggest.instructor2"],
+  MANAGER: ["ia.suggest.manager1", "ia.suggest.manager2"],
+  ADMIN: ["ia.suggest.manager1", "ia.suggest.manager2"],
+  SUPER_ADMIN: ["ia.suggest.manager1", "ia.suggest.manager2"],
+};
 
 export default function IAAssistant() {
   const { t } = useLanguage();
   // Mobile: sidebar de conversas fechada por padrão
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const role = useAuthStore((s) => s.user?.role) ?? "STUDENT";
+  const [sugestao1, sugestao2] = SUGESTOES[role] ?? SUGESTOES.STUDENT;
   const suggestedActions = [
-    { icon: FileText, label: t("ia.action1") },
-    { icon: Sparkles, label: t("ia.action2") },
+    { icon: FileText, label: t(sugestao1) },
+    { icon: Sparkles, label: t(sugestao2) },
   ];
 
   const [messages, setMessages] = useState<Message[]>([
@@ -38,6 +54,7 @@ export default function IAAssistant() {
       role: "model",
       text: t("ia.welcomeMessage"),
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      historico: false,
     },
   ]);
   const [input, setInput] = useState("");
@@ -54,6 +71,7 @@ export default function IAAssistant() {
           hour: "2-digit",
           minute: "2-digit",
         }),
+        historico: false,
       },
     ]);
     toast.success("Conversa limpa.");
@@ -80,19 +98,19 @@ export default function IAAssistant() {
       }),
     };
 
+    const historico = montarHistorico(messages);
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
 
     try {
-      const response = await api.post("/ia/chat", {
-        query: input.trim(),
-      });
+      const resposta = await perguntarAssistente(input.trim(), historico);
 
       const modelMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "model",
-        text: response.data.response,
+        text: resposta.response,
+        sources: resposta.sources,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -105,6 +123,7 @@ export default function IAAssistant() {
         id: (Date.now() + 1).toString(),
         role: "model",
         text: "O assistente inteligente está indisponível no momento. Por favor, tente novamente em alguns instantes.",
+        historico: false,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -245,13 +264,14 @@ export default function IAAssistant() {
                   </span>
                   <div
                     className={cn(
-                      "p-3 sm:p-5 rounded-2xl shadow-sm whitespace-pre-wrap break-words overflow-hidden leading-relaxed text-sm",
+                      "p-3 sm:p-5 rounded-2xl shadow-sm break-words overflow-hidden leading-relaxed text-sm",
+                      msg.role === "user" && "whitespace-pre-wrap",
                       msg.role === "model"
                         ? "bg-surface-container-lowest border border-outline-variant text-on-surface rounded-tl-none"
                         : "bg-primary-container text-white rounded-tr-none max-w-[85vw] sm:max-w-md lg:max-w-2xl",
                     )}
                   >
-                    {msg.text}
+                    {msg.role === "model" ? <MarkdownText text={msg.text} sources={msg.sources} /> : msg.text}
                   </div>
                   <span className="text-[10px] text-on-surface-variant">
                     {msg.timestamp}

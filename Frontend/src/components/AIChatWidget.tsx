@@ -1,12 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
-import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { montarHistorico, perguntarAssistente, type FonteIa } from '../lib/iaChat';
+import MarkdownText from './MarkdownText';
+
+interface MensagemWidget {
+  role: 'user' | 'ai';
+  content: string;
+  sources?: FonteIa[];
+  /** avisos de erro nao entram no historico enviado a IA */
+  erro?: boolean;
+}
 
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string }[]>([]);
+  const [messages, setMessages] = useState<MensagemWidget[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -24,21 +33,21 @@ export default function AIChatWidget() {
     if (!input.trim() || !user) return;
 
     const userMessage = input.trim();
+    const historico = montarHistorico(
+      messages.map((m) => ({ role: m.role, text: m.content, historico: !m.erro })),
+    );
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setInput('');
     setIsLoading(true);
 
     try {
-      // Constitution II: Toda comunicação IA passa pelo backend proxy
-      const response = await api.post('/ia/chat', {
-        query: userMessage,
-        courseId: null,
-      });
-
-      setMessages(prev => [...prev, { role: 'ai', content: response.data.response }]);
+      // Toda comunicação com a IA passa pelo backend, que decide o que o usuário pode consultar
+      const resposta = await perguntarAssistente(userMessage, historico);
+      setMessages(prev => [...prev, { role: 'ai', content: resposta.response, sources: resposta.sources }]);
     } catch {
       setMessages(prev => [...prev, {
         role: 'ai',
+        erro: true,
         content: 'O assistente inteligente está indisponível no momento. Por favor, tente novamente em alguns instantes.'
       }]);
     } finally {
@@ -73,7 +82,7 @@ export default function AIChatWidget() {
             <div className="p-4 bg-primary-container text-white flex items-center justify-between">
               <div>
                 <h3 className="font-semibold">Assistente Trainify</h3>
-                <p className="text-xs text-white/80">IA treinada no seu conteúdo</p>
+                <p className="text-xs text-white/80">Responde com base no material dos seus cursos</p>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
@@ -93,8 +102,8 @@ export default function AIChatWidget() {
               )}
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary-container text-white rounded-br-none' : 'bg-surface-container border border-outline-variant text-on-surface rounded-bl-none'}`}>
-                    {msg.content}
+                  <div className={`max-w-[85%] p-3 rounded-2xl text-sm min-w-0 ${msg.role === 'user' ? 'bg-primary-container text-white rounded-br-none whitespace-pre-wrap break-words' : 'bg-surface-container border border-outline-variant text-on-surface rounded-bl-none'}`}>
+                    {msg.role === 'ai' ? <MarkdownText text={msg.content} sources={msg.sources} /> : msg.content}
                   </div>
                 </div>
               ))}
