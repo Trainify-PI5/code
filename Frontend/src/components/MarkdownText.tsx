@@ -13,6 +13,7 @@ const SEPARADOR_TABELA = /^\s*\|[\s:|-]+\|\s*$/;
 const ITEM_LISTA = /^\s*([-*•]|\d+[.)])\s+/;
 const TITULO = /^\s*#{1,6}\s+/;
 const REGUA = /^\s*(-{3,}|\*{3,})\s*$/;
+const CITACAO = /^\s*>\s?/;
 
 function inline(texto: string, chave: string): ReactNode[] {
   // Quebras <br> que os modelos usam dentro de tabelas
@@ -89,6 +90,17 @@ export function renderMarkdown(texto: string): ReactNode[] {
       continue;
     }
 
+    if (CITACAO.test(linha)) {
+      const citacao: string[] = [];
+      while (i < linhas.length && CITACAO.test(linhas[i])) citacao.push(linhas[i++].replace(CITACAO, ''));
+      blocos.push(
+        <blockquote key={k} className="border-l-2 border-outline-variant pl-3 my-2 text-on-surface-variant">
+          {citacao.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{inline(l, `${k}${j}`)}</Fragment>)}
+        </blockquote>,
+      );
+      continue;
+    }
+
     if (REGUA.test(linha)) {
       blocos.push(<hr key={k} className="my-2 border-outline-variant" />);
       i++;
@@ -104,6 +116,7 @@ export function renderMarkdown(texto: string): ReactNode[] {
     while (
       i < linhas.length && linhas[i].trim()
       && !LINHA_TABELA.test(linhas[i]) && !ITEM_LISTA.test(linhas[i]) && !TITULO.test(linhas[i]) && !REGUA.test(linhas[i])
+      && !CITACAO.test(linhas[i])
     ) {
       paragrafo.push(linhas[i++]);
     }
