@@ -5,14 +5,16 @@ import java.util.UUID;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.trainify.lms.domain.entities.ActivityLog;
 import com.trainify.lms.domain.entities.User;
 import com.trainify.lms.repositories.ActivityLogRepository;
 import com.trainify.lms.security.CustomUserDetails;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +23,10 @@ import lombok.extern.slf4j.Slf4j;
  * inicio, mas nada era gravado: ficava vazia para sempre.
  *
  * Falhar ao registrar nunca pode derrubar a acao principal, entao tudo aqui e
- * defensivo e roda em transacao propria.
+ * defensivo e roda em transacao propria. A transacao e aberta DENTRO do try:
+ * com @Transactional(REQUIRES_NEW) no metodo, um erro do banco marcava a
+ * transacao para rollback e o commit estourava fora do try, desfazendo a acao
+ * do usuario (publicar curso, criar usuario...).
  */
 @Service
 @RequiredArgsConstructor
@@ -29,9 +34,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ActivityLogService {
 
     private final ActivityLogRepository repository;
+    private final EntityManager entityManager;
+    private final PlatformTransactionManager transactionManager;
 
     /** Acao de quem esta logado. */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(String actionType, String entityType, UUID entityId, Map<String, Object> details) {
         var autenticacao = SecurityContextHolder.getContext().getAuthentication();
         if (autenticacao == null || !(autenticacao.getPrincipal() instanceof CustomUserDetails usuario)) {
@@ -47,7 +53,6 @@ public class ActivityLogService {
      * outra transacao, ja encerrada quando a auditoria roda, e so de tocar na
      * empresa dele o Hibernate reclamava e derrubava a entrada.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordFor(UUID tenantId, UUID userId, String actionType, String entityType, UUID entityId,
                           Map<String, Object> details) {
         if (tenantId == null) {
@@ -86,25 +91,27 @@ public class ActivityLogService {
 
     private void gravar(UUID tenantId, UUID userId, String actionType, String entityType, UUID entityId,
                         Map<String, Object> details) {
+        String ip = ipDaRequisicao();
         try {
-            ActivityLog registro = new ActivityLog();
-            registro.setTenantId(tenantId);
+            TransactionTemplate transacao = new TransactionTemplate(transactionManager);
+            transacao.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            transacao.executeWithoutResult(status -> {
+                ActivityLog registro = new ActivityLog();
+                registro.setTenantId(tenantId);
 
-            if (userId != null) {
-                User referencia = new User();
-                referencia.setId(userId);
-                registro.setUser(referencia);
-            }
+                if (userId != null) {
+                    // Referencia gerenciada pelo Hibernate. Um "new User()" so com o id
+                    // ficava sem versao (@Version) e o Hibernate recusava o registro.
+                    registro.setUser(entityManager.getReference(User.class, userId));
+                }
 
-            registro.setActionType(actionType);
-            registro.setEntityType(entityType);
-            registro.setEntityId(entityId);
-            registro.setDetails(details == null ? Map.of() : details);
-            registro.setIpAddress(ipDaRequisicao());
-
-            // saveAndFlush para o erro do banco estourar aqui dentro, e nao no commit,
-            // quando ja estaria fora deste try e derrubaria a acao do usuario
-            repository.saveAndFlush(registro);
+                registro.setActionType(actionType);
+                registro.setEntityType(entityType);
+                registro.setEntityId(entityId);
+                registro.setDetails(details == null ? Map.of() : details);
+                registro.setIpAddress(ip);
+                repository.saveAndFlush(registro);
+            });
         } catch (Exception e) {
             // Auditoria e importante, mas nunca mais do que a acao do usuario
             log.warn("Falha ao registrar auditoria {}: {}", actionType, e.getMessage());

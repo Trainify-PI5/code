@@ -32,7 +32,18 @@ class AuditoriaTest {
     private static final UUID PESSOA = UUID.randomUUID();
 
     @Mock private ActivityLogRepository repository;
+    @Mock private jakarta.persistence.EntityManager entityManager;
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
     @InjectMocks private ActivityLogService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void referenciaDoUsuario() {
+        lenient().when(entityManager.getReference(eq(User.class), any())).thenAnswer(invocacao -> {
+            User referencia = new User();
+            referencia.setId(invocacao.getArgument(1));
+            return referencia;
+        });
+    }
 
     @AfterEach
     void limparRequisicao() {
@@ -53,6 +64,23 @@ class AuditoriaTest {
         assertEquals(EMPRESA, registro.getTenantId());
         assertEquals(PESSOA, registro.getUser().getId());
         assertEquals("LOGIN", registro.getActionType());
+    }
+
+    @Test
+    void usaReferenciaGerenciadaDoUsuarioEmVezDeEntidadeNova() {
+        service.recordFor(EMPRESA, PESSOA, "LOGIN", "USER", PESSOA, Map.of());
+
+        verify(entityManager).getReference(User.class, PESSOA);
+    }
+
+    @Test
+    void falhaNoCommitDaAuditoriaNaoDerrubaAAcaoDoUsuario() {
+        // Era assim que publicar curso e criar usuario davam erro 500: a transacao
+        // da auditoria falhava no commit, fora do try
+        doThrow(new org.springframework.transaction.UnexpectedRollbackException("rollback-only"))
+                .when(transactionManager).commit(any());
+
+        assertDoesNotThrow(() -> service.recordFor(EMPRESA, PESSOA, "COURSE_PUBLISHED", "COURSE", UUID.randomUUID(), Map.of()));
     }
 
     @Test
