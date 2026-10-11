@@ -338,8 +338,12 @@ export default function LessonPlayer() {
                        {baixandoTranscricao ? 'Baixando...' : 'Transcrição'}
                      </Button>
                    </div>
-                   <div className="prose dark:prose-invert max-w-none text-on-surface-variant">
-                     {activeLesson.content || 'Nenhuma descrição fornecida para esta aula.'}
+                   {/* O texto da aula pode ter titulos, listas e paragrafos (aulas geradas
+                       pela IA e textos longos como as NRs); sem isto, virava um bloco so */}
+                   <div className="max-w-none text-on-surface-variant leading-relaxed">
+                     {activeLesson.content
+                       ? <MarkdownText text={activeLesson.content} />
+                       : 'Nenhuma descrição fornecida para esta aula.'}
                    </div>
                    {canMarkAsCompleted && (
                      <Button
