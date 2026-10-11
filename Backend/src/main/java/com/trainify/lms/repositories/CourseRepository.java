@@ -19,4 +19,7 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     // Usadas pela tela inicial de cada perfil
     long countByTenantIdAndStatus(UUID tenantId, com.trainify.lms.domain.enums.CourseStatus status);
     long countByInstructorIdAndStatus(UUID instructorId, com.trainify.lms.domain.enums.CourseStatus status);
+
+    // Usada pela IA: cursos que o instrutor pode consultar no assistente
+    java.util.List<Course> findByInstructorId(UUID instructorId);
 }

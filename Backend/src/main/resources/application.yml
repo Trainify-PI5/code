@@ -66,7 +66,11 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:900000}
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
   ai:
+    # Microservico de IA (trainify-ai): chat com RAG e geracao de quiz
     service-url: ${AI_SERVICE_URL:http://localhost:8000}
+    # Mesma chave definida em INTERNAL_API_KEY no .env do trainify-ai
+    internal-key: ${AI_INTERNAL_KEY:}
+    read-timeout-seconds: ${AI_READ_TIMEOUT_SECONDS:120}
     claude:
       # Sem a chave, os recursos de IA ficam desligados e o sistema avisa na tela
       api-key: ${ANTHROPIC_API_KEY:}
@@ -90,4 +94,10 @@ resilience4j.circuitbreaker:
       automaticTransitionFromOpenToHalfOpenEnabled: true
       waitDurationInOpenState: 10s
       failureRateThreshold: 50
+      # Erros do proprio pedido nao indicam que a IA caiu
+      ignoreExceptions:
+        - java.lang.IllegalArgumentException
+        - jakarta.persistence.EntityNotFoundException
+        - org.springframework.security.access.AccessDeniedException
+        - com.trainify.lms.ai.AiContentMissingException
 

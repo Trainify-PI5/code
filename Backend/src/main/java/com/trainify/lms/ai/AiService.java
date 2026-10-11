@@ -13,7 +13,6 @@ import com.trainify.lms.domain.entities.Assessment;
 import com.trainify.lms.domain.entities.AssessmentOption;
 import com.trainify.lms.domain.entities.AssessmentQuestion;
 import com.trainify.lms.domain.entities.Lesson;
-import com.trainify.lms.dto.CreateAssessmentRequest;
 import com.trainify.lms.repositories.AssessmentRepository;
 import com.trainify.lms.repositories.LessonRepository;
 
@@ -21,8 +20,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Recursos de IA do Trainify. Todos partem do conteudo da propria aula: nada e
- * inventado a partir do nada, e o instrutor sempre revisa antes de publicar.
+ * Resumo da aula e explicacao das questoes erradas, feitos direto com o
+ * conteudo da aula. Chat e quiz ficam no {@link RagService}, que busca no
+ * material de todo o curso pelo servico de IA.
  */
 @Service
 @RequiredArgsConstructor
@@ -38,35 +38,6 @@ public class AiService {
     private final ClaudeGateway claude;
     private final LessonRepository lessonRepository;
     private final AssessmentRepository assessmentRepository;
-
-    public boolean isEnabled() {
-        return claude.isEnabled();
-    }
-
-    /** Sugere um quiz a partir do conteudo da aula. O instrutor revisa e salva. */
-    @Transactional(readOnly = true)
-    public CreateAssessmentRequest suggestQuiz(UUID lessonId, int numeroDePerguntas) {
-        Lesson lesson = buscarAula(lessonId);
-        String conteudo = conteudoDaAula(lesson);
-
-        String system = PAPEL_BASE + """
-                Sua tarefa é criar perguntas de múltipla escolha para avaliar quem assistiu à aula.
-
-                Regras obrigatórias:
-                - Use somente o que está no conteúdo da aula. Não invente fatos.
-                - Cada pergunta tem exatamente 3 alternativas e apenas 1 correta.
-                - As alternativas erradas devem ser plausíveis, não absurdas.
-                - Não use "todas as anteriores" nem "nenhuma das anteriores".
-
-                Responda SOMENTE com um JSON neste formato, sem comentários e sem texto fora dele:
-                {"title":"...","passingScore":70,"questions":[{"text":"...","options":[{"text":"...","isCorrect":true},{"text":"...","isCorrect":false},{"text":"...","isCorrect":false}]}]}
-                """;
-
-        String pedido = "Crie " + numeroDePerguntas + " perguntas sobre a aula a seguir.\n\n"
-                + "Título da aula: " + lesson.getTitle() + "\n\nConteúdo:\n" + conteudo;
-
-        return parseQuiz(claude.complete(system, pedido), lesson.getTitle());
-    }
 
     /** Resumo e pontos-chave da aula, para o instrutor revisar e usar. */
     @Transactional(readOnly = true)
@@ -91,30 +62,6 @@ public class AiService {
         node.path("keyPoints").forEach(p -> pontos.add(p.asText()));
         dto.setKeyPoints(pontos);
         return dto;
-    }
-
-    /** Tutor: responde a duvida do aluno com base no conteudo daquela aula. */
-    @Transactional(readOnly = true)
-    public String tutor(UUID lessonId, String pergunta) {
-        String system = PAPEL_BASE + """
-                Você é o tutor do aluno durante a aula.
-
-                Regras:
-                - Responda com base no conteúdo da aula fornecido.
-                - Se a resposta não estiver no conteúdo, diga isso com franqueza e oriente a procurar o instrutor.
-                - Seja breve: no máximo dois parágrafos.
-                - Não entregue respostas de avaliação; explique o assunto para a pessoa aprender.
-                """;
-
-        StringBuilder mensagem = new StringBuilder();
-        if (lessonId != null) {
-            Lesson lesson = buscarAula(lessonId);
-            mensagem.append("Aula: ").append(lesson.getTitle()).append("\n\nConteúdo da aula:\n")
-                    .append(conteudoDaAula(lesson)).append("\n\n");
-        }
-        mensagem.append("Pergunta do aluno: ").append(pergunta);
-
-        return claude.complete(system, mensagem.toString());
     }
 
     /** Explica, uma a uma, as questoes que o aluno errou. */
@@ -241,36 +188,5 @@ public class AiService {
         } catch (Exception e) {
             throw new AiUnavailableException("Não consegui entender a resposta do assistente. Tente novamente.");
         }
-    }
-
-    static CreateAssessmentRequest parseQuiz(String resposta, String tituloDaAula) {
-        JsonNode node = lerJson(resposta);
-
-        CreateAssessmentRequest request = new CreateAssessmentRequest();
-        String titulo = node.path("title").asText("");
-        request.setTitle(titulo.isBlank() ? "Avaliação: " + tituloDaAula : titulo);
-        request.setPassingScore(node.path("passingScore").asInt(70));
-        request.setMaxAttempts(3);
-
-        List<CreateAssessmentRequest.QuestionRequest> perguntas = new ArrayList<>();
-        for (JsonNode q : node.path("questions")) {
-            CreateAssessmentRequest.QuestionRequest pergunta = new CreateAssessmentRequest.QuestionRequest();
-            pergunta.setText(q.path("text").asText(""));
-
-            List<CreateAssessmentRequest.OptionRequest> opcoes = new ArrayList<>();
-            for (JsonNode o : q.path("options")) {
-                CreateAssessmentRequest.OptionRequest opcao = new CreateAssessmentRequest.OptionRequest();
-                opcao.setText(o.path("text").asText(""));
-                opcao.setIsCorrect(o.path("isCorrect").asBoolean(false));
-                opcoes.add(opcao);
-            }
-            pergunta.setOptions(opcoes);
-            perguntas.add(pergunta);
-        }
-        request.setQuestions(perguntas);
-
-        // A mesma validacao usada quando o instrutor salva a mao
-        com.trainify.lms.services.AssessmentService.validate(request);
-        return request;
     }
 }

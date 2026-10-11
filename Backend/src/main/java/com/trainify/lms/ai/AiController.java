@@ -25,23 +25,42 @@ import lombok.RequiredArgsConstructor;
 public class AiController {
 
     private final AiService aiService;
+    private final RagService ragService;
+    private final AiIndexListener indexListener;
+    private final AiCourseScope scope;
 
     /** Permite ao frontend esconder os botoes quando a IA nao esta configurada. */
     @GetMapping("/status")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Boolean>> status() {
-        return ResponseEntity.ok(Map.of("enabled", aiService.isEnabled()));
+        return ResponseEntity.ok(Map.of("enabled", ragService.disponivel()));
     }
 
-    /** Sugestao de quiz a partir da aula. Nada e salvo: o instrutor revisa antes. */
+    /**
+     * Sugestao de quiz para a aula de avaliacao, a partir do material das outras
+     * aulas do modulo. Nada e salvo: o instrutor revisa antes.
+     */
     @PostMapping("/lessons/{lessonId}/quiz")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<CreateAssessmentRequest> suggestQuiz(
             @PathVariable UUID lessonId,
-            @RequestParam(defaultValue = "3") int questions) {
+            @RequestParam(defaultValue = "5") int questions,
+            @RequestParam(required = false) String topic) {
 
         int quantidade = Math.min(Math.max(questions, 1), 10);
-        return ResponseEntity.ok(aiService.suggestQuiz(lessonId, quantidade));
+        return ResponseEntity.ok(ragService.suggestQuiz(lessonId, quantidade, topic));
+    }
+
+    /**
+     * Manda todas as aulas do curso para o indice da IA de novo. Serve para cursos
+     * criados antes da IA existir ou depois de o servico ter ficado fora do ar.
+     */
+    @PostMapping("/courses/{courseId}/reindex")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
+    public ResponseEntity<Map<String, String>> reindex(@PathVariable UUID courseId) {
+        scope.resolver(null, courseId); // so quem tem acesso ao curso
+        indexListener.reindexarCurso(courseId);
+        return ResponseEntity.accepted().body(Map.of("status", "Reindexação iniciada."));
     }
 
     @PostMapping("/lessons/{lessonId}/summary")
@@ -52,8 +71,8 @@ public class AiController {
 
     @PostMapping("/tutor")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, String>> tutor(@RequestBody TutorRequest request) {
-        return ResponseEntity.ok(Map.of("response", aiService.tutor(request.getLessonId(), request.getQuestion())));
+    public ResponseEntity<RagService.RespostaChat> tutor(@RequestBody TutorRequest request) {
+        return ResponseEntity.ok(ragService.chat(request.getQuestion(), List.of(), request.getLessonId(), null));
     }
 
     /** Explica as questoes que o aluno errou na avaliacao da aula. */
