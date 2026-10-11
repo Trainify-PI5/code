@@ -40,10 +40,16 @@ public interface TrainifyAiClient {
     @DeleteMapping("/api/ingest/courses/{courseId}")
     Map<String, Object> removeCourse(@PathVariable("courseId") String courseId);
 
+    @GetMapping("/api/courses")
+    IndexedCourses indexedCourses();
+
     // ── contratos (mesmos nomes de campo do servico Python) ──
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Health(String status, @JsonProperty("llm_configured") boolean llmConfigured) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record IndexedCourses(@JsonProperty("course_ids") List<String> courseIds) {}
 
     record HistoryMessage(String role, String content) {}
 

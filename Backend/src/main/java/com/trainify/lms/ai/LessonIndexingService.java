@@ -46,12 +46,17 @@ public class LessonIndexingService {
 
     // ── operacoes ──
 
-    /** Envia o conteudo atual da aula para o indice. Aula sem conteudo (ex.: quiz) sai do indice. */
+    /**
+     * Envia o conteudo atual da aula para o indice. Aula sem conteudo (ex.: quiz)
+     * sai do indice.
+     *
+     * @return true se algum conteudo foi indexado
+     */
     @Transactional(readOnly = true)
-    public void indexar(UUID lessonId) {
+    public boolean indexar(UUID lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
         if (lesson == null) {
-            return; // excluida antes do evento ser tratado
+            return false; // excluida antes do evento ser tratado
         }
 
         TrainifyAiClient.IngestRequest pedido = montarPedido(lesson);
@@ -59,27 +64,34 @@ public class LessonIndexingService {
 
         if (pedido == null) {
             ai.removeLesson(courseId, lessonId.toString());
-            return;
+            return false;
         }
 
         try {
             ai.ingestLesson(lessonId.toString(), pedido);
             log.info("Aula {} indexada no servico de IA", lessonId);
+            return true;
         } catch (FeignException.UnprocessableEntity e) {
             // Ex.: PDF escaneado, sem texto. Nao e erro do sistema, so nao ha o que indexar.
             log.warn("Aula {} sem texto aproveitavel para a IA: {}", lessonId, e.contentUTF8());
+            return false;
         }
     }
 
-    /** Reindexa todas as aulas do curso (cursos criados antes da IA, ou depois de uma falha). */
+    /**
+     * Reindexa todas as aulas do curso (cursos criados antes da IA, ou depois de uma falha).
+     *
+     * @return quantas aulas tinham conteudo e foram indexadas
+     */
     @Transactional(readOnly = true)
     public int reindexarCurso(UUID courseId) {
         int quantidade = 0;
         for (Module module : moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)) {
             for (Lesson lesson : lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())) {
                 try {
-                    indexar(lesson.getId());
-                    quantidade++;
+                    if (indexar(lesson.getId())) {
+                        quantidade++;
+                    }
                 } catch (FeignException e) {
                     // Uma aula com problema nao impede as outras
                     log.warn("Falha ao reindexar a aula {}: {}", lesson.getId(), e.getMessage());
