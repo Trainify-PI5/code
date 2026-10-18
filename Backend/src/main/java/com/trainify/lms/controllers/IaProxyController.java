@@ -1,5 +1,6 @@
 package com.trainify.lms.controllers;
 
+import com.trainify.lms.ai.AiContentMissingException;
 import com.trainify.lms.ai.AiUnavailableException;
 import com.trainify.lms.ai.RagService;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -30,11 +31,18 @@ public class IaProxyController {
     @PreAuthorize("isAuthenticated()")
     @CircuitBreaker(name = "iaChat", fallbackMethod = "chatFallback")
     public ResponseEntity<RagService.RespostaChat> chat(@RequestBody ChatRequestDto request) {
-        return ResponseEntity.ok(ragService.chat(
-                request.getQuery(),
-                request.getHistory(),
-                paraUuid(request.getLessonId()),
-                paraUuid(request.getCourseId())));
+        try {
+            return ResponseEntity.ok(ragService.chat(
+                    request.getQuery(),
+                    request.getHistory(),
+                    paraUuid(request.getLessonId()),
+                    paraUuid(request.getCourseId())));
+        } catch (AiContentMissingException e) {
+            // Nao haver material sobre o assunto e uma resposta do assistente. Como
+            // erro, a tela mostrava uma tarja vermelha de falha para uma conversa
+            // que correu normalmente.
+            return ResponseEntity.ok(new RagService.RespostaChat(e.getMessage(), List.of()));
+        }
     }
 
     /**

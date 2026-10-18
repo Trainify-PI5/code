@@ -8,6 +8,7 @@ import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input } from '../components/ui';
+import { requestError } from '../lib/requestError';
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   VIDEO: 'Vídeo',
@@ -75,8 +76,15 @@ export default function LessonPlayer() {
       const resposta = await perguntarAssistente(pergunta, historico, { lessonId: activeLesson?.id, courseId: id });
       setConversaIa((atual) => [...atual, { role: 'assistant', text: resposta.response, sources: resposta.sources }]);
     } catch (err) {
+      // O backend explica o motivo (sem acesso ao curso, pergunta vazia, serviço
+      // fora do ar). Trocar tudo por "tente novamente" escondia o que houve de
+      // quem usa e de quem vai investigar depois.
       console.error('Erro ao consultar o assistente', err);
-      setConversaIa((atual) => [...atual, { role: 'assistant', text: 'O assistente não respondeu. Tente novamente.', erro: true }]);
+      setConversaIa((atual) => [...atual, {
+        role: 'assistant',
+        text: requestError(err, 'O assistente não respondeu. Tente novamente.'),
+        erro: true,
+      }]);
     } finally {
       setEnviandoIa(false);
     }

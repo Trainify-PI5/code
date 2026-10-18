@@ -16,6 +16,7 @@ import MarkdownText from "../components/MarkdownText";
 import { useAuthStore } from "../store/authStore";
 import { useLanguage } from "../contexts/LanguageContext";
 import { ConfirmDialog, useToast } from "../components/ui";
+import { requestError } from '../lib/requestError';
 
 interface Message {
   id: string;
@@ -118,11 +119,14 @@ export default function IAAssistant() {
       };
 
       setMessages((prev) => [...prev, modelMsg]);
-    } catch {
+    } catch (err) {
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "model",
-        text: "O assistente inteligente está indisponível no momento. Por favor, tente novamente em alguns instantes.",
+        text: requestError(
+          err,
+          "O assistente inteligente está indisponível no momento. Por favor, tente novamente em alguns instantes.",
+        ),
         historico: false,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
