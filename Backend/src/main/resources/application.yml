@@ -8,9 +8,11 @@ spring:
     name: trainify-backend
   servlet:
     multipart:
-      # "Criar curso com IA" recebe PDFs direto (o padrao do Spring e 1 MB)
-      max-file-size: 20MB
-      max-request-size: 55MB
+      # "Criar curso com IA" recebe PDFs direto (o padrao do Spring e 1 MB).
+      # Os numeros acompanham os limites de CourseGenerationService, que existem
+      # para o envio caber na memoria da instancia.
+      max-file-size: 10MB
+      max-request-size: 18MB
   profiles:
     active: dev
   datasource:

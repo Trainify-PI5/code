@@ -47,14 +47,33 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CourseGenerationService {
 
-    static final int MAX_DOCUMENTOS = 10;
-    static final long MAX_BYTES_POR_DOCUMENTO = 20L * 1024 * 1024;
-    static final long MAX_BYTES_TOTAL = 50L * 1024 * 1024;
+    /*
+     * Os documentos vivem inteiros na memoria: o arquivo lido, o texto em base64
+     * e, depois, o corpo da requisicao montado pelo cliente HTTP. Um envio chega
+     * a ocupar umas tres vezes o tamanho somado dos arquivos, e a instancia da
+     * hospedagem tem pouco mais de 300 MB de heap. Estes numeros sao o limite
+     * seguro para ela; se o plano mudar, e aqui e no multipart do application.yml
+     * que eles crescem juntos.
+     */
+    static final int MAX_DOCUMENTOS = 5;
+    static final long MAX_BYTES_POR_DOCUMENTO = 10L * 1024 * 1024;
+    static final long MAX_BYTES_TOTAL = 15L * 1024 * 1024;
     private static final int MAX_TITULO = 200;
 
     private final TrainifyAiClient ai;
     private final CourseGenerationDraftRepository repository;
     private final CourseService courseService;
+
+    /**
+     * Uma geracao por vez. Duas pessoas enviando documentos ao mesmo tempo
+     * somavam o dobro de memoria e derrubavam a API inteira, nao so a geracao.
+     */
+    private java.util.concurrent.Semaphore vagas = new java.util.concurrent.Semaphore(1);
+
+    @org.springframework.beans.factory.annotation.Value("${app.ai.course-drafts.simultaneas:1}")
+    void configurarSimultaneas(int quantas) {
+        this.vagas = new java.util.concurrent.Semaphore(Math.max(1, quantas));
+    }
 
     public record DraftDto(
             UUID id, String status, int progress, String step, List<String> documentNames,
@@ -62,29 +81,48 @@ public class CourseGenerationService {
 
     // ── comecar ──
 
-    @Transactional
+    /**
+     * Sem transacao de proposito: o envio dos documentos leva segundos e seguraria
+     * uma conexao do banco por todo esse tempo. O rascunho e gravado numa
+     * transacao propria, curta, e apagado se o envio falhar.
+     */
     public DraftDto iniciar(List<MultipartFile> arquivos, String instrucoes, int minModulos, int maxModulos) {
         CustomUserDetails usuario = usuarioAtual();
-        List<TrainifyAiClient.DraftDocument> documentos = lerDocumentos(arquivos);
         if (minModulos < 1 || maxModulos > 8 || minModulos > maxModulos) {
             throw new IllegalArgumentException("Escolha entre 1 e 8 módulos.");
         }
-        String orientacao = instrucoes == null || instrucoes.isBlank() ? null
-                : instrucoes.trim().substring(0, Math.min(500, instrucoes.trim().length()));
 
-        CourseGenerationDraft rascunho = new CourseGenerationDraft();
-        rascunho.setTenantId(usuario.getTenantId());
-        rascunho.setCreatedBy(usuario.getId());
-        rascunho.setStatus(Status.PROCESSING);
-        rascunho.setStep("Enviando os documentos para a IA");
-        rascunho.setDocumentNames(documentos.stream().map(TrainifyAiClient.DraftDocument::name).toList());
-        rascunho.setInstructions(orientacao);
-        rascunho = repository.saveAndFlush(rascunho);
+        if (!vagas.tryAcquire()) {
+            throw new AiUnavailableException(
+                    "Já há uma geração de curso em andamento. Aguarde alguns instantes e tente de novo.");
+        }
+        try {
+            List<TrainifyAiClient.DraftDocument> documentos = lerDocumentos(arquivos);
+            String orientacao = instrucoes == null || instrucoes.isBlank() ? null
+                    : instrucoes.trim().substring(0, Math.min(500, instrucoes.trim().length()));
 
-        final UUID id = rascunho.getId();
-        AiErrors.chamar(() -> ai.createCourseDraft(new TrainifyAiClient.CourseDraftRequest(
-                id.toString(), documentos, minModulos, maxModulos, orientacao)));
-        return dto(rascunho);
+            CourseGenerationDraft rascunho = new CourseGenerationDraft();
+            rascunho.setTenantId(usuario.getTenantId());
+            rascunho.setCreatedBy(usuario.getId());
+            rascunho.setStatus(Status.PROCESSING);
+            rascunho.setStep("Enviando os documentos para a IA");
+            rascunho.setDocumentNames(documentos.stream().map(TrainifyAiClient.DraftDocument::name).toList());
+            rascunho.setInstructions(orientacao);
+            rascunho = repository.saveAndFlush(rascunho);
+
+            final UUID id = rascunho.getId();
+            try {
+                AiErrors.chamar(() -> ai.createCourseDraft(new TrainifyAiClient.CourseDraftRequest(
+                        id.toString(), documentos, minModulos, maxModulos, orientacao)));
+            } catch (RuntimeException e) {
+                // Sem isto sobraria um rascunho preso em "processando" para sempre
+                repository.delete(rascunho);
+                throw e;
+            }
+            return dto(rascunho);
+        } finally {
+            vagas.release();
+        }
     }
 
     /** PDFs viram base64; .txt e .md vao como texto. Nomes repetidos ganham um sufixo. */
@@ -98,18 +136,25 @@ public class CourseGenerationService {
             throw new IllegalArgumentException("Envie no máximo " + MAX_DOCUMENTOS + " documentos por vez.");
         }
 
+        // Os tamanhos sao conferidos antes de ler qualquer byte: recusar no ultimo
+        // arquivo depois de carregar os anteriores ja custou a memoria toda.
         long total = 0;
+        for (MultipartFile arquivo : validos) {
+            if (arquivo.getSize() > MAX_BYTES_POR_DOCUMENTO) {
+                throw new IllegalArgumentException("\"" + nomeLegivel(arquivo) + "\" passa de "
+                        + (MAX_BYTES_POR_DOCUMENTO / (1024 * 1024)) + " MB.");
+            }
+            total += arquivo.getSize();
+        }
+        if (total > MAX_BYTES_TOTAL) {
+            throw new IllegalArgumentException("Os documentos passam de "
+                    + (MAX_BYTES_TOTAL / (1024 * 1024)) + " MB no total. Envie menos arquivos por vez.");
+        }
+
         Set<String> nomes = new HashSet<>();
         List<TrainifyAiClient.DraftDocument> documentos = new ArrayList<>();
         for (MultipartFile arquivo : validos) {
             String nome = nomeUnico(arquivo.getOriginalFilename(), nomes);
-            if (arquivo.getSize() > MAX_BYTES_POR_DOCUMENTO) {
-                throw new IllegalArgumentException("\"" + nome + "\" passa de 20 MB.");
-            }
-            total += arquivo.getSize();
-            if (total > MAX_BYTES_TOTAL) {
-                throw new IllegalArgumentException("Os documentos passam de 50 MB no total. Envie menos arquivos por vez.");
-            }
 
             byte[] bytes;
             try {
@@ -127,6 +172,11 @@ public class CourseGenerationService {
             }
         }
         return documentos;
+    }
+
+    private static String nomeLegivel(MultipartFile arquivo) {
+        String nome = arquivo.getOriginalFilename();
+        return nome == null || nome.isBlank() ? "documento" : nome;
     }
 
     private static String nomeUnico(String original, Set<String> usados) {
