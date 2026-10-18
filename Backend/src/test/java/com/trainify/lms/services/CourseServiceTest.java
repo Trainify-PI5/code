@@ -93,6 +93,10 @@ public class CourseServiceTest {
         mockCourse.setStatus(CourseStatus.DRAFT);
         mockCourse.setInstructor(mockInstructor);
         mockCourse.setTenant(mockTenant);
+
+        // Toda operacao de curso exige usuario logado: a checagem de empresa
+        // depende de saber quem esta pedindo
+        comoInstrutorDoCurso();
     }
 
     @Test
@@ -170,6 +174,11 @@ public class CourseServiceTest {
         }
 
         verify(events).publishEvent(new com.trainify.lms.ai.AiIndexEvents.LessonRemoved(courseId, lesson.getId()));
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void encerrarSessao() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     private void comoInstrutorDoCurso() {

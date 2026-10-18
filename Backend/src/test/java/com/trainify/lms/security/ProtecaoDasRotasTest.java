@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
@@ -58,6 +59,26 @@ class ProtecaoDasRotasTest {
                         .content("{isto nao e json"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").exists());
+    }
+
+    /**
+     * O relatorio traz uma linha por matricula da empresa inteira, com nome e nota
+     * de cada pessoa. O instrutor nao tem tela para isso e o relatorio nao se
+     * limita aos cursos dele, entao a API tambem nao deve abrir.
+     */
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "INSTRUCTOR")
+    void instrutorNaoPuxaORelatorioDaEmpresaInteira() throws Exception {
+        mockMvc.perform(get("/api/v1/analytics/report"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(roles = "MANAGER")
+    void gestorContinuaPuxandoORelatorio() throws Exception {
+        // Passa da permissao; o que acontece depois depende do banco
+        mockMvc.perform(get("/api/v1/analytics/report"))
+                .andExpect(status().is(not(403)));
     }
 
     @Test

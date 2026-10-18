@@ -25,8 +25,13 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
 
     /** Dados brutos para o relatorio exportado pela tela de Dashboards. */
+    /**
+     * Uma linha por matricula da empresa inteira, com nome e nota de cada pessoa.
+     * Fora do instrutor de proposito: ele nao tem tela para isso e o relatorio
+     * nao se limita aos cursos dele.
+     */
     @GetMapping("/report")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'INSTRUCTOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')")
     public ResponseEntity<List<ReportRowDto>> getReport() {
         return ResponseEntity.ok(analyticsService.getReport());
     }

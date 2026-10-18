@@ -46,10 +46,32 @@ public class CourseService {
     private final ApplicationEventPublisher events;
 
     private CustomUserDetails getCurrentUser() {
-        return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var autenticacao = SecurityContextHolder.getContext().getAuthentication();
+        if (autenticacao == null || !(autenticacao.getPrincipal() instanceof CustomUserDetails usuario)) {
+            return null;
+        }
+        return usuario;
+    }
+
+    /**
+     * Curso de outra empresa deve parecer inexistente, nao recusado: responder
+     * "sem permissao" ja confirmaria que aquele identificador existe.
+     *
+     * Isto faltava em quatro caminhos — ler, publicar, adicionar modulo e
+     * adicionar aula — e bastava conhecer o identificador para alcancar o curso
+     * de outra empresa. A checagem de instrutor tambem nao olhava a empresa:
+     * quem administra uma passava a administrar todas.
+     */
+    private void garantirMesmaEmpresa(Course course) {
+        CustomUserDetails usuario = getCurrentUser();
+        if (usuario == null || course.getTenant() == null
+                || !course.getTenant().getId().equals(usuario.getTenantId())) {
+            throw new EntityNotFoundException("Course not found");
+        }
     }
 
     private void checkInstructorAccess(Course course) {
+        garantirMesmaEmpresa(course);
         CustomUserDetails currentUser = getCurrentUser();
         boolean isAdmin = currentUser.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN")
@@ -86,6 +108,7 @@ public class CourseService {
     public CourseDto getCourseById(UUID id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+        garantirMesmaEmpresa(course);
         return mapToDto(course);
     }
 
@@ -134,6 +157,7 @@ public class CourseService {
     public CourseDto publishCourse(UUID id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+        checkInstructorAccess(course);
 
         List<Module> modules = moduleRepository.findByCourseIdOrderByOrderIndexAsc(course.getId());
         if (modules.isEmpty()) {
@@ -182,6 +206,7 @@ public class CourseService {
     public ModuleDto addModule(UUID courseId, CreateModuleRequest request) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+        checkInstructorAccess(course);
 
         List<Module> existingModules = moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId);
         int nextOrder = existingModules.size() + 1;
@@ -223,6 +248,7 @@ public class CourseService {
     public LessonDto addLesson(UUID moduleId, CreateLessonRequest request) {
         Module module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new EntityNotFoundException("Module not found"));
+        checkInstructorAccess(module.getCourse());
 
         List<Lesson> existingLessons = lessonRepository.findByModuleIdOrderByOrderIndexAsc(moduleId);
         int nextOrder = existingLessons.size() + 1;
