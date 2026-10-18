@@ -29,7 +29,11 @@ const TAMANHOS = {
   completo: { label: 'Completo (3 a 6 módulos)', min: 3, max: 6 },
 } as const;
 
-const LIMITE_ARQUIVO = 20 * 1024 * 1024;
+// Os mesmos limites do backend (CourseGenerationService): os documentos sao
+// carregados inteiros na memoria do servidor para irem ate a IA.
+const LIMITE_ARQUIVO = 10 * 1024 * 1024;
+const LIMITE_TOTAL = 15 * 1024 * 1024;
+const MAX_ARQUIVOS = 5;
 const INTERVALO_CONSULTA_MS = 4000;
 
 const tamanhoLegivel = (bytes: number) =>
@@ -146,13 +150,21 @@ function EnviarDocumentos({ onIniciado }: { onIniciado: (id: string) => void }) 
     const novos = Array.from(lista);
     const grandes = novos.filter((f) => f.size > LIMITE_ARQUIVO);
     if (grandes.length) {
-      setErro(`Arquivo grande demais (máximo 20 MB): ${grandes.map((f) => f.name).join(', ')}`);
+      setErro(`Arquivo grande demais (máximo ${tamanhoLegivel(LIMITE_ARQUIVO)}): ${grandes.map((f) => f.name).join(', ')}`);
     } else {
       setErro(null);
     }
     setArquivos((atuais) => {
       const nomes = new Set(atuais.map((f) => f.name));
-      return [...atuais, ...novos.filter((f) => f.size <= LIMITE_ARQUIVO && !nomes.has(f.name))].slice(0, 10);
+      const cabem = novos.filter((f) => f.size <= LIMITE_ARQUIVO && !nomes.has(f.name));
+      const juntos = [...atuais, ...cabem].slice(0, MAX_ARQUIVOS);
+
+      // Avisar aqui evita subir tudo para o servidor so para ser recusado
+      const total = juntos.reduce((soma, f) => soma + f.size, 0);
+      if (total > LIMITE_TOTAL) {
+        setErro(`Os documentos somam ${tamanhoLegivel(total)} e o limite é ${tamanhoLegivel(LIMITE_TOTAL)}. Remova algum arquivo.`);
+      }
+      return juntos;
     });
     if (entrada.current) entrada.current.value = '';
   };
@@ -182,7 +194,7 @@ function EnviarDocumentos({ onIniciado }: { onIniciado: (id: string) => void }) 
       <div>
         <h2 className="text-base font-semibold text-on-surface">Documentos</h2>
         <p className="text-sm text-on-surface-variant">
-          PDFs com texto (não escaneados), .txt ou .md. Até 10 arquivos de 20 MB.
+          PDFs com texto (não escaneados), .txt ou .md. Até 5 arquivos, 10 MB cada e 15 MB no total.
         </p>
       </div>
 

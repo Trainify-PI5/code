@@ -3,11 +3,13 @@ package com.trainify.lms.ai;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -216,6 +218,98 @@ class CourseGenerationServiceTest {
         r.setStatus(status);
         when(repository.findById(r.getId())).thenReturn(Optional.of(r));
         return r;
+    }
+
+    // ── memoria: o envio precisa caber na instancia ──
+
+    /**
+     * Arquivo que mente o tamanho e explode se alguem ler o conteudo. Serve para
+     * provar que a recusa acontece antes de carregar qualquer byte na memoria.
+     */
+    private static MultipartFile pesadoDemais(String nome, long bytes) {
+        return new MockMultipartFile("files", nome, "application/pdf", new byte[]{1}) {
+            @Override
+            public long getSize() {
+                return bytes;
+            }
+
+            @Override
+            public byte[] getBytes() {
+                throw new AssertionError("nao pode ler o conteudo de um arquivo ja recusado");
+            }
+        };
+    }
+
+    @Test
+    void recusaArquivoGrandeDemaisSemLerOConteudo() {
+        MultipartFile gigante = pesadoDemais("manual.pdf", CourseGenerationService.MAX_BYTES_POR_DOCUMENTO + 1);
+
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
+                () -> service.iniciar(List.of(gigante), null, 2, 4));
+
+        assertTrue(erro.getMessage().contains("manual.pdf"));
+        verify(ai, never()).createCourseDraft(any());
+    }
+
+    @Test
+    void recusaQuandoASomaPassaDoLimiteAntesDeCarregarQualquerArquivo() {
+        long metadeDoTeto = CourseGenerationService.MAX_BYTES_TOTAL / 2 + 1;
+        // Cada um cabe sozinho; juntos, nao
+        MultipartFile um = pesadoDemais("parte1.pdf", metadeDoTeto);
+        MultipartFile dois = pesadoDemais("parte2.pdf", metadeDoTeto);
+
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
+                () -> service.iniciar(List.of(um, dois), null, 2, 4));
+
+        assertTrue(erro.getMessage().contains("no total"));
+        verify(ai, never()).createCourseDraft(any());
+    }
+
+    @Test
+    void umaGeracaoPorVez() throws Exception {
+        var entrou = new java.util.concurrent.CountDownLatch(1);
+        var podeSair = new java.util.concurrent.CountDownLatch(1);
+
+        when(ai.createCourseDraft(any())).thenAnswer(i -> {
+            entrou.countDown();
+            podeSair.await(5, java.util.concurrent.TimeUnit.SECONDS);
+            return null;
+        });
+
+        var executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        try {
+            var contexto = SecurityContextHolder.getContext();
+            var primeira = executor.submit(() -> {
+                SecurityContextHolder.setContext(contexto);
+                return service.iniciar(List.of(pdf("manual.pdf")), null, 2, 4);
+            });
+
+            assertTrue(entrou.await(5, java.util.concurrent.TimeUnit.SECONDS), "a primeira geração não começou");
+
+            // Com a primeira ocupando a vaga, a segunda e recusada em vez de somar memoria
+            assertThrows(AiUnavailableException.class,
+                    () -> service.iniciar(List.of(pdf("outro.pdf")), null, 2, 4));
+
+            podeSair.countDown();
+            assertNotNull(primeira.get(5, java.util.concurrent.TimeUnit.SECONDS));
+        } finally {
+            podeSair.countDown();
+            executor.shutdownNow();
+        }
+
+        // A vaga volta no fim: a proxima geração entra normalmente
+        reset(ai);
+        assertNotNull(service.iniciar(List.of(pdf("depois.pdf")), null, 2, 4));
+    }
+
+    @Test
+    void rascunhoNaoSobraPresoQuandoOEnvioFalha() {
+        when(ai.createCourseDraft(any())).thenThrow(new RuntimeException("servico fora do ar"));
+
+        assertThrows(RuntimeException.class,
+                () -> service.iniciar(List.of(pdf("manual.pdf")), null, 2, 4));
+
+        verify(repository).delete(any());
     }
 
     private static MockMultipartFile pdf(String nome) {
