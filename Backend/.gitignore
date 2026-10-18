@@ -33,6 +33,8 @@ build/
 .vscode/
 
 ### Custom/Temp ###
+# o Backend e Java, mas uma ferramenta de front rodada por engano aqui deixa isto
+node_modules/
 *.log
 *.class
 *.py
