@@ -24,8 +24,7 @@ jobs:
 
       - name: Testes do backend
         working-directory: Backend
-        # O contextLoads precisa de banco e nao roda aqui; os demais precisam passar
-        run: ./mvnw -B test -Dtest='!TrainifyBackendApplicationTests'
+        run: ./mvnw -B test
 
   frontend:
     name: Frontend
