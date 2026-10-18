@@ -398,6 +398,24 @@ export const CourseBuilder: React.FC = () => {
                         ) : (
                           <UploadMedia onUploadComplete={(id) => handleLessonChange(modIdx, lessIdx, 'videoAssetId', id)} />
                         )}
+
+                        {/* O mesmo texto serve ao aluno, que le antes de dar play, e ao
+                            assistente, que nao tem como assistir ao video */}
+                        <div className="pt-1">
+                          <label className="block text-xs font-medium text-on-surface-variant mb-2">
+                            Resumo da aula
+                          </label>
+                          <textarea
+                            value={less.description}
+                            onChange={(e) => handleLessonChange(modIdx, lessIdx, 'description', e.target.value)}
+                            placeholder="Em duas ou três linhas, do que trata este vídeo?"
+                            rows={3}
+                            className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface outline-none focus:ring-2 focus:ring-primary/50 resize-none text-sm"
+                          />
+                          <p className="text-xs text-on-surface-variant mt-1">
+                            Aparece para o aluno abaixo do vídeo e é o que o assistente de IA consegue ler.
+                          </p>
+                        </div>
                       </div>
                     ) : less.lessonType === 'DOCUMENT' ? (
                       <div className="pt-2 space-y-3">

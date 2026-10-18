@@ -27,29 +27,6 @@ public class LessonController {
         return ResponseEntity.ok(courseService.updateLesson(lessonId, request));
     }
 
-    /** Transcricao em texto puro, pronta para o navegador baixar. */
-    // Sem restringir o tipo aqui: com produces=text/plain o erro em JSON nao consegue
-    // ser escrito e a resposta vira 500 em vez de 404
-    @GetMapping("/{lessonId}/transcript")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> getTranscript(@PathVariable UUID lessonId) {
-        String transcript = courseService.getLessonTranscript(lessonId);
-        return ResponseEntity.ok()
-                .contentType(org.springframework.http.MediaType.parseMediaType("text/plain; charset=UTF-8"))
-                .header("Content-Disposition", "attachment; filename=\"transcricao-" + lessonId + ".txt\"")
-                .body(transcript);
-    }
-
-    @PutMapping("/{lessonId}/transcript")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
-    public ResponseEntity<Void> updateTranscript(
-            @PathVariable UUID lessonId,
-            @RequestBody java.util.Map<String, String> body
-    ) {
-        courseService.updateLessonTranscript(lessonId, body.get("transcript"));
-        return ResponseEntity.noContent().build();
-    }
-
     @DeleteMapping("/{lessonId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<Void> deleteLesson(@PathVariable UUID lessonId) {

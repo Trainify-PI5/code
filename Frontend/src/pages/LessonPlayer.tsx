@@ -2,13 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { montarHistorico, perguntarAssistente, type FonteIa } from '../lib/iaChat';
 import MarkdownText from '../components/MarkdownText';
-import { ArrowLeft, CheckCircle2, Circle, FileText, List, Lock, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, List, Lock, MessageSquare } from 'lucide-react';
 import api from '../services/api';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
-import { Button, Input, useToast } from '../components/ui';
-import { baixarBlob, nomeDeArquivo } from '../lib/download';
+import { Button, Input } from '../components/ui';
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   VIDEO: 'Vídeo',
@@ -47,7 +46,6 @@ export default function LessonPlayer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const toast = useToast();
 
   // Estados
   const [course, setCourse] = useState<any>(null);
@@ -60,33 +58,9 @@ export default function LessonPlayer() {
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgressItem>>({});
   const [completing, setCompleting] = useState(false);
-  const [baixandoTranscricao, setBaixandoTranscricao] = useState(false);
   const [perguntaIa, setPerguntaIa] = useState('');
   const [enviandoIa, setEnviandoIa] = useState(false);
   const [conversaIa, setConversaIa] = useState<{ role: 'user' | 'assistant'; text: string; sources?: FonteIa[]; erro?: boolean }[]>([]);
-
-  const baixarTranscricao = async () => {
-    if (!activeLesson?.id) return;
-    setBaixandoTranscricao(true);
-    try {
-      const { data } = await api.get(`/lessons/${activeLesson.id}/transcript`, {
-        responseType: 'blob',
-      });
-
-      baixarBlob(data, `transcricao-${nomeDeArquivo(activeLesson.title, activeLesson.id)}.txt`);
-    } catch (err: any) {
-      // A API responde 404 quando a aula nao tem transcricao gravada — e
-      // ausencia de conteudo, nao falha.
-      if (err?.response?.status === 404) {
-        toast.info('Esta aula ainda não tem transcrição.');
-        return;
-      }
-      console.error('Erro ao baixar transcrição', err);
-      toast.error('Não foi possível baixar a transcrição.');
-    } finally {
-      setBaixandoTranscricao(false);
-    }
-  };
 
   const perguntarIa = async () => {
     const pergunta = perguntaIa.trim();
@@ -324,20 +298,9 @@ export default function LessonPlayer() {
                 ) : null}
 
                 <div className="p-8 max-w-5xl mx-auto w-full flex-1">
-                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                     <h2 className="text-2xl font-bold text-on-surface min-w-0">
-                       {activeLesson.title}
-                     </h2>
-                     <Button
-                       variant="secondary"
-                       size="sm"
-                       onClick={baixarTranscricao}
-                       disabled={baixandoTranscricao}
-                     >
-                       <FileText className="w-4 h-4" />
-                       {baixandoTranscricao ? 'Baixando...' : 'Transcrição'}
-                     </Button>
-                   </div>
+                   <h2 className="text-2xl font-bold text-on-surface min-w-0 mb-4">
+                     {activeLesson.title}
+                   </h2>
                    {/* O texto da aula pode ter titulos, listas e paragrafos (aulas geradas
                        pela IA e textos longos como as NRs); sem isto, virava um bloco so */}
                    <div className="max-w-none text-on-surface-variant leading-relaxed">

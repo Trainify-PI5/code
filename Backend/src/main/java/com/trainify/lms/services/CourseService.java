@@ -83,35 +83,6 @@ public class CourseService {
      * o instrutor tambem pode escrever ou corrigir pela tela.
      */
     @Transactional(readOnly = true)
-    public String getLessonTranscript(UUID lessonId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new EntityNotFoundException("Lesson not found"));
-
-        String transcript = lesson.getVideoAsset() == null ? null : lesson.getVideoAsset().getTranscript();
-        if (transcript == null || transcript.isBlank()) {
-            throw new EntityNotFoundException("Esta aula ainda nao tem transcricao disponivel.");
-        }
-        return transcript;
-    }
-
-    @Transactional
-    public void updateLessonTranscript(UUID lessonId, String transcript) {
-        Lesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new EntityNotFoundException("Lesson not found"));
-
-        // Permissao primeiro: sem isso a mensagem de erro ja contava se a aula tem
-        // midia para quem nem pode mexer nela
-        checkInstructorAccess(lesson.getModule().getCourse());
-
-        if (lesson.getVideoAsset() == null) {
-            throw new IllegalArgumentException("A aula precisa de um video ou documento para receber a transcricao.");
-        }
-        lesson.getVideoAsset().setTranscript(transcript);
-        mediaAssetRepository.save(lesson.getVideoAsset());
-        events.publishEvent(new AiIndexEvents.LessonChanged(lessonId));
-    }
-
-    @Transactional(readOnly = true)
     public CourseDto getCourseById(UUID id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));

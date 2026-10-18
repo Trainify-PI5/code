@@ -1,6 +1,5 @@
 package com.trainify.lms.controllers;
 
-import com.trainify.lms.clients.IaServiceClient;
 import com.trainify.lms.domain.entities.MediaAsset;
 import com.trainify.lms.domain.entities.Tenant;
 import com.trainify.lms.dto.GenerateUploadUrlRequest;
@@ -27,7 +26,6 @@ public class MediaController {
 
     private final S3Service s3Service;
     private final MediaAssetRepository mediaAssetRepository;
-    private final IaServiceClient iaServiceClient;
 
     @PostMapping("/upload-url")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
@@ -89,18 +87,6 @@ public class MediaController {
         
         mediaAsset = mediaAssetRepository.save(mediaAsset);
         
-        try {
-            iaServiceClient.triggerTranscription(new IaServiceClient.TranscribeRequest(
-                    mediaAsset.getId().toString(),
-                    request.getKey(),
-                    userDetails.getTenantId().toString(),
-                    "" // CourseId não disponível diretamente aqui sem vínculo da lição
-            ));
-            log.info("Disparou IA task de transcrição para video {}", mediaAsset.getId());
-        } catch (Exception e) {
-            log.error("Falha ao comunicar com IA Service: {}", e.getMessage());
-        }
-
         return ResponseEntity.ok(Map.of("id", mediaAsset.getId()));
     }
 
