@@ -78,21 +78,19 @@ public class LessonIndexingService {
         }
     }
 
-    /** Quantas aulas tinham texto para a IA, de quantas o curso tem. */
-    public record Resultado(int comTexto, int total) {}
-
     /**
-     * Reindexa todas as aulas do curso (cursos criados antes da IA, ou depois de
-     * uma falha).
+     * Reindexa todas as aulas do curso. Quem chama e a sincronizacao periodica,
+     * que recupera o indice quando o servico de IA reinicia e perde o disco.
      *
      * Sem transacao em volta de proposito: cada aula e enviada ao servico de IA
      * numa chamada propria, e segurar uma conexao do banco durante todas elas
      * custaria caro num curso grande.
+     *
+     * @return quantas aulas tinham conteudo e foram indexadas
      */
-    public Resultado reindexarCurso(UUID courseId) {
-        java.util.List<UUID> aulas = aulasDoCurso(courseId);
+    public int reindexarCurso(UUID courseId) {
         int comTexto = 0;
-        for (UUID lessonId : aulas) {
+        for (UUID lessonId : aulasDoCurso(courseId)) {
             try {
                 if (indexar(lessonId)) {
                     comTexto++;
@@ -102,7 +100,7 @@ public class LessonIndexingService {
                 log.warn("Falha ao reindexar a aula {}: {}", lessonId, e.getMessage());
             }
         }
-        return new Resultado(comTexto, aulas.size());
+        return comTexto;
     }
 
     @Transactional(readOnly = true)

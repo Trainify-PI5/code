@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Save, Send, BookOpen, Layers, Video, FileText, CheckCircle2, Captions, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Save, Send, BookOpen, Layers, Video, FileText, CheckCircle2 } from 'lucide-react';
 import { UploadMedia } from '../components/UploadMedia';
 import AssessmentBuilder from '../components/Course/AssessmentBuilder';
 import api from '../services/api';
@@ -33,14 +33,6 @@ export const CourseBuilder: React.FC = () => {
   const [modules, setModules] = useState<Module[]>([]);
   const [savedCourseId, setSavedCourseId] = useState<string | undefined>(id);
   const saving = useRef(false);
-
-  // Transcricao: e o unico texto que a IA consegue ler de uma aula em video.
-  // Sem ela, um curso inteiro de video fica invisivel para o assistente.
-  const [transcricoes, setTranscricoes] = useState<Record<string, string>>({});
-  const [transcricaoAberta, setTranscricaoAberta] = useState<string | null>(null);
-  const [carregandoTranscricao, setCarregandoTranscricao] = useState(false);
-  const [salvandoTranscricao, setSalvandoTranscricao] = useState(false);
-  const [reindexando, setReindexando] = useState(false);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
   // guarda o que sera excluido enquanto o dialogo de confirmacao esta aberto
   const [exclusao, setExclusao] = useState<
@@ -96,58 +88,19 @@ export const CourseBuilder: React.FC = () => {
     setModules(updatedModules);
   };
 
-  const abrirTranscricao = async (lessonId: string) => {
-    if (transcricaoAberta === lessonId) {
-      setTranscricaoAberta(null);
-      return;
-    }
-    setTranscricaoAberta(lessonId);
-    if (transcricoes[lessonId] !== undefined) return;
-
-    setCarregandoTranscricao(true);
-    try {
-      const { data } = await api.get(`/lessons/${lessonId}/transcript`, { responseType: 'text' });
-      setTranscricoes((atuais) => ({ ...atuais, [lessonId]: typeof data === 'string' ? data : '' }));
-    } catch {
-      // A API responde 404 quando ainda nao ha transcricao: campo vazio, nao erro
-      setTranscricoes((atuais) => ({ ...atuais, [lessonId]: '' }));
-    } finally {
-      setCarregandoTranscricao(false);
-    }
-  };
-
-  const salvarTranscricao = async (lessonId: string) => {
-    setSalvandoTranscricao(true);
-    try {
-      await api.put(`/lessons/${lessonId}/transcript`, { transcript: transcricoes[lessonId] ?? '' });
-      toast.success('Transcrição salva. A IA já pode consultar esta aula.');
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Não foi possível salvar a transcrição.');
-    } finally {
-      setSalvandoTranscricao(false);
-    }
-  };
-
-  const reindexar = async () => {
-    if (!savedCourseId) return;
-    setReindexando(true);
-    try {
-      const { data } = await api.post(`/ai/courses/${savedCourseId}/reindex`);
-      if (!data.indexadas) {
-        toast.info(
-          data.total
-            ? 'Nenhuma das aulas tem texto que a IA consiga ler. Escreva o conteúdo ou adicione uma transcrição.'
-            : 'Este curso ainda não tem aulas.',
-        );
-      } else {
-        toast.success(`${data.indexadas} de ${data.total} aula(s) enviada(s) para a IA.`);
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Não foi possível falar com o serviço de IA agora.');
-    } finally {
-      setReindexando(false);
-    }
-  };
+  /**
+   * O assistente só consulta o que é texto: o conteúdo escrito da aula e o PDF
+   * enviado. Um curso feito só de vídeo não tem nada para ele ler, e quem
+   * publica precisa saber disso na hora, não ao perguntar e não receber resposta.
+   */
+  const temConteudoParaIa = (lista: Module[]) =>
+    lista.some((mod) =>
+      mod.lessons.some(
+        (less) =>
+          (less.description || '').trim() !== '' ||
+          (less.lessonType === 'DOCUMENT' && !!less.videoAssetId),
+      ),
+    );
 
   const handleAddLesson = (moduleIndex: number) => {
     const updatedModules = [...modules];
@@ -277,6 +230,9 @@ export const CourseBuilder: React.FC = () => {
       // 3. Publicar ou apenas guardar o rascunho
       if (publish) {
         await api.patch(`/courses/${courseId}/publish`);
+        if (!temConteudoParaIa(draftModules)) {
+          toast.info('Curso publicado. O assistente de IA não vai saber responder sobre ele: nenhuma aula tem texto para consultar.');
+        }
         navigate('/courses');
         return;
       }
@@ -319,12 +275,6 @@ export const CourseBuilder: React.FC = () => {
             <Save className="w-4 h-4" />
             Salvar Rascunho
           </Button>
-          {savedCourseId && (
-            <Button variant="secondary" disabled={reindexando} onClick={reindexar} title="Reenvia o conteúdo das aulas para o assistente de IA">
-              <RefreshCw className={`w-4 h-4 ${reindexando ? 'animate-spin' : ''}`} />
-              {reindexando ? 'Enviando...' : 'Atualizar IA'}
-            </Button>
-          )}
           <Button disabled={loading} onClick={() => saveCourse(true)}>
             <Send className="w-4 h-4" />
             Publicar Curso
@@ -448,56 +398,6 @@ export const CourseBuilder: React.FC = () => {
                         ) : (
                           <UploadMedia onUploadComplete={(id) => handleLessonChange(modIdx, lessIdx, 'videoAssetId', id)} />
                         )}
-
-                        {less.id && less.videoAssetId ? (
-                          <div className="border-t border-outline-variant pt-3">
-                            <button
-                              type="button"
-                              onClick={() => abrirTranscricao(less.id!)}
-                              className="flex items-center gap-2 text-sm font-medium text-primary"
-                            >
-                              <Captions className="w-4 h-4" />
-                              {transcricaoAberta === less.id ? 'Ocultar transcrição' : 'Transcrição para a IA'}
-                            </button>
-
-                            {transcricaoAberta === less.id && (
-                              <div className="mt-3 space-y-2">
-                                <p className="text-xs text-on-surface-variant">
-                                  O assistente não consegue assistir ao vídeo. Cole aqui o que é dito nele
-                                  para que a IA possa responder sobre esta aula.
-                                </p>
-                                {carregandoTranscricao ? (
-                                  <p className="text-sm text-on-surface-variant">Carregando...</p>
-                                ) : (
-                                  <>
-                                    <textarea
-                                      value={transcricoes[less.id] ?? ''}
-                                      onChange={(e) =>
-                                        setTranscricoes((atuais) => ({ ...atuais, [less.id!]: e.target.value }))
-                                      }
-                                      placeholder="Cole aqui a transcrição do vídeo..."
-                                      rows={6}
-                                      aria-label="Transcrição do vídeo"
-                                      className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => salvarTranscricao(less.id!)}
-                                      disabled={salvandoTranscricao}
-                                      className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
-                                    >
-                                      {salvandoTranscricao ? 'Salvando...' : 'Salvar transcrição'}
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ) : less.lessonType === 'VIDEO' && !less.id ? (
-                          <p className="text-xs text-on-surface-variant border-t border-outline-variant pt-3">
-                            Salve o rascunho para poder adicionar a transcrição que a IA vai ler.
-                          </p>
-                        ) : null}
                       </div>
                     ) : less.lessonType === 'DOCUMENT' ? (
                       <div className="pt-2 space-y-3">

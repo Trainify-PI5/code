@@ -26,8 +26,6 @@ public class AiController {
 
     private final AiService aiService;
     private final RagService ragService;
-    private final LessonIndexingService indexing;
-    private final AiCourseScope scope;
 
     /** Permite ao frontend esconder os botoes quando a IA nao esta configurada. */
     @GetMapping("/status")
@@ -49,25 +47,6 @@ public class AiController {
 
         int quantidade = Math.min(Math.max(questions, 1), 10);
         return ResponseEntity.ok(ragService.suggestQuiz(lessonId, quantidade, topic));
-    }
-
-    /**
-     * Manda todas as aulas do curso para o indice da IA de novo. Serve para cursos
-     * criados antes da IA existir, para quando o servico ficou fora do ar e, o mais
-     * comum, para descobrir que nenhuma aula tem texto que a IA consiga ler.
-     *
-     * Responde depois de terminar, e nao em segundo plano, porque o numero de aulas
-     * indexadas e a unica forma de quem publicou saber se a IA passou a enxergar o
-     * curso.
-     */
-    @PostMapping("/courses/{courseId}/reindex")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'INSTRUCTOR')")
-    public ResponseEntity<Map<String, Object>> reindex(@PathVariable UUID courseId) {
-        scope.resolver(null, courseId); // so quem tem acesso ao curso
-        LessonIndexingService.Resultado resultado = indexing.reindexarCurso(courseId);
-        return ResponseEntity.ok(Map.of(
-                "indexadas", resultado.comTexto(),
-                "total", resultado.total()));
     }
 
     @PostMapping("/lessons/{lessonId}/summary")

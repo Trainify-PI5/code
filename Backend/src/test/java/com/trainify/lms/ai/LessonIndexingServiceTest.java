@@ -105,12 +105,8 @@ class LessonIndexingServiceTest {
         verify(s3Service, never()).generatePresignedDownloadUrl(anyString());
     }
 
-    /**
-     * O numero de aulas com texto e a unica forma de quem publicou descobrir que
-     * um curso so de video esta invisivel para a IA.
-     */
     @Test
-    void reindexarContaQuantasAulasTinhamTextoDeQuantas() {
+    void reindexarIndexaSoAsAulasComTexto() {
         Lesson comTexto = aula("<p>Use sempre o capacete.</p>");
         Lesson semTexto = aula(null);
         Module modulo = comTexto.getModule();
@@ -123,10 +119,8 @@ class LessonIndexingServiceTest {
         when(lessonRepository.findById(comTexto.getId())).thenReturn(Optional.of(comTexto));
         when(lessonRepository.findById(semTexto.getId())).thenReturn(Optional.of(semTexto));
 
-        LessonIndexingService.Resultado resultado = indexing.reindexarCurso(curso);
+        assertEquals(1, indexing.reindexarCurso(curso));
 
-        assertEquals(1, resultado.comTexto());
-        assertEquals(2, resultado.total());
         verify(ai).ingestLesson(org.mockito.ArgumentMatchers.eq(comTexto.getId().toString()), any());
         // A aula sem texto sai do indice em vez de ficar com conteudo velho
         verify(ai).removeLesson(curso.toString(), semTexto.getId().toString());
@@ -137,9 +131,8 @@ class LessonIndexingServiceTest {
         UUID curso = UUID.randomUUID();
         when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(curso)).thenReturn(java.util.List.of());
 
-        LessonIndexingService.Resultado resultado = indexing.reindexarCurso(curso);
+        assertEquals(0, indexing.reindexarCurso(curso));
 
-        assertEquals(0, resultado.total());
         verify(ai, never()).ingestLesson(anyString(), any());
     }
 
