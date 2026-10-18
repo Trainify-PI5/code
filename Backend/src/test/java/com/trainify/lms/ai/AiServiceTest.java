@@ -8,6 +8,7 @@ import com.trainify.lms.domain.entities.MediaAsset;
 import com.trainify.lms.dto.CreateAssessmentRequest;
 import com.trainify.lms.repositories.AssessmentRepository;
 import com.trainify.lms.repositories.LessonRepository;
+import com.trainify.lms.repositories.UserAssessmentAnswerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -35,8 +36,38 @@ class AiServiceTest {
     @Mock private ClaudeGateway claude;
     @Mock private LessonRepository lessonRepository;
     @Mock private AssessmentRepository assessmentRepository;
+    @Mock private UserAssessmentAnswerRepository answerRepository;
 
     @InjectMocks private AiService aiService;
+
+    @org.junit.jupiter.api.AfterEach
+    void limparContexto() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
+    /**
+     * A explicacao revela a resposta certa, entao quem estuda so a recebe para o
+     * que errou de verdade. Aqui interessa o recorte das questoes, nao a regra de
+     * perfil, entao o teste entra como instrutor.
+     */
+    private void entrarComoInstrutor() {
+        com.trainify.lms.domain.entities.Tenant tenant = new com.trainify.lms.domain.entities.Tenant();
+        tenant.setId(UUID.randomUUID());
+
+        com.trainify.lms.domain.entities.User user = new com.trainify.lms.domain.entities.User();
+        user.setId(UUID.randomUUID());
+        user.setTenant(tenant);
+        user.setEmail("instrutor@empresa.com");
+        user.setName("Instrutor");
+        user.setPasswordHash("hash");
+        user.setRole(com.trainify.lms.domain.enums.Role.INSTRUCTOR);
+        user.setIsActive(true);
+
+        var detalhes = new com.trainify.lms.security.CustomUserDetails(user);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        detalhes, null, detalhes.getAuthorities()));
+    }
 
     private Lesson aulaCom(String conteudo, String transcricao) {
         Lesson lesson = new Lesson();
@@ -54,6 +85,7 @@ class AiServiceTest {
 
     @Test
     void explicaApenasAsQuestoesErradas() {
+        entrarComoInstrutor();
         AssessmentOption certa = new AssessmentOption();
         certa.setId(UUID.randomUUID());
         certa.setOptionText("Avisar o líder");

@@ -87,8 +87,11 @@ public class AiCourseScope {
 
         switch (role) {
             case SUPER_ADMIN, ADMIN, MANAGER -> {
-                List<Course> daEmpresa = empresa == null ? courseRepository.findAll() : courseRepository.findByTenantId(empresa);
-                daEmpresa.forEach(c -> cursos.add(c.getId()));
+                // Sem empresa identificada nao ha escopo seguro: nao devolver nada e
+                // melhor do que devolver a plataforma inteira
+                if (empresa != null) {
+                    courseRepository.findByTenantId(empresa).forEach(c -> cursos.add(c.getId()));
+                }
             }
             case INSTRUCTOR -> {
                 courseRepository.findByInstructorId(usuario.getId()).forEach(c -> cursos.add(c.getId()));
@@ -100,9 +103,11 @@ public class AiCourseScope {
     }
 
     private void matriculas(CustomUserDetails usuario, Set<UUID> cursos) {
+        if (usuario.getTenantId() == null) {
+            return;
+        }
         enrollmentRepository.findByUserId(usuario.getId()).stream()
-                .filter(m -> usuario.getTenantId() == null
-                        || m.getCourse().getTenant().getId().equals(usuario.getTenantId()))
+                .filter(m -> m.getCourse().getTenant().getId().equals(usuario.getTenantId()))
                 .forEach(m -> cursos.add(m.getCourse().getId()));
     }
 

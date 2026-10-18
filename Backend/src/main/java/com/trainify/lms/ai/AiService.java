@@ -1,7 +1,9 @@
 package com.trainify.lms.ai;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import com.trainify.lms.domain.entities.AssessmentQuestion;
 import com.trainify.lms.domain.entities.Lesson;
 import com.trainify.lms.repositories.AssessmentRepository;
 import com.trainify.lms.repositories.LessonRepository;
+import com.trainify.lms.repositories.UserAssessmentAnswerRepository;
+import com.trainify.lms.security.CustomUserDetails;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +39,14 @@ public class AiService {
             Responda sempre em português do Brasil, com linguagem simples e direta.
             """;
 
+    /** Perfis que ja enxergam o gabarito pela propria tela de avaliacoes. */
+    private static final Set<String> VE_GABARITO = Set.of(
+            "ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_MANAGER", "ROLE_INSTRUCTOR");
+
     private final ClaudeGateway claude;
     private final LessonRepository lessonRepository;
     private final AssessmentRepository assessmentRepository;
+    private final UserAssessmentAnswerRepository answerRepository;
 
     /** Resumo e pontos-chave da aula, para o instrutor revisar e usar. */
     @Transactional(readOnly = true)
@@ -76,8 +85,24 @@ public class AiService {
             throw new EntityNotFoundException("Avaliação não encontrada para esta aula");
         }
 
+        // A explicacao diz qual e a resposta certa e por que. Quem estuda so pode
+        // pedi-la para o que errou de verdade, depois de responder: sem isto bastava
+        // pedir a explicacao de todas as questoes para ter o gabarito antes da
+        // primeira tentativa, e o limite de tentativas perdia o sentido.
+        List<UUID> pedidas = questoesErradas == null ? List.of() : questoesErradas;
+        if (!veGabarito()) {
+            CustomUserDetails usuario = usuarioAtual();
+            if (usuario == null) {
+                return List.of();
+            }
+            Set<UUID> errouMesmo = new HashSet<>(
+                    answerRepository.idsDasQuestoesErradas(usuario.getId(), assessment.getId()));
+            pedidas = pedidas.stream().filter(errouMesmo::contains).toList();
+        }
+
+        final List<UUID> permitidas = pedidas;
         List<AssessmentQuestion> perguntas = assessment.getQuestions().stream()
-                .filter(q -> questoesErradas.contains(q.getId()))
+                .filter(q -> permitidas.contains(q.getId()))
                 .toList();
 
         if (perguntas.isEmpty()) {
@@ -134,6 +159,24 @@ public class AiService {
             throw new EntityNotFoundException("Aula não encontrada");
         }
         return lesson;
+    }
+
+    private boolean veGabarito() {
+        CustomUserDetails usuario = usuarioAtual();
+        if (usuario == null) {
+            return false;
+        }
+        return usuario.getAuthorities().stream()
+                .anyMatch(a -> VE_GABARITO.contains(a.getAuthority()));
+    }
+
+    private CustomUserDetails usuarioAtual() {
+        var autenticacao = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        if (autenticacao == null || !(autenticacao.getPrincipal() instanceof CustomUserDetails usuario)) {
+            return null;
+        }
+        return usuario;
     }
 
     private UUID empresaAtual() {
