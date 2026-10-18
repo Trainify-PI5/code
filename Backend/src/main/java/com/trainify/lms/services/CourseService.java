@@ -99,11 +99,13 @@ public class CourseService {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson not found"));
 
+        // Permissao primeiro: sem isso a mensagem de erro ja contava se a aula tem
+        // midia para quem nem pode mexer nela
+        checkInstructorAccess(lesson.getModule().getCourse());
+
         if (lesson.getVideoAsset() == null) {
             throw new IllegalArgumentException("A aula precisa de um video ou documento para receber a transcricao.");
         }
-
-        checkInstructorAccess(lesson.getModule().getCourse());
         lesson.getVideoAsset().setTranscript(transcript);
         mediaAssetRepository.save(lesson.getVideoAsset());
         events.publishEvent(new AiIndexEvents.LessonChanged(lessonId));

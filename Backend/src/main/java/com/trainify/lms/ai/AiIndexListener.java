@@ -42,14 +42,6 @@ public class AiIndexListener {
         executar("remover o curso " + evento.courseId(), () -> ai.removeCourse(evento.courseId().toString()));
     }
 
-    @Async
-    public void reindexarCurso(UUID courseId) {
-        executar("reindexar o curso " + courseId, () -> {
-            int aulas = indexing.reindexarCurso(courseId);
-            log.info("Curso {} reindexado no servico de IA ({} aulas)", courseId, aulas);
-        });
-    }
-
     private static void executar(String descricao, Runnable acao) {
         try {
             acao.run();

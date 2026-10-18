@@ -57,3 +57,102 @@ describe('Salvamento de cursos', () => {
     expect(api.post).toHaveBeenCalledWith('/modules/module/lessons', expect.objectContaining({ lessonType: 'QUIZ' }));
   });
 });
+
+/**
+ * Um curso feito só de vídeo era invisível para o assistente: o indexador só lê
+ * texto escrito, transcrição ou PDF, e não havia tela para escrever transcrição
+ * nenhuma. O botão de atualizar também não existia, então ninguém descobria por
+ * que a IA respondia que não tinha material.
+ */
+describe('Conteúdo que a IA consegue ler', () => {
+  const cursoComVideo = {
+    title: 'Integração',
+    description: '',
+    modules: [{
+      id: 'module-1',
+      title: 'Módulo 1',
+      lessons: [{ id: 'lesson-1', title: 'Boas-vindas', lessonType: 'VIDEO', videoAssetId: 'media-1' }],
+    }],
+  };
+
+  function abrirCurso() {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/courses/builder/course-1']}>
+        <ToastProvider>
+          <Routes><Route path="/courses/builder/:id?" element={<CourseBuilder />} /></Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    return user;
+  }
+
+  beforeEach(() => {
+    vi.mocked(api.post).mockReset(); vi.mocked(api.get).mockReset(); vi.mocked(api.put).mockReset();
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === '/courses/course-1') return { data: cursoComVideo } as any;
+      if (url === '/lessons/lesson-1/transcript') return { data: 'texto ja salvo' } as any;
+      return { data: {} } as any;
+    });
+    vi.mocked(api.put).mockResolvedValue({ data: {} } as any);
+  });
+
+  it('salva a transcrição da aula em vídeo', async () => {
+    const user = abrirCurso();
+
+    await user.click(await screen.findByRole('button', { name: /Transcrição para a IA/ }));
+    const campo = await screen.findByLabelText('Transcrição do vídeo');
+    expect(campo).toHaveValue('texto ja salvo');
+
+    await user.clear(campo);
+    await user.type(campo, 'hoje falamos sobre seguranca');
+    await user.click(screen.getByRole('button', { name: 'Salvar transcrição' }));
+
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith(
+      '/lessons/lesson-1/transcript', { transcript: 'hoje falamos sobre seguranca' }));
+  });
+
+  it('trata aula sem transcrição como campo vazio, não como erro', async () => {
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === '/courses/course-1') return { data: cursoComVideo } as any;
+      // A API responde 404 enquanto não há transcrição
+      if (url === '/lessons/lesson-1/transcript') throw { response: { status: 404 } };
+      return { data: {} } as any;
+    });
+
+    const user = abrirCurso();
+    await user.click(await screen.findByRole('button', { name: /Transcrição para a IA/ }));
+
+    expect(await screen.findByLabelText('Transcrição do vídeo')).toHaveValue('');
+  });
+
+  it('avisa quando nenhuma aula tem texto que a IA consiga ler', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: { indexadas: 0, total: 3 } } as any);
+    const user = abrirCurso();
+
+    await user.click(await screen.findByRole('button', { name: /Atualizar IA/ }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/ai/courses/course-1/reindex'));
+    expect(await screen.findByText(/Nenhuma das aulas tem texto/)).toBeInTheDocument();
+  });
+
+  it('diz quantas aulas foram para a IA', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: { indexadas: 2, total: 3 } } as any);
+    const user = abrirCurso();
+
+    await user.click(await screen.findByRole('button', { name: /Atualizar IA/ }));
+
+    expect(await screen.findByText(/2 de 3 aula\(s\) enviada\(s\) para a IA/)).toBeInTheDocument();
+  });
+
+  it('não oferece atualizar a IA num curso que ainda nem foi salvo', async () => {
+    render(
+      <MemoryRouter initialEntries={['/courses/builder']}>
+        <ToastProvider>
+          <Routes><Route path="/courses/builder/:id?" element={<CourseBuilder />} /></Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('button', { name: /Atualizar IA/ })).toBeNull();
+  });
+});

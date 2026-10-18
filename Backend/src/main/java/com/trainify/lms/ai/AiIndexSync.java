@@ -48,7 +48,7 @@ public class AiIndexSync {
                 continue;
             }
             try {
-                if (indexing.reindexarCurso(course.getId()) > 0) {
+                if (indexing.reindexarCurso(course.getId()).comTexto() > 0) {
                     reindexados++;
                 }
             } catch (Exception e) {

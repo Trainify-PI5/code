@@ -78,27 +78,42 @@ public class LessonIndexingService {
         }
     }
 
+    /** Quantas aulas tinham texto para a IA, de quantas o curso tem. */
+    public record Resultado(int comTexto, int total) {}
+
     /**
-     * Reindexa todas as aulas do curso (cursos criados antes da IA, ou depois de uma falha).
+     * Reindexa todas as aulas do curso (cursos criados antes da IA, ou depois de
+     * uma falha).
      *
-     * @return quantas aulas tinham conteudo e foram indexadas
+     * Sem transacao em volta de proposito: cada aula e enviada ao servico de IA
+     * numa chamada propria, e segurar uma conexao do banco durante todas elas
+     * custaria caro num curso grande.
      */
-    @Transactional(readOnly = true)
-    public int reindexarCurso(UUID courseId) {
-        int quantidade = 0;
-        for (Module module : moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)) {
-            for (Lesson lesson : lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())) {
-                try {
-                    if (indexar(lesson.getId())) {
-                        quantidade++;
-                    }
-                } catch (FeignException e) {
-                    // Uma aula com problema nao impede as outras
-                    log.warn("Falha ao reindexar a aula {}: {}", lesson.getId(), e.getMessage());
+    public Resultado reindexarCurso(UUID courseId) {
+        java.util.List<UUID> aulas = aulasDoCurso(courseId);
+        int comTexto = 0;
+        for (UUID lessonId : aulas) {
+            try {
+                if (indexar(lessonId)) {
+                    comTexto++;
                 }
+            } catch (FeignException e) {
+                // Uma aula com problema nao impede as outras
+                log.warn("Falha ao reindexar a aula {}: {}", lessonId, e.getMessage());
             }
         }
-        return quantidade;
+        return new Resultado(comTexto, aulas.size());
+    }
+
+    @Transactional(readOnly = true)
+    java.util.List<UUID> aulasDoCurso(UUID courseId) {
+        java.util.List<UUID> aulas = new java.util.ArrayList<>();
+        for (Module module : moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)) {
+            for (Lesson lesson : lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())) {
+                aulas.add(lesson.getId());
+            }
+        }
+        return aulas;
     }
 
     // ── apoio ──
