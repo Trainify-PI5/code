@@ -131,29 +131,26 @@ public class UserService {
             throw new RuntimeException("Email already exists");
         }
 
+        boolean estavaAtivo = Boolean.TRUE.equals(user.getIsActive());
+
         user.setName(request.getName());
         user.setEmail(normalizeEmail(request.getEmail()));
         user.setRole(request.getRole());
         user.setIsActive(request.getIsActive());
 
         User salvo = userRepository.save(user);
-        activityLog.record("USER_UPDATED", "USER", salvo.getId(),
-                java.util.Map.of("email", salvo.getEmail(), "role", salvo.getRole().name(),
-                        "active", String.valueOf(Boolean.TRUE.equals(salvo.getIsActive()))));
-        return mapToDto(salvo);
-    }
 
-    @Transactional
-    public void deleteUser(UUID id) {
-        CustomUserDetails currentUser = getCurrentUser();
-        User user = userRepository.findByIdAndTenantId(id, currentUser.getTenantId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found or access denied"));
-        
-        // Exclusão Lógica
-        user.setIsActive(false);
-        userRepository.save(user);
-        activityLog.record("USER_DEACTIVATED", "USER", user.getId(),
-                java.util.Map.of("email", user.getEmail()));
+        // Desativar e ativar sao o que importa na auditoria, e e por aqui que a
+        // tela faz as duas: registrar tudo como alteracao escondia o que houve.
+        boolean ficouAtivo = Boolean.TRUE.equals(salvo.getIsActive());
+        String acao = estavaAtivo == ficouAtivo
+                ? "USER_UPDATED"
+                : ficouAtivo ? "USER_ACTIVATED" : "USER_DEACTIVATED";
+
+        activityLog.record(acao, "USER", salvo.getId(),
+                java.util.Map.of("email", salvo.getEmail(), "role", salvo.getRole().name(),
+                        "active", String.valueOf(ficouAtivo)));
+        return mapToDto(salvo);
     }
 
     @Transactional

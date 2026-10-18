@@ -309,16 +309,44 @@ public class UserServiceTest {
         verify(userRepository).save(any(User.class));
     }
 
+    /**
+     * A tela desativa e reativa pelo mesmo botao, entao a auditoria precisa
+     * distinguir isso de uma edicao qualquer: antes tudo virava "alterado" e a
+     * desativacao nao aparecia.
+     */
     @Test
-    void deleteUser_Success_DeletesUser() {
-        // Arrange
+    void desativarPeloBotaoDeStatusEhRegistradoComoDesativacao() {
+        mockUser.setIsActive(true);
         when(userRepository.findByIdAndTenantId(userId, tenantId)).thenReturn(Optional.of(mockUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
-        userService.deleteUser(userId);
+        UpdateUserRequest pedido = new UpdateUserRequest();
+        pedido.setName(mockUser.getName());
+        pedido.setEmail(mockUser.getEmail());
+        pedido.setRole(mockUser.getRole());
+        pedido.setIsActive(false);
 
-        // Assert
-        verify(userRepository).findByIdAndTenantId(userId, tenantId);
-        verify(userRepository).save(mockUser);
+        userService.updateUser(userId, pedido);
+
+        verify(activityLog).record(org.mockito.ArgumentMatchers.eq("USER_DEACTIVATED"),
+                any(), any(), any());
+    }
+
+    @Test
+    void reativarEhRegistradoComoReativacao() {
+        mockUser.setIsActive(false);
+        when(userRepository.findByIdAndTenantId(userId, tenantId)).thenReturn(Optional.of(mockUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        UpdateUserRequest pedido = new UpdateUserRequest();
+        pedido.setName(mockUser.getName());
+        pedido.setEmail(mockUser.getEmail());
+        pedido.setRole(mockUser.getRole());
+        pedido.setIsActive(true);
+
+        userService.updateUser(userId, pedido);
+
+        verify(activityLog).record(org.mockito.ArgumentMatchers.eq("USER_ACTIVATED"),
+                any(), any(), any());
     }
 }

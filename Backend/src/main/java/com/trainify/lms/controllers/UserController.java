@@ -45,13 +45,6 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
-    }
-
     @PatchMapping("/{id}/avatar")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER') or @securityService.isCurrentUser(#id)")
     public ResponseEntity<UserDto> updateAvatar(@PathVariable UUID id, @RequestBody java.util.Map<String, String> body) {
