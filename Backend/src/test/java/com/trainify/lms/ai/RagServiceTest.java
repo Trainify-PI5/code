@@ -70,6 +70,28 @@ class RagServiceTest {
         assertEquals("NR-35", resposta.sources().get(0).lessonTitle());
     }
 
+    /**
+     * Com uma aula aberta, o pedido tem de levar o identificador dela e so o
+     * curso correspondente. E o que permite ao servico de IA responder sobre a
+     * aula certa; sem isso ele busca no curso inteiro e responde por outra.
+     */
+    @Test
+    void aulaAbertaViajaNoPedidoParaOServicoDeIa() {
+        UUID aula = UUID.randomUUID();
+        UUID cursoDaAula = UUID.fromString(curso);
+        when(scope.resolver(aula, null))
+                .thenReturn(new AiCourseScope.Escopo(Role.STUDENT, List.of(curso), aula.toString()));
+        when(ai.chat(any())).thenReturn(new TrainifyAiClient.ChatResponse("...", List.of()));
+
+        rag.chat("quais os pontos mais importantes dessa aula?", List.of(), aula, null);
+
+        ArgumentCaptor<TrainifyAiClient.ChatRequest> pedido = ArgumentCaptor.forClass(TrainifyAiClient.ChatRequest.class);
+        verify(ai).chat(pedido.capture());
+        assertEquals(aula.toString(), pedido.getValue().lessonId(), "sem lesson_id a IA nao sabe qual aula o aluno abriu");
+        assertEquals(List.of(cursoDaAula.toString()), pedido.getValue().courseIds(),
+                "a busca fica no curso da aula, nao em todos os cursos do aluno");
+    }
+
     @Test
     void semCursosNaoChamaAIa() {
         when(scope.resolver(null, null)).thenReturn(new AiCourseScope.Escopo(Role.STUDENT, List.of(), null));
