@@ -122,8 +122,9 @@ class LessonIndexingServiceTest {
         assertEquals(1, indexing.reindexarCurso(curso));
 
         verify(ai).ingestLesson(org.mockito.ArgumentMatchers.eq(comTexto.getId().toString()), any());
-        // A aula sem texto sai do indice em vez de ficar com conteudo velho
-        verify(ai).removeLesson(curso.toString(), semTexto.getId().toString());
+        // Numa reindexacao o curso nao esta no indice: pedir remocao de aula sem
+        // texto so gastaria uma chamada por aula a cada rodada da sincronizacao
+        verify(ai, never()).removeLesson(any(), any());
     }
 
     @Test

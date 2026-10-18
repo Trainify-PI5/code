@@ -23,6 +23,13 @@ final class AiErrors {
         } catch (FeignException.UnprocessableEntity e) {
             // Ex.: modulo sem material indexado para gerar quiz, documento invalido
             throw new AiContentMissingException(detalhe(e, "Não há material suficiente para a IA."));
+        } catch (FeignException.BadRequest e) {
+            // Pedido malformado e defeito nosso, nao servico fora do ar. Vai como
+            // IllegalArgumentException porque ela vira 400 com explicacao e esta
+            // fora da contagem do disjuntor: um bug nosso nao pode derrubar o
+            // assistente para todo mundo.
+            log.warn("Servico de IA recusou o pedido: {}", e.contentUTF8());
+            throw new IllegalArgumentException(detalhe(e, "O assistente não entendeu o pedido."));
         } catch (FeignException.TooManyRequests e) {
             throw new AiUnavailableException("Muitas perguntas em pouco tempo. Aguarde alguns segundos e tente de novo.");
         } catch (FeignException.Unauthorized e) {

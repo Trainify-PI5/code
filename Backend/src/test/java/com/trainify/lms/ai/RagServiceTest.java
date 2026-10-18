@@ -92,6 +92,57 @@ class RagServiceTest {
                 "a busca fica no curso da aula, nao em todos os cursos do aluno");
     }
 
+    /**
+     * A aula de avaliacao nao tem conteudo proprio. Mandada como contexto, o
+     * servico responderia que nao ha material — quando a pergunta deveria valer
+     * para o curso inteiro.
+     */
+    @Test
+    void aulaDeAvaliacaoNaoViraContextoDaPergunta() {
+        UUID aulaDeQuiz = UUID.randomUUID();
+        Lesson quiz = new Lesson();
+        quiz.setId(aulaDeQuiz);
+        quiz.setLessonType("QUIZ");
+        when(lessonRepository.findById(aulaDeQuiz)).thenReturn(java.util.Optional.of(quiz));
+        when(scope.resolver(aulaDeQuiz, null))
+                .thenReturn(new AiCourseScope.Escopo(Role.STUDENT, List.of(curso), aulaDeQuiz.toString()));
+        when(ai.chat(any())).thenReturn(new TrainifyAiClient.ChatResponse("...", List.of()));
+
+        rag.chat("o que cai na prova?", List.of(), aulaDeQuiz, null);
+
+        ArgumentCaptor<TrainifyAiClient.ChatRequest> pedido = ArgumentCaptor.forClass(TrainifyAiClient.ChatRequest.class);
+        verify(ai).chat(pedido.capture());
+        assertNull(pedido.getValue().lessonId(), "aula de quiz nao tem material para servir de contexto");
+        assertEquals(List.of(curso), pedido.getValue().courseIds(), "a busca continua restrita ao curso");
+    }
+
+    /**
+     * 400 do servico e defeito do nosso pedido, nao queda dele. Precisa chegar na
+     * tela com a explicacao e ficar fora da contagem do disjuntor, senao um bug
+     * nosso derruba o assistente para todos os usuarios.
+     */
+    @Test
+    void pedidoRecusadoNaoViraServicoForaDoAr() {
+        when(scope.resolver(null, null)).thenReturn(new AiCourseScope.Escopo(Role.STUDENT, List.of(curso), null));
+        when(ai.chat(any())).thenThrow(erroFeign(400, "{\"detail\":\"Pedido inválido: course_ids\"}"));
+
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
+                () -> rag.chat("oi", List.of(), null, null));
+
+        assertEquals("Pedido inválido: course_ids", erro.getMessage());
+    }
+
+    private static feign.FeignException erroFeign(int status, String corpo) {
+        return feign.FeignException.errorStatus("chat", feign.Response.builder()
+                .status(status)
+                .reason("erro")
+                .request(feign.Request.create(feign.Request.HttpMethod.POST, "/api/chat", java.util.Map.of(),
+                        new byte[0], java.nio.charset.StandardCharsets.UTF_8, null))
+                .headers(java.util.Map.of())
+                .body(corpo, java.nio.charset.StandardCharsets.UTF_8)
+                .build());
+    }
+
     @Test
     void semCursosNaoChamaAIa() {
         when(scope.resolver(null, null)).thenReturn(new AiCourseScope.Escopo(Role.STUDENT, List.of(), null));

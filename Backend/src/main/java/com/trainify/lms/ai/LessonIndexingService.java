@@ -54,6 +54,11 @@ public class LessonIndexingService {
      */
     @Transactional(readOnly = true)
     public boolean indexar(UUID lessonId) {
+        return indexar(lessonId, true);
+    }
+
+    @Transactional(readOnly = true)
+    boolean indexar(UUID lessonId, boolean removerQuandoVazio) {
         Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
         if (lesson == null) {
             return false; // excluida antes do evento ser tratado
@@ -63,7 +68,12 @@ public class LessonIndexingService {
         String courseId = lesson.getModule().getCourse().getId().toString();
 
         if (pedido == null) {
-            ai.removeLesson(courseId, lessonId.toString());
+            // Numa reindexacao o curso nao esta no indice, entao nao ha o que
+            // remover: um curso so de video gastaria uma chamada por aula a cada
+            // rodada da sincronizacao, para sempre.
+            if (removerQuandoVazio) {
+                ai.removeLesson(courseId, lessonId.toString());
+            }
             return false;
         }
 
@@ -92,7 +102,7 @@ public class LessonIndexingService {
         int comTexto = 0;
         for (UUID lessonId : aulasDoCurso(courseId)) {
             try {
-                if (indexar(lessonId)) {
+                if (indexar(lessonId, false)) {
                     comTexto++;
                 }
             } catch (FeignException e) {

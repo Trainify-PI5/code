@@ -53,6 +53,11 @@ public class RagService {
         }
 
         AiCourseScope.Escopo escopo = scope.resolver(lessonId, courseId);
+
+        // A aula de avaliacao nao tem conteudo proprio. Manda-la como contexto so
+        // faria o servico responder que nao ha material; a pergunta deve valer para
+        // o curso inteiro, que o escopo ja restringiu.
+        String aulaDoContexto = ehAulaDeAvaliacao(lessonId) ? null : escopo.lessonId();
         if (escopo.courseIds().isEmpty()) {
             return new RespostaChat(
                     "Você ainda não tem cursos com material disponível para o assistente. "
@@ -65,11 +70,20 @@ public class RagService {
                 historicoValido(historico),
                 escopo.role().name(),
                 escopo.courseIds(),
-                escopo.lessonId())));
+                aulaDoContexto)));
 
         List<Fonte> fontes = resposta.sources() == null ? List.of()
                 : resposta.sources().stream().map(f -> new Fonte(f.courseId(), f.lessonId(), f.lessonTitle())).toList();
         return new RespostaChat(resposta.answer(), fontes);
+    }
+
+    private boolean ehAulaDeAvaliacao(UUID lessonId) {
+        if (lessonId == null) {
+            return false;
+        }
+        return lessonRepository.findById(lessonId)
+                .map(aula -> "QUIZ".equalsIgnoreCase(aula.getLessonType()))
+                .orElse(false);
     }
 
     /**
