@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
 import logotipoLight from "../../assets/images/logotipo-modo_light.svg";
@@ -8,6 +8,8 @@ import { aoAcordarServidor } from "../../services/api";
 import { useThemeStore } from "../../store/themeStore";
 import { cn } from "../../lib/utils";
 import ThemeToggle from "../../components/ThemeToggle";
+import Recaptcha, { type RecaptchaHandle } from "../../components/Recaptcha";
+import { RECAPTCHA_SITE_KEY } from "../../config";
 
 interface LoginProps {
   onNavigate: (page: "register" | "forgot-password") => void;
@@ -27,18 +29,30 @@ export default function Login({ onNavigate }: LoginProps) {
   const [rememberMe, setRememberMe] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
 
+  // Só exige o reCAPTCHA quando há site key; sem ela o widget nem aparece.
+  const recaptchaAtivo = Boolean(RECAPTCHA_SITE_KEY);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<RecaptchaHandle>(null);
+
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordValid = password.length >= 6;
+  const recaptchaValid = !recaptchaAtivo || Boolean(recaptchaToken);
 
   const entrarNaEmpresa = async (tenantId: string) => {
-    await login(email, password, rememberMe, tenantId);
+    await login(email, password, rememberMe, tenantId, recaptchaToken ?? undefined);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
-    if (!emailValid || !passwordValid) return;
-    await login(email, password, rememberMe);
+    if (!emailValid || !passwordValid || !recaptchaValid) return;
+    await login(email, password, rememberMe, undefined, recaptchaToken ?? undefined);
+    // O token do reCAPTCHA é de uso único: se o login falhou, limpa o desafio
+    // para a próxima tentativa, já que o Google não aceita o mesmo token de novo.
+    if (useAuthStore.getState().error) {
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
+    }
   };
 
   return (
@@ -298,9 +312,13 @@ export default function Login({ onNavigate }: LoginProps) {
                 </span>
               </label>
 
+              {recaptchaAtivo && (
+                <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
+              )}
+
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !recaptchaValid}
                 className="w-full bg-primary-container text-white py-3.5 rounded-xl font-bold text-sm hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
               >
                 {isLoading ? (

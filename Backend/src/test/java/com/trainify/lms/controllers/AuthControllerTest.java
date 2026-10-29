@@ -5,6 +5,7 @@ import com.trainify.lms.dto.LoginResponse;
 import com.trainify.lms.dto.RefreshTokenRequest;
 import com.trainify.lms.dto.ForgotPasswordRequest;
 import com.trainify.lms.dto.ResetPasswordRequest;
+import com.trainify.lms.security.recaptcha.RecaptchaService;
 import com.trainify.lms.services.AuthService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,11 @@ public class AuthControllerTest {
     @Mock
     private AuthService authService;
 
+    // O login passou a checar o reCAPTCHA antes de autenticar; com o mock a
+    // verificação é um no-op (método void), então o fluxo segue como antes.
+    @Mock
+    private RecaptchaService recaptchaService;
+
     @InjectMocks
     private AuthController authController;
 
@@ -40,7 +46,8 @@ public class AuthControllerTest {
         when(authService.login(any(LoginRequest.class))).thenReturn(mockResponse);
 
         // Act
-        ResponseEntity<LoginResponse> response = authController.login(request);
+        ResponseEntity<LoginResponse> response = authController.login(
+                request, new org.springframework.mock.web.MockHttpServletRequest());
 
         // Assert
         assertNotNull(response);

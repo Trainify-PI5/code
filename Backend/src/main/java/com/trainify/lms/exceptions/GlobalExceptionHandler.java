@@ -96,6 +96,16 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    // A verificacao anti-robo reprovou: erro de quem chamou, nao nosso (400).
+    @ExceptionHandler(com.trainify.lms.security.recaptcha.RecaptchaException.class)
+    public ProblemDetail handleRecaptcha(com.trainify.lms.security.recaptcha.RecaptchaException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problemDetail.setType(URI.create("urn:problem-type:recaptcha-failed"));
+        problemDetail.setTitle("Recaptcha Failed");
+        problemDetail.setProperty("code", "RECAPTCHA_FAILED");
+        return problemDetail;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgumentException(IllegalArgumentException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());

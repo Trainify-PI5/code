@@ -5,7 +5,9 @@ import com.trainify.lms.dto.LoginResponse;
 import com.trainify.lms.dto.RefreshTokenRequest;
 import com.trainify.lms.dto.ForgotPasswordRequest;
 import com.trainify.lms.dto.ResetPasswordRequest;
+import com.trainify.lms.security.recaptcha.RecaptchaService;
 import com.trainify.lms.services.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final RecaptchaService recaptchaService;
 
     @PostMapping("/register")
     public ResponseEntity<LoginResponse> register(@Valid @RequestBody com.trainify.lms.dto.RegisterRequest request) {
@@ -27,8 +30,24 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+                                               HttpServletRequest httpRequest) {
+        // Barra robos antes de tentar autenticar. Fica inerte quando o reCAPTCHA
+        // esta desligado (app.recaptcha.enabled=false).
+        recaptchaService.verify(request.getRecaptchaToken(), clientIp(httpRequest));
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    /**
+     * IP real de quem chamou. Atras do proxy do Render a conexao vem do proxy,
+     * entao o endereco de origem fica no primeiro item do X-Forwarded-For.
+     */
+    private String clientIp(HttpServletRequest request) {
+        String encaminhado = request.getHeader("X-Forwarded-For");
+        if (encaminhado != null && !encaminhado.isBlank()) {
+            return encaminhado.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/forgot-password")

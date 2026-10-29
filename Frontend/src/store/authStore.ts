@@ -31,7 +31,7 @@ interface AuthState {
   tenantOptions: TenantOption[];
   clearTenantOptions: () => void;
 
-  login: (email: string, password: string, rememberMe?: boolean, tenantId?: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean, tenantId?: string, recaptchaToken?: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, password: string) => Promise<void>;
@@ -126,7 +126,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   clearTenantOptions: () => set({ tenantOptions: [] }),
 
-  login: async (email: string, password: string, rememberMe = false, tenantId?: string) => {
+  login: async (email: string, password: string, rememberMe = false, tenantId?: string, recaptchaToken?: string) => {
     set({ isLoading: true, error: null, tenantOptions: [] });
 
 
@@ -137,6 +137,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         email: normalizedEmail,
         password,
         ...(tenantId ? { tenantId } : {}),
+        ...(recaptchaToken ? { recaptchaToken } : {}),
       });
       const { accessToken, refreshToken: rToken } = response.data;
       const user = userFromToken(accessToken, normalizedEmail);

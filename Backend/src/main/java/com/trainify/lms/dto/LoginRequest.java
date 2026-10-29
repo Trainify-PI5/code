@@ -15,4 +15,10 @@ public class LoginRequest {
 
     /** Preenchido só quando o e-mail tem conta em mais de uma empresa. */
     private java.util.UUID tenantId;
+
+    /**
+     * Token do reCAPTCHA gerado no navegador. Só é exigido quando a proteção
+     * está ligada (app.recaptcha.enabled=true); do contrário é ignorado.
+     */
+    private String recaptchaToken;
 }

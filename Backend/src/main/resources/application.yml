@@ -72,6 +72,15 @@ app:
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:900000}
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+  recaptcha:
+    # Protecao anti-robo no login. Desligada por padrao: sem a chave secreta
+    # definida, o login funciona como sempre. Para ligar, defina RECAPTCHA_ENABLED=true
+    # e RECAPTCHA_SECRET_KEY com a chave do Google (par do site-key usado no front).
+    enabled: ${RECAPTCHA_ENABLED:false}
+    secret-key: ${RECAPTCHA_SECRET_KEY:}
+    # So e cobrado no reCAPTCHA v3 (invisivel, por score). No v2 (checkbox) e ignorado.
+    min-score: ${RECAPTCHA_MIN_SCORE:0.5}
+    verify-url: ${RECAPTCHA_VERIFY_URL:https://www.google.com/recaptcha/api/siteverify}
   ai:
     # Microservico de IA (trainify-ai): chat com RAG e geracao de quiz
     service-url: ${AI_SERVICE_URL:http://localhost:8000}
