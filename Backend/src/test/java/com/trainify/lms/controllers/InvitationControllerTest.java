@@ -1,6 +1,7 @@
 package com.trainify.lms.controllers;
 
 import com.trainify.lms.security.*;
+import com.trainify.lms.security.recaptcha.RecaptchaService;
 import com.trainify.lms.services.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,8 @@ class InvitationControllerTest {
     @Autowired MockMvc mvc;
     @MockBean InvitationService service;
     @MockBean AuthService auth;
+    // AuthController passou a depender do RecaptchaService; o mock é no-op.
+    @MockBean RecaptchaService recaptcha;
     @MockBean JwtUtil jwtUtil;
     @MockBean CustomUserDetailsService users;
     @MockBean StringRedisTemplate redis;
