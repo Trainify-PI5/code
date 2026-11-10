@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -31,16 +30,18 @@ import com.trainify.lms.repositories.CourseGenerationDraftRepository;
 import com.trainify.lms.security.CustomUserDetails;
 import com.trainify.lms.services.CourseService;
 
-import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Gera um curso a partir dos documentos do instrutor. A IA propoe titulo,
- * modulos e aulas (com as paginas de origem); o instrutor revisa, edita e
+ * "Criar curso com IA": o instrutor envia documentos, a IA propoe titulo,
+ * modulos e aulas (com as paginas de origem), o instrutor revisa, edita e
  * aprova. So na aprovacao o curso e criado, em rascunho, pelo mesmo
  * {@link CourseService} do cadastro manual.
+ *
+ * <p>Aqui ficam o envio, a revisao e a aprovacao. Quem conversa com a LLM e o
+ * {@link GeradorDeCurso}, em segundo plano.
  */
 @Service
 @RequiredArgsConstructor
@@ -48,32 +49,19 @@ import lombok.extern.slf4j.Slf4j;
 public class CourseGenerationService {
 
     /*
-     * Os documentos vivem inteiros na memoria: o arquivo lido, o texto em base64
-     * e, depois, o corpo da requisicao montado pelo cliente HTTP. Um envio chega
-     * a ocupar umas tres vezes o tamanho somado dos arquivos, e a instancia da
-     * hospedagem tem pouco mais de 300 MB de heap. Estes numeros sao o limite
-     * seguro para ela; se o plano mudar, e aqui e no multipart do application.yml
-     * que eles crescem juntos.
+     * Os arquivos sao lidos inteiros na memoria so para extrair o texto; depois
+     * fica so o texto. A instancia gratuita tem pouco mais de 300 MB de heap: se
+     * o plano mudar, e aqui e no multipart do application.yml que estes numeros
+     * crescem juntos.
      */
     static final int MAX_DOCUMENTOS = 5;
     static final long MAX_BYTES_POR_DOCUMENTO = 10L * 1024 * 1024;
     static final long MAX_BYTES_TOTAL = 15L * 1024 * 1024;
     private static final int MAX_TITULO = 200;
 
-    private final TrainifyAiClient ai;
+    private final GeradorDeCurso gerador;
     private final CourseGenerationDraftRepository repository;
     private final CourseService courseService;
-
-    /**
-     * Uma geracao por vez. Duas pessoas enviando documentos ao mesmo tempo
-     * somavam o dobro de memoria e derrubavam a API inteira, nao so a geracao.
-     */
-    private java.util.concurrent.Semaphore vagas = new java.util.concurrent.Semaphore(1);
-
-    @org.springframework.beans.factory.annotation.Value("${app.ai.course-drafts.simultaneas:1}")
-    void configurarSimultaneas(int quantas) {
-        this.vagas = new java.util.concurrent.Semaphore(Math.max(1, quantas));
-    }
 
     public record DraftDto(
             UUID id, String status, int progress, String step, List<String> documentNames,
@@ -82,22 +70,26 @@ public class CourseGenerationService {
     // ── comecar ──
 
     /**
-     * Sem transacao de proposito: o envio dos documentos leva segundos e seguraria
-     * uma conexao do banco por todo esse tempo. O rascunho e gravado numa
-     * transacao propria, curta, e apagado se o envio falhar.
+     * Le os documentos, grava o rascunho e entrega a geracao para o
+     * {@link GeradorDeCurso}, que roda em segundo plano. A tela acompanha pelo
+     * {@link #obter}.
      */
     public DraftDto iniciar(List<MultipartFile> arquivos, String instrucoes, int minModulos, int maxModulos) {
         CustomUserDetails usuario = usuarioAtual();
         if (minModulos < 1 || maxModulos > 8 || minModulos > maxModulos) {
             throw new IllegalArgumentException("Escolha entre 1 e 8 módulos.");
         }
-
-        if (!vagas.tryAcquire()) {
-            throw new AiUnavailableException(
-                    "Já há uma geração de curso em andamento. Aguarde alguns instantes e tente de novo.");
+        if (!gerador.configurada()) {
+            throw new AiUnavailableException("O assistente de IA não está configurado neste ambiente.");
         }
+
+        if (!gerador.reservar()) {
+            throw new AiUnavailableException(
+                    "Já há uma geração de curso em andamento. Aguarde terminar e tente de novo.");
+        }
+        boolean entregue = false;
         try {
-            List<TrainifyAiClient.DraftDocument> documentos = lerDocumentos(arquivos);
+            List<GeradorDeCurso.Documento> documentos = lerDocumentos(arquivos);
             String orientacao = instrucoes == null || instrucoes.isBlank() ? null
                     : instrucoes.trim().substring(0, Math.min(500, instrucoes.trim().length()));
 
@@ -105,28 +97,29 @@ public class CourseGenerationService {
             rascunho.setTenantId(usuario.getTenantId());
             rascunho.setCreatedBy(usuario.getId());
             rascunho.setStatus(Status.PROCESSING);
-            rascunho.setStep("Enviando os documentos para a IA");
-            rascunho.setDocumentNames(documentos.stream().map(TrainifyAiClient.DraftDocument::name).toList());
+            rascunho.setProgress(0);
+            rascunho.setStep("Começando");
+            rascunho.setDocumentNames(documentos.stream().map(GeradorDeCurso.Documento::nome).toList());
             rascunho.setInstructions(orientacao);
             rascunho = repository.saveAndFlush(rascunho);
 
-            final UUID id = rascunho.getId();
-            try {
-                AiErrors.chamar(() -> ai.createCourseDraft(new TrainifyAiClient.CourseDraftRequest(
-                        id.toString(), documentos, minModulos, maxModulos, orientacao)));
-            } catch (RuntimeException e) {
-                // Sem isto sobraria um rascunho preso em "processando" para sempre
-                repository.delete(rascunho);
-                throw e;
-            }
+            gerador.registrar(rascunho.getId());
+            gerador.gerar(rascunho.getId(), documentos, minModulos, maxModulos, orientacao);
+            entregue = true;
             return dto(rascunho);
         } finally {
-            vagas.release();
+            if (!entregue) {
+                // A vaga so passa para o gerador se a geracao comecou
+                gerador.liberar();
+            }
         }
     }
 
-    /** PDFs viram base64; .txt e .md vao como texto. Nomes repetidos ganham um sufixo. */
-    List<TrainifyAiClient.DraftDocument> lerDocumentos(List<MultipartFile> arquivos) {
+    /**
+     * Extrai o texto de cada documento: PDFs pagina por pagina (para citar as
+     * paginas nas fontes), .txt e .md inteiros. Nomes repetidos ganham um sufixo.
+     */
+    List<GeradorDeCurso.Documento> lerDocumentos(List<MultipartFile> arquivos) {
         List<MultipartFile> validos = arquivos == null ? List.of()
                 : arquivos.stream().filter(a -> a != null && !a.isEmpty()).toList();
         if (validos.isEmpty()) {
@@ -152,7 +145,8 @@ public class CourseGenerationService {
         }
 
         Set<String> nomes = new HashSet<>();
-        List<TrainifyAiClient.DraftDocument> documentos = new ArrayList<>();
+        List<GeradorDeCurso.Documento> documentos = new ArrayList<>();
+        List<String> semTexto = new ArrayList<>();
         for (MultipartFile arquivo : validos) {
             String nome = nomeUnico(arquivo.getOriginalFilename(), nomes);
 
@@ -163,13 +157,24 @@ public class CourseGenerationService {
                 throw new IllegalArgumentException("Não foi possível ler \"" + nome + "\".");
             }
             String minusculo = nome.toLowerCase(Locale.ROOT);
+            GeradorDeCurso.Documento documento;
             if (bytes.length >= 4 && new String(bytes, 0, 4, StandardCharsets.US_ASCII).equals("%PDF")) {
-                documentos.add(new TrainifyAiClient.DraftDocument(nome, Base64.getEncoder().encodeToString(bytes), null));
+                documento = new GeradorDeCurso.Documento(nome, TextoIa.paginasDoPdf(bytes), true);
             } else if (minusculo.endsWith(".txt") || minusculo.endsWith(".md")) {
-                documentos.add(new TrainifyAiClient.DraftDocument(nome, null, new String(bytes, StandardCharsets.UTF_8)));
+                documento = new GeradorDeCurso.Documento(nome, List.of(new String(bytes, StandardCharsets.UTF_8)), false);
             } else {
                 throw new IllegalArgumentException("\"" + nome + "\" não é PDF nem texto (.txt ou .md).");
             }
+
+            if (documento.paginas().stream().allMatch(String::isBlank)) {
+                semTexto.add(nome);
+            } else {
+                documentos.add(documento);
+            }
+        }
+        if (documentos.isEmpty()) {
+            throw new IllegalArgumentException("Não encontrei texto em " + String.join(", ", semTexto)
+                    + ". PDFs escaneados (só imagem) não funcionam: envie um PDF com texto selecionável ou um .txt.");
         }
         return documentos;
     }
@@ -194,34 +199,12 @@ public class CourseGenerationService {
     @Transactional
     public DraftDto obter(UUID id) {
         CourseGenerationDraft rascunho = buscar(id);
-        if (rascunho.getStatus() == Status.PROCESSING) {
-            sincronizar(rascunho);
+        if (rascunho.getStatus() == Status.PROCESSING && !gerador.emAndamento(id)) {
+            // O andamento fica no banco, mas o trabalho roda na memoria do servidor:
+            // se ele reiniciou no meio, ninguem mais esta gerando este rascunho.
+            falhar(rascunho, "A geração foi interrompida porque o servidor reiniciou. Envie os documentos de novo.");
         }
         return dto(rascunho);
-    }
-
-    /** Traz o andamento do servico de IA. Falha de rede nao muda nada: tenta na proxima consulta. */
-    private void sincronizar(CourseGenerationDraft rascunho) {
-        TrainifyAiClient.CourseDraftStatus estado;
-        try {
-            estado = ai.courseDraft(rascunho.getId().toString());
-        } catch (FeignException.NotFound e) {
-            falhar(rascunho, "A geração foi interrompida porque o serviço de IA reiniciou. Envie os documentos de novo.");
-            return;
-        } catch (FeignException e) {
-            log.debug("Servico de IA indisponivel ao consultar o rascunho {}: {}", rascunho.getId(), e.getMessage());
-            return;
-        }
-
-        rascunho.setProgress(estado.progress() == null ? rascunho.getProgress() : estado.progress());
-        rascunho.setStep(estado.step());
-        if ("READY".equals(estado.status())) {
-            rascunho.setStatus(Status.READY);
-            rascunho.setProposal(estado.result());
-        } else if ("FAILED".equals(estado.status())) {
-            falhar(rascunho, estado.error() == null ? "A IA não conseguiu gerar o curso." : estado.error());
-        }
-        repository.save(rascunho);
     }
 
     private void falhar(CourseGenerationDraft rascunho, String motivo) {
@@ -321,7 +304,6 @@ public class CourseGenerationService {
         rascunho.setStatus(Status.APPROVED);
         rascunho.setCourseId(criado.getId());
         repository.save(rascunho);
-        descartarNaIa(rascunho);
         return dto(rascunho);
     }
 
@@ -355,18 +337,9 @@ public class CourseGenerationService {
         if (rascunho.getStatus() == Status.APPROVED) {
             throw new IllegalArgumentException("Este rascunho já virou um curso.");
         }
+        // Se a IA ainda estiver gerando, ela ve o novo status e para
         rascunho.setStatus(Status.DISCARDED);
         repository.save(rascunho);
-        descartarNaIa(rascunho);
-    }
-
-    private void descartarNaIa(CourseGenerationDraft rascunho) {
-        try {
-            ai.deleteCourseDraft(rascunho.getId().toString());
-        } catch (Exception e) {
-            // O servico de IA so guarda os rascunhos em memoria; perder isto nao importa
-            log.debug("Nao foi possivel descartar o rascunho {} na IA: {}", rascunho.getId(), e.getMessage());
-        }
     }
 
     // ── apoio ──

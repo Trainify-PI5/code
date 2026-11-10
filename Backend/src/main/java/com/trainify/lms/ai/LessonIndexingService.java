@@ -7,161 +7,143 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Base64;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.trainify.lms.domain.entities.Lesson;
 import com.trainify.lms.domain.entities.MediaAsset;
-import com.trainify.lms.domain.entities.Module;
 import com.trainify.lms.domain.enums.MediaProvider;
 import com.trainify.lms.repositories.LessonRepository;
-import com.trainify.lms.repositories.ModuleRepository;
 import com.trainify.lms.services.S3Service;
 
-import feign.FeignException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Mantem o indice do servico de IA igual ao conteudo das aulas: texto escrito
- * pelo instrutor, transcricao do video e PDF enviado. Quem dispara e o
- * {@link AiIndexListener}, a partir dos eventos do cadastro de cursos.
+ * Prepara o texto de cada aula para a IA: junta o texto escrito pelo instrutor,
+ * a transcricao do video e o texto do PDF anexado, divide em trechos e grava em
+ * {@link TrechoRepository}. Quem dispara e o {@link AiIndexListener} (ao salvar a
+ * aula) e o {@link AiIndexSync} (aulas que ainda nao foram preparadas).
+ *
+ * <p>Nada aqui usa a LLM: e so extracao e divisao de texto.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class LessonIndexingService {
 
     static final long LIMITE_PDF_BYTES = 50L * 1024 * 1024;
+    /** ~480 mil caracteres por aula: o suficiente para apostilas grandes sem lotar o banco gratuito. */
+    static final int MAX_TRECHOS_POR_AULA = 400;
 
-    private final TrainifyAiClient ai;
     private final LessonRepository lessonRepository;
-    private final ModuleRepository moduleRepository;
+    private final TrechoRepository trechos;
     private final S3Service s3Service;
+    private final TransactionTemplate leitura;
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
-    // ── operacoes ──
-
-    /**
-     * Envia o conteudo atual da aula para o indice. Aula sem conteudo (ex.: quiz)
-     * sai do indice.
-     *
-     * @return true se algum conteudo foi indexado
-     */
-    @Transactional(readOnly = true)
-    public boolean indexar(UUID lessonId) {
-        return indexar(lessonId, true);
+    public LessonIndexingService(LessonRepository lessonRepository, TrechoRepository trechos, S3Service s3Service,
+            PlatformTransactionManager transacoes) {
+        this.lessonRepository = lessonRepository;
+        this.trechos = trechos;
+        this.s3Service = s3Service;
+        this.leitura = new TransactionTemplate(transacoes);
+        this.leitura.setReadOnly(true);
     }
 
-    @Transactional(readOnly = true)
-    boolean indexar(UUID lessonId, boolean removerQuandoVazio) {
-        Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
-        if (lesson == null) {
-            return false; // excluida antes do evento ser tratado
-        }
-
-        TrainifyAiClient.IngestRequest pedido = montarPedido(lesson);
-        String courseId = lesson.getModule().getCourse().getId().toString();
-
-        if (pedido == null) {
-            // Numa reindexacao o curso nao esta no indice, entao nao ha o que
-            // remover: um curso so de video gastaria uma chamada por aula a cada
-            // rodada da sincronizacao, para sempre.
-            if (removerQuandoVazio) {
-                ai.removeLesson(courseId, lessonId.toString());
-            }
-            return false;
-        }
-
-        try {
-            ai.ingestLesson(lessonId.toString(), pedido);
-            log.info("Aula {} indexada no servico de IA", lessonId);
-            return true;
-        } catch (FeignException.UnprocessableEntity e) {
-            // Ex.: PDF escaneado, sem texto. Nao e erro do sistema, so nao ha o que indexar.
-            log.warn("Aula {} sem texto aproveitavel para a IA: {}", lessonId, e.contentUTF8());
-            return false;
-        }
-    }
+    /** O que da aula interessa para a IA, lido do banco numa transacao curta. */
+    record ConteudoDaAula(String titulo, String texto, String transcricao, MediaAsset pdf) {}
 
     /**
-     * Reindexa todas as aulas do curso. Quem chama e a sincronizacao periodica,
-     * que recupera o indice quando o servico de IA reinicia e perde o disco.
+     * Le a aula e grava os trechos dela. O PDF e baixado fora de qualquer
+     * transacao, para nao segurar uma conexao do banco durante o download.
      *
-     * Sem transacao em volta de proposito: cada aula e enviada ao servico de IA
-     * numa chamada propria, e segurar uma conexao do banco durante todas elas
-     * custaria caro num curso grande.
-     *
-     * @return quantas aulas tinham conteudo e foram indexadas
+     * @return quantos trechos a aula ficou tendo (0 = aula sem texto, ex.: so video)
      */
-    public int reindexarCurso(UUID courseId) {
-        int comTexto = 0;
-        for (UUID lessonId : aulasDoCurso(courseId)) {
-            try {
-                if (indexar(lessonId, false)) {
-                    comTexto++;
+    public int indexar(UUID lessonId) {
+        ConteudoDaAula conteudo = leitura.execute(status -> lessonRepository.findById(lessonId)
+                .map(LessonIndexingService::conteudo)
+                .orElse(null));
+        if (conteudo == null) {
+            return 0; // excluida antes de o evento ser tratado
+        }
+
+        List<String> partes = new ArrayList<>();
+        partes.add(conteudo.texto());
+        partes.add(conteudo.transcricao());
+        partes.add(textoDoPdf(conteudo.pdf()));
+
+        List<String> novos = new ArrayList<>();
+        for (String parte : partes) {
+            for (String trecho : TextoIa.dividir(parte)) {
+                if (novos.size() == MAX_TRECHOS_POR_AULA) {
+                    break;
                 }
-            } catch (FeignException e) {
-                // Uma aula com problema nao impede as outras
-                log.warn("Falha ao reindexar a aula {}: {}", lessonId, e.getMessage());
+                // O titulo em cada trecho ajuda a busca: "trabalho em altura" acha a
+                // aula com esse nome mesmo que o paragrafo nao repita o termo.
+                novos.add(conteudo.titulo() + "\n" + trecho);
             }
         }
-        return comTexto;
+
+        trechos.substituir(lessonId, novos);
+        log.info("Aula {} preparada para a IA: {} trecho(s)", lessonId, novos.size());
+        return novos.size();
     }
 
-    @Transactional(readOnly = true)
-    java.util.List<UUID> aulasDoCurso(UUID courseId) {
-        java.util.List<UUID> aulas = new java.util.ArrayList<>();
-        for (Module module : moduleRepository.findByCourseIdOrderByOrderIndexAsc(courseId)) {
-            for (Lesson lesson : lessonRepository.findByModuleIdOrderByOrderIndexAsc(module.getId())) {
-                aulas.add(lesson.getId());
-            }
-        }
-        return aulas;
-    }
-
-    // ── apoio ──
-
-    TrainifyAiClient.IngestRequest montarPedido(Lesson lesson) {
+    static ConteudoDaAula conteudo(Lesson lesson) {
         MediaAsset media = lesson.getVideoAsset();
-        String transcricao = media == null ? null : media.getTranscript();
-        String pdf = pdfEmBase64(media);
-
-        boolean semConteudo = vazio(lesson.getContent()) && vazio(transcricao) && pdf == null;
-        if (semConteudo) {
-            return null;
-        }
-
-        Module module = lesson.getModule();
-        return new TrainifyAiClient.IngestRequest(
-                module.getCourse().getId().toString(),
+        boolean ehPdf = media != null && "application/pdf".equalsIgnoreCase(media.getMimeType());
+        return new ConteudoDaAula(
                 lesson.getTitle(),
-                lesson.getTenant() == null ? null : lesson.getTenant().getId().toString(),
-                module.getId().toString(),
-                module.getTitle(),
                 lesson.getContent(),
-                transcricao,
-                pdf);
+                media == null ? null : media.getTranscript(),
+                ehPdf ? media : null);
+    }
+
+    /** Prepara as aulas que ainda nao passaram por aqui. */
+    public int indexarPendentes(int limite) {
+        int preparadas = 0;
+        for (UUID aula : trechos.aulasPendentes(limite)) {
+            try {
+                indexar(aula);
+                preparadas++;
+            } catch (Exception e) {
+                // Uma aula com problema nao impede as outras
+                log.warn("Falha ao preparar a aula {} para a IA: {}", aula, e.getMessage());
+            }
+        }
+        return preparadas;
     }
 
     /**
-     * O PDF e baixado pelo proprio backend (pelo link temporario do S3) e enviado
-     * junto. Assim o servico de IA nao precisa de acesso ao bucket.
+     * Baixa o PDF da aula pelo link temporario do S3 e extrai o texto. PDF
+     * escaneado (so imagem) nao tem texto: a aula fica sem trechos de PDF.
      */
-    private String pdfEmBase64(MediaAsset media) {
-        if (media == null || media.getProvider() != MediaProvider.S3 || media.getS3Key() == null
-                || !"application/pdf".equalsIgnoreCase(media.getMimeType())) {
+    String textoDoPdf(MediaAsset media) {
+        if (media == null || media.getProvider() != MediaProvider.S3 || media.getS3Key() == null) {
             return null;
         }
         if (media.getFileSize() != null && media.getFileSize() > LIMITE_PDF_BYTES) {
-            log.warn("PDF {} maior que {} MB: nao sera indexado", media.getId(), LIMITE_PDF_BYTES / 1024 / 1024);
+            log.warn("PDF {} maior que {} MB: fica fora da IA", media.getId(), LIMITE_PDF_BYTES / 1024 / 1024);
             return null;
         }
+        byte[] bytes = baixar(media);
+        if (bytes == null) {
+            return null;
+        }
+        try {
+            return String.join("\n\n", TextoIa.paginasDoPdf(bytes));
+        } catch (IllegalArgumentException e) {
+            log.warn("PDF {} sem texto aproveitavel: {}", media.getId(), e.getMessage());
+            return null;
+        }
+    }
 
+    byte[] baixar(MediaAsset media) {
         try {
             HttpRequest pedido = HttpRequest.newBuilder(URI.create(s3Service.generatePresignedDownloadUrl(media.getS3Key())))
                     .timeout(Duration.ofSeconds(60)).GET().build();
@@ -172,22 +154,14 @@ public class LessonIndexingService {
             }
             try (InputStream corpo = resposta.body()) {
                 byte[] bytes = corpo.readNBytes((int) LIMITE_PDF_BYTES + 1);
-                if (bytes.length > LIMITE_PDF_BYTES) {
-                    log.warn("PDF {} maior que o limite: nao sera indexado", media.getId());
-                    return null;
-                }
-                return Base64.getEncoder().encodeToString(bytes);
+                return bytes.length > LIMITE_PDF_BYTES ? null : bytes;
             }
         } catch (IOException e) {
-            log.warn("Falha ao baixar o PDF {} para a IA: {}", media.getId(), e.getMessage());
+            log.warn("Falha ao baixar o PDF {}: {}", media.getId(), e.getMessage());
             return null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
         }
-    }
-
-    private static boolean vazio(String texto) {
-        return texto == null || texto.isBlank();
     }
 }

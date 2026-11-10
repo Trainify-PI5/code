@@ -44,6 +44,36 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
 
+  # IA (Spring AI). A Groq aceita o mesmo formato de pedido da API da OpenAI, entao
+  # usamos o modulo "openai" do Spring AI apontando para o endereco da Groq.
+  # Detalhes em docs/ia-no-trainify.md.
+  ai:
+    openai:
+      base-url: ${GROQ_BASE_URL:https://api.groq.com/openai}
+      # Sem a chave o sistema sobe normalmente e so os recursos de IA ficam
+      # desligados (o valor de fachada evita que o Spring AI recuse a subida).
+      api-key: ${GROQ_API_KEY:sem-chave}
+    # A Groq so oferece chat. Os outros modelos que o modulo "openai" criaria
+    # (embeddings, imagem, audio, moderacao) ficam desligados.
+    model:
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+    # Falha passageira da Groq (erro 5xx): uma nova tentativa, sem fazer a
+    # pessoa esperar minutos. Limite de uso (429) nao e repetido aqui.
+    retry:
+      max-attempts: 2
+      backoff:
+        initial-interval: 1s
+        max-interval: 4s
+  http:
+    client:
+      connect-timeout: 10s
+      read-timeout: 90s
+
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:25}
@@ -82,11 +112,38 @@ app:
     min-score: ${RECAPTCHA_MIN_SCORE:0.5}
     verify-url: ${RECAPTCHA_VERIFY_URL:https://www.google.com/recaptcha/api/siteverify}
   ai:
-    # Microservico de IA (trainify-ai): chat com RAG e geracao de quiz
-    service-url: ${AI_SERVICE_URL:http://localhost:8000}
-    # Mesma chave definida em INTERNAL_API_KEY no .env do trainify-ai
-    internal-key: ${AI_INTERNAL_KEY:}
-    read-timeout-seconds: ${AI_READ_TIMEOUT_SECONDS:120}
+    # Chave da Groq (console.groq.com/keys). Vazia: recursos de IA desligados.
+    groq-api-key: ${GROQ_API_KEY:}
+    # Cada recurso de IA tem a propria configuracao do modelo, como no notebook
+    # da disciplina: modelo, temperatura, limite de tokens da resposta e esforco
+    # de raciocinio (os modelos gpt-oss aceitam low, medium e high).
+    chat:
+      modelo: ${IA_CHAT_MODELO:openai/gpt-oss-20b}
+      temperatura: 0.3
+      max-tokens: 1500
+      raciocinio: low
+    quiz:
+      modelo: ${IA_QUIZ_MODELO:openai/gpt-oss-120b}
+      temperatura: 0.2
+      max-tokens: 4000
+      raciocinio: low
+    curso-estrutura:
+      modelo: ${IA_CURSO_MODELO:openai/gpt-oss-120b}
+      temperatura: 0.2
+      max-tokens: 3000
+      raciocinio: low
+    # O texto das aulas usa outro modelo de proposito: o limite de tokens por
+    # minuto da Groq e por modelo, entao gerar um curso nao tira a cota do chat.
+    # O Qwen aceita desligar o raciocinio (reasoning_effort "none", como no notebook).
+    curso-aula:
+      modelo: ${IA_AULA_MODELO:qwen/qwen3.8-27b}
+      temperatura: 0.4
+      max-tokens: 2000
+      raciocinio: none
+    # Prepara o texto das aulas que ainda nao passaram pela IA (ex.: aulas
+    # criadas antes desta versao). As novas sao preparadas ao salvar.
+    sync:
+      enabled: ${IA_SYNC_ENABLED:true}
   s3:
     bucket: ${AWS_S3_BUCKET:trainify-media}
     region: ${AWS_S3_REGION:us-east-1}

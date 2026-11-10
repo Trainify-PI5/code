@@ -1,15 +1,13 @@
 package com.trainify.lms.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,7 +52,7 @@ import jakarta.persistence.EntityNotFoundException;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class CourseGenerationServiceTest {
 
-    @Mock private TrainifyAiClient ai;
+    @Mock private GeradorDeCurso gerador;
     @Mock private CourseGenerationDraftRepository repository;
     @Mock private CourseService courseService;
 
@@ -73,6 +71,8 @@ class CourseGenerationServiceTest {
             return r;
         });
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(gerador.configurada()).thenReturn(true);
+        when(gerador.reservar()).thenReturn(true);
     }
 
     @AfterEach
@@ -83,31 +83,41 @@ class CourseGenerationServiceTest {
     // ── enviar ──
 
     @Test
-    void enviaPdfComoBase64ETextoComoTexto() {
+    @SuppressWarnings("unchecked")
+    void extraiOTextoEEntregaAGeracaoParaOGerador() {
         CourseGenerationService.DraftDto dto = service.iniciar(List.of(
-                pdf("manual.pdf"), new MockMultipartFile("files", "artigo.md", "text/markdown", "# Artigo".getBytes())),
+                pdf("manual.pdf", "Uso de extintores", "Rotas de fuga"),
+                new MockMultipartFile("files", "artigo.md", "text/markdown", "# Artigo".getBytes(StandardCharsets.UTF_8))),
                 "Foco em armazém", 2, 4);
 
-        ArgumentCaptor<TrainifyAiClient.CourseDraftRequest> pedido = ArgumentCaptor.forClass(TrainifyAiClient.CourseDraftRequest.class);
-        verify(ai).createCourseDraft(pedido.capture());
-        assertEquals(dto.id().toString(), pedido.getValue().draftId());
-        assertEquals("Foco em armazém", pedido.getValue().instructions());
-        assertEquals(2, pedido.getValue().minModules());
-        TrainifyAiClient.DraftDocument manual = pedido.getValue().documents().get(0);
-        assertTrue(new String(java.util.Base64.getDecoder().decode(manual.pdfBase64()), StandardCharsets.US_ASCII).startsWith("%PDF"));
-        assertNull(manual.text());
-        assertEquals("# Artigo", pedido.getValue().documents().get(1).text());
+        ArgumentCaptor<List<GeradorDeCurso.Documento>> documentos = ArgumentCaptor.forClass(List.class);
+        verify(gerador).registrar(dto.id());
+        verify(gerador).gerar(eq(dto.id()), documentos.capture(), eq(2), eq(4), eq("Foco em armazém"));
+        GeradorDeCurso.Documento manual = documentos.getValue().get(0);
+        assertTrue(manual.pdf());
+        assertEquals(List.of("Uso de extintores", "Rotas de fuga"), manual.paginas());
+        assertEquals(List.of("# Artigo"), documentos.getValue().get(1).paginas());
         assertEquals("PROCESSING", dto.status());
         assertEquals(List.of("manual.pdf", "artigo.md"), dto.documentNames());
+        verify(gerador, never()).liberar();
     }
 
     @Test
-    void recusaArquivoQueNaoEPdfNemTexto() {
+    void recusaArquivoQueNaoEPdfNemTextoEDevolveAVaga() {
         MultipartFile planilha = new MockMultipartFile("files", "notas.xlsx", "application/vnd.ms-excel", new byte[]{1, 2, 3});
         IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
                 () -> service.iniciar(List.of(planilha), null, 2, 5));
         assertTrue(erro.getMessage().contains("notas.xlsx"));
-        verify(ai, never()).createCourseDraft(any());
+        verify(gerador, never()).gerar(any(), anyList(), anyInt(), anyInt(), any());
+        verify(gerador).liberar();
+    }
+
+    @Test
+    void pdfSemTextoTemMensagemClara() {
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
+                () -> service.iniciar(List.of(pdf("escaneado.pdf", "")), null, 2, 5));
+        assertTrue(erro.getMessage().contains("escaneado.pdf"));
+        assertTrue(erro.getMessage().contains("escaneados"));
     }
 
     @Test
@@ -115,31 +125,56 @@ class CourseGenerationServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.iniciar(List.of(), null, 2, 5));
         List<MultipartFile> muitos = new ArrayList<>();
         for (int i = 0; i <= CourseGenerationService.MAX_DOCUMENTOS; i++) {
-            muitos.add(pdf("doc" + i + ".pdf"));
+            muitos.add(pdf("doc" + i + ".pdf", "texto"));
         }
         assertThrows(IllegalArgumentException.class, () -> service.iniciar(muitos, null, 2, 5));
     }
 
     @Test
     void nomesRepetidosGanhamSufixo() {
-        List<TrainifyAiClient.DraftDocument> docs = service.lerDocumentos(List.of(pdf("manual.pdf"), pdf("Manual.pdf")));
-        assertEquals("manual.pdf", docs.get(0).name());
-        assertEquals("Manual.pdf (2)", docs.get(1).name());
+        List<GeradorDeCurso.Documento> docs = service.lerDocumentos(List.of(pdf("manual.pdf", "a"), pdf("Manual.pdf", "b")));
+        assertEquals("manual.pdf", docs.get(0).nome());
+        assertEquals("Manual.pdf (2)", docs.get(1).nome());
+    }
+
+    @Test
+    void umaGeracaoPorVez() {
+        when(gerador.reservar()).thenReturn(false);
+
+        AiUnavailableException erro = assertThrows(AiUnavailableException.class,
+                () -> service.iniciar(List.of(pdf("manual.pdf", "texto")), null, 2, 4));
+
+        assertTrue(erro.getMessage().contains("em andamento"));
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void semChaveDaIaNemComeca() {
+        when(gerador.configurada()).thenReturn(false);
+        assertThrows(AiUnavailableException.class,
+                () -> service.iniciar(List.of(pdf("manual.pdf", "texto")), null, 2, 4));
+        verify(gerador, never()).reservar();
     }
 
     // ── acompanhar ──
 
     @Test
-    void trazAPropostaQuandoAIaTermina() {
+    void enquantoOGeradorTrabalhaORascunhoSegueEmProcessamento() {
         CourseGenerationDraft rascunho = rascunho(instrutor, Status.PROCESSING);
-        Map<String, Object> proposta = proposta();
-        when(ai.courseDraft(rascunho.getId().toString()))
-                .thenReturn(new TrainifyAiClient.CourseDraftStatus("READY", 100, "Pronto", proposta, null));
+        when(gerador.emAndamento(rascunho.getId())).thenReturn(true);
+
+        assertEquals("PROCESSING", service.obter(rascunho.getId()).status());
+    }
+
+    @Test
+    void rascunhoOrfaoDeUmReinicioViraFalhaComExplicacao() {
+        CourseGenerationDraft rascunho = rascunho(instrutor, Status.PROCESSING);
+        when(gerador.emAndamento(rascunho.getId())).thenReturn(false);
 
         CourseGenerationService.DraftDto dto = service.obter(rascunho.getId());
 
-        assertEquals("READY", dto.status());
-        assertEquals(proposta, dto.proposal());
+        assertEquals("FAILED", dto.status());
+        assertTrue(dto.error().contains("reiniciou"));
     }
 
     @Test
@@ -176,17 +211,18 @@ class CourseGenerationServiceTest {
 
         assertEquals("APPROVED", dto.status());
         assertEquals(curso.getId(), dto.courseId());
-        verify(ai).deleteCourseDraft(rascunho.getId().toString());
     }
 
     @Test
     void naoAprovaEnquantoAIaGera() {
         CourseGenerationDraft rascunho = rascunho(instrutor, Status.PROCESSING);
+        when(gerador.emAndamento(rascunho.getId())).thenReturn(true);
         assertThrows(IllegalArgumentException.class, () -> service.aprovar(rascunho.getId()));
         verify(courseService, never()).createCourse(any(), any(), any());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void edicaoComModuloSemAulasERecusada() {
         CourseGenerationDraft rascunho = rascunho(instrutor, Status.READY);
         Map<String, Object> editada = proposta();
@@ -194,6 +230,39 @@ class CourseGenerationServiceTest {
         IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
                 () -> service.salvarProposta(rascunho.getId(), editada));
         assertTrue(erro.getMessage().contains("ficou sem aulas"));
+    }
+
+    @Test
+    void descartarDuranteAGeracaoMarcaORascunhoParaOGeradorParar() {
+        CourseGenerationDraft rascunho = rascunho(instrutor, Status.PROCESSING);
+        service.descartar(rascunho.getId());
+        assertEquals(Status.DISCARDED, rascunho.getStatus());
+    }
+
+    // ── memoria: o envio precisa caber na instancia ──
+
+    @Test
+    void recusaArquivoGrandeDemaisSemLerOConteudo() {
+        MultipartFile gigante = pesadoDemais("manual.pdf", CourseGenerationService.MAX_BYTES_POR_DOCUMENTO + 1);
+
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
+                () -> service.iniciar(List.of(gigante), null, 2, 4));
+
+        assertTrue(erro.getMessage().contains("manual.pdf"));
+        verify(gerador).liberar();
+    }
+
+    @Test
+    void recusaQuandoASomaPassaDoLimiteAntesDeCarregarQualquerArquivo() {
+        long metadeDoTeto = CourseGenerationService.MAX_BYTES_TOTAL / 2 + 1;
+        // Cada um cabe sozinho; juntos, nao
+        MultipartFile um = pesadoDemais("parte1.pdf", metadeDoTeto);
+        MultipartFile dois = pesadoDemais("parte2.pdf", metadeDoTeto);
+
+        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
+                () -> service.iniciar(List.of(um, dois), null, 2, 4));
+
+        assertTrue(erro.getMessage().contains("no total"));
     }
 
     // ── apoio ──
@@ -220,7 +289,9 @@ class CourseGenerationServiceTest {
         return r;
     }
 
-    // ── memoria: o envio precisa caber na instancia ──
+    private static MockMultipartFile pdf(String nome, String... paginas) {
+        return new MockMultipartFile("files", nome, "application/pdf", PdfDeTeste.comPaginas(paginas));
+    }
 
     /**
      * Arquivo que mente o tamanho e explode se alguem ler o conteudo. Serve para
@@ -238,82 +309,6 @@ class CourseGenerationServiceTest {
                 throw new AssertionError("nao pode ler o conteudo de um arquivo ja recusado");
             }
         };
-    }
-
-    @Test
-    void recusaArquivoGrandeDemaisSemLerOConteudo() {
-        MultipartFile gigante = pesadoDemais("manual.pdf", CourseGenerationService.MAX_BYTES_POR_DOCUMENTO + 1);
-
-        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
-                () -> service.iniciar(List.of(gigante), null, 2, 4));
-
-        assertTrue(erro.getMessage().contains("manual.pdf"));
-        verify(ai, never()).createCourseDraft(any());
-    }
-
-    @Test
-    void recusaQuandoASomaPassaDoLimiteAntesDeCarregarQualquerArquivo() {
-        long metadeDoTeto = CourseGenerationService.MAX_BYTES_TOTAL / 2 + 1;
-        // Cada um cabe sozinho; juntos, nao
-        MultipartFile um = pesadoDemais("parte1.pdf", metadeDoTeto);
-        MultipartFile dois = pesadoDemais("parte2.pdf", metadeDoTeto);
-
-        IllegalArgumentException erro = assertThrows(IllegalArgumentException.class,
-                () -> service.iniciar(List.of(um, dois), null, 2, 4));
-
-        assertTrue(erro.getMessage().contains("no total"));
-        verify(ai, never()).createCourseDraft(any());
-    }
-
-    @Test
-    void umaGeracaoPorVez() throws Exception {
-        var entrou = new java.util.concurrent.CountDownLatch(1);
-        var podeSair = new java.util.concurrent.CountDownLatch(1);
-
-        when(ai.createCourseDraft(any())).thenAnswer(i -> {
-            entrou.countDown();
-            podeSair.await(5, java.util.concurrent.TimeUnit.SECONDS);
-            return null;
-        });
-
-        var executor = java.util.concurrent.Executors.newSingleThreadExecutor();
-        try {
-            var contexto = SecurityContextHolder.getContext();
-            var primeira = executor.submit(() -> {
-                SecurityContextHolder.setContext(contexto);
-                return service.iniciar(List.of(pdf("manual.pdf")), null, 2, 4);
-            });
-
-            assertTrue(entrou.await(5, java.util.concurrent.TimeUnit.SECONDS), "a primeira geração não começou");
-
-            // Com a primeira ocupando a vaga, a segunda e recusada em vez de somar memoria
-            assertThrows(AiUnavailableException.class,
-                    () -> service.iniciar(List.of(pdf("outro.pdf")), null, 2, 4));
-
-            podeSair.countDown();
-            assertNotNull(primeira.get(5, java.util.concurrent.TimeUnit.SECONDS));
-        } finally {
-            podeSair.countDown();
-            executor.shutdownNow();
-        }
-
-        // A vaga volta no fim: a proxima geração entra normalmente
-        reset(ai);
-        assertNotNull(service.iniciar(List.of(pdf("depois.pdf")), null, 2, 4));
-    }
-
-    @Test
-    void rascunhoNaoSobraPresoQuandoOEnvioFalha() {
-        when(ai.createCourseDraft(any())).thenThrow(new RuntimeException("servico fora do ar"));
-
-        assertThrows(RuntimeException.class,
-                () -> service.iniciar(List.of(pdf("manual.pdf")), null, 2, 4));
-
-        verify(repository).delete(any());
-    }
-
-    private static MockMultipartFile pdf(String nome) {
-        return new MockMultipartFile("files", nome, "application/pdf", "%PDF-1.4 conteudo".getBytes(StandardCharsets.US_ASCII));
     }
 
     private static Map<String, Object> proposta() {

@@ -45,8 +45,14 @@ class TrainifyBackendApplicationTests {
 				"nenhum repositorio foi criado");
 	}
 
+	/**
+	 * O Spring AI monta o cliente da Groq mesmo sem chave (os recursos de IA so
+	 * ficam desligados). Sem isto, faltar a variavel GROQ_API_KEY derrubaria a
+	 * subida da aplicacao inteira.
+	 */
 	@Test
-	void oClienteDoServicoDeIaEstaConfigurado() {
-		assertNotNull(contexto.getBean(com.trainify.lms.ai.TrainifyAiClient.class));
+	void aIaSobeSemChaveEFicaDesligada() {
+		assertNotNull(contexto.getBean(org.springframework.ai.chat.model.ChatModel.class));
+		assertFalse(contexto.getBean(com.trainify.lms.ai.RagService.class).disponivel());
 	}
 }

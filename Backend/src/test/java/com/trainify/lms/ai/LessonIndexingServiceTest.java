@@ -1,157 +1,121 @@
 package com.trainify.lms.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
+import org.springframework.transaction.PlatformTransactionManager;
 
-import com.trainify.lms.domain.entities.Course;
 import com.trainify.lms.domain.entities.Lesson;
 import com.trainify.lms.domain.entities.MediaAsset;
-import com.trainify.lms.domain.entities.Module;
-import com.trainify.lms.domain.entities.Tenant;
 import com.trainify.lms.domain.enums.MediaProvider;
 import com.trainify.lms.repositories.LessonRepository;
-import com.trainify.lms.repositories.ModuleRepository;
 import com.trainify.lms.services.S3Service;
 
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class LessonIndexingServiceTest {
 
-    @Mock private TrainifyAiClient ai;
-    @Mock private LessonRepository lessonRepository;
-    @Mock private ModuleRepository moduleRepository;
-    @Mock private S3Service s3Service;
+    private final LessonRepository lessonRepository = mock(LessonRepository.class);
+    private final TrechoRepository trechos = mock(TrechoRepository.class);
+    private final S3Service s3 = mock(S3Service.class);
+    private LessonIndexingService service;
 
-    @InjectMocks private LessonIndexingService indexing;
+    @BeforeEach
+    void preparar() {
+        service = spy(new LessonIndexingService(lessonRepository, trechos, s3, mock(PlatformTransactionManager.class)));
+    }
 
     @Test
-    void enviaTextoTranscricaoEOsDadosDoCurso() {
-        Lesson aula = aula("<p>Use sempre o capacete.</p>");
+    void textoETranscricaoViramTrechosComOTituloDaAula() {
+        Lesson aula = aula("Uso do EPI", "O empregador fornece o EPI.");
         MediaAsset video = new MediaAsset();
-        video.setProvider(MediaProvider.YOUTUBE);
-        video.setMimeType("application/vnd.trainify.external");
-        video.setTranscript("Neste vídeo mostramos o capacete.");
+        video.setMimeType("video/mp4");
+        video.setTranscript("Nesta aula vamos falar de luvas.");
         aula.setVideoAsset(video);
-        when(lessonRepository.findById(aula.getId())).thenReturn(Optional.of(aula));
 
-        indexing.indexar(aula.getId());
+        int total = service.indexar(aula.getId());
 
-        ArgumentCaptor<TrainifyAiClient.IngestRequest> pedido = ArgumentCaptor.forClass(TrainifyAiClient.IngestRequest.class);
-        verify(ai).ingestLesson(org.mockito.ArgumentMatchers.eq(aula.getId().toString()), pedido.capture());
-        Module modulo = aula.getModule();
-        assertEquals(modulo.getCourse().getId().toString(), pedido.getValue().courseId());
-        assertEquals(modulo.getId().toString(), pedido.getValue().moduleId());
-        assertEquals(aula.getTenant().getId().toString(), pedido.getValue().tenantId());
-        assertEquals("<p>Use sempre o capacete.</p>", pedido.getValue().content());
-        assertEquals("Neste vídeo mostramos o capacete.", pedido.getValue().transcript());
-        assertNull(pedido.getValue().pdfBase64(), "video externo nao tem PDF para baixar");
-        verify(s3Service, never()).generatePresignedDownloadUrl(anyString());
+        List<String> gravados = gravados(aula.getId());
+        assertEquals(2, total);
+        assertEquals(List.of("Uso do EPI\nO empregador fornece o EPI.", "Uso do EPI\nNesta aula vamos falar de luvas."), gravados);
     }
 
     @Test
-    void aulaSemConteudoSaiDoIndice() {
-        Lesson quiz = aula(null);
-        quiz.setLessonType("QUIZ");
-        when(lessonRepository.findById(quiz.getId())).thenReturn(Optional.of(quiz));
-
-        indexing.indexar(quiz.getId());
-
-        verify(ai).removeLesson(quiz.getModule().getCourse().getId().toString(), quiz.getId().toString());
-        verify(ai, never()).ingestLesson(anyString(), any());
-    }
-
-    @Test
-    void aulaJaExcluidaNaoFazNada() {
-        UUID id = UUID.randomUUID();
-        when(lessonRepository.findById(id)).thenReturn(Optional.empty());
-
-        indexing.indexar(id);
-
-        verify(ai, never()).ingestLesson(anyString(), any());
-        verify(ai, never()).removeLesson(anyString(), anyString());
-    }
-
-    @Test
-    void pdfGrandeDemaisNaoEhBaixado() {
-        Lesson aula = aula("Resumo da aula.");
+    void textoDoPdfAnexadoEntraNaAula() {
+        Lesson aula = aula("Manual", null);
         MediaAsset pdf = new MediaAsset();
-        pdf.setProvider(MediaProvider.S3);
-        pdf.setS3Key("tenant/curso/manual.pdf");
+        pdf.setId(UUID.randomUUID());
         pdf.setMimeType("application/pdf");
-        pdf.setFileSize(LessonIndexingService.LIMITE_PDF_BYTES + 1);
+        pdf.setProvider(MediaProvider.S3);
+        pdf.setS3Key("cursos/manual.pdf");
         aula.setVideoAsset(pdf);
+        doReturn(PdfDeTeste.comPaginas("Capitulo 1 Extintores", "Capitulo 2 Rotas de fuga")).when(service).baixar(pdf);
 
-        TrainifyAiClient.IngestRequest pedido = indexing.montarPedido(aula);
+        service.indexar(aula.getId());
 
-        assertNull(pedido.pdfBase64());
-        assertEquals("Resumo da aula.", pedido.content());
-        verify(s3Service, never()).generatePresignedDownloadUrl(anyString());
+        String gravado = String.join(" ", gravados(aula.getId()));
+        assertTrue(gravado.contains("Capitulo 1 Extintores"));
+        assertTrue(gravado.contains("Capitulo 2 Rotas de fuga"));
+    }
+
+    /** Aula so de video fica registrada com zero trechos, para nao ser tentada de novo a cada rodada. */
+    @Test
+    void aulaSemTextoFicaRegistradaSemTrechos() {
+        Lesson aula = aula("Vídeo de boas-vindas", null);
+
+        assertEquals(0, service.indexar(aula.getId()));
+        verify(trechos).substituir(aula.getId(), List.of());
     }
 
     @Test
-    void reindexarIndexaSoAsAulasComTexto() {
-        Lesson comTexto = aula("<p>Use sempre o capacete.</p>");
-        Lesson semTexto = aula(null);
-        Module modulo = comTexto.getModule();
-        semTexto.setModule(modulo);
-        UUID curso = modulo.getCourse().getId();
+    void aulaExcluidaAntesDoEventoNaoGravaNada() {
+        UUID sumiu = UUID.randomUUID();
+        when(lessonRepository.findById(sumiu)).thenReturn(Optional.empty());
 
-        when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(curso)).thenReturn(java.util.List.of(modulo));
-        when(lessonRepository.findByModuleIdOrderByOrderIndexAsc(modulo.getId()))
-                .thenReturn(java.util.List.of(comTexto, semTexto));
-        when(lessonRepository.findById(comTexto.getId())).thenReturn(Optional.of(comTexto));
-        when(lessonRepository.findById(semTexto.getId())).thenReturn(Optional.of(semTexto));
-
-        assertEquals(1, indexing.reindexarCurso(curso));
-
-        verify(ai).ingestLesson(org.mockito.ArgumentMatchers.eq(comTexto.getId().toString()), any());
-        // Numa reindexacao o curso nao esta no indice: pedir remocao de aula sem
-        // texto so gastaria uma chamada por aula a cada rodada da sincronizacao
-        verify(ai, never()).removeLesson(any(), any());
+        assertEquals(0, service.indexar(sumiu));
+        verify(trechos, never()).substituir(any(), anyList());
     }
 
     @Test
-    void cursoSemAulasNaoChamaOServicoDeIa() {
-        UUID curso = UUID.randomUUID();
-        when(moduleRepository.findByCourseIdOrderByOrderIndexAsc(curso)).thenReturn(java.util.List.of());
+    void pendentesSaoPreparadasEUmaFalhaNaoParaAsOutras() {
+        Lesson boa = aula("Boa", "Texto.");
+        UUID ruim = UUID.randomUUID();
+        when(lessonRepository.findById(ruim)).thenThrow(new IllegalStateException("banco fora"));
+        when(trechos.aulasPendentes(20)).thenReturn(List.of(ruim, boa.getId()));
 
-        assertEquals(0, indexing.reindexarCurso(curso));
-
-        verify(ai, never()).ingestLesson(anyString(), any());
+        assertEquals(1, service.indexarPendentes(20));
+        verify(trechos).substituir(eq(boa.getId()), anyList());
     }
 
-    private static Lesson aula(String conteudo) {
-        Tenant empresa = new Tenant();
-        empresa.setId(UUID.randomUUID());
-        Course curso = new Course();
-        curso.setId(UUID.randomUUID());
-        Module modulo = new Module();
-        modulo.setId(UUID.randomUUID());
-        modulo.setTitle("Proteção individual");
-        modulo.setCourse(curso);
+    // ── apoio ──
+
+    private Lesson aula(String titulo, String texto) {
         Lesson aula = new Lesson();
         aula.setId(UUID.randomUUID());
-        aula.setTitle("Uso do capacete");
-        aula.setContent(conteudo);
-        aula.setModule(modulo);
-        aula.setTenant(empresa);
+        aula.setTitle(titulo);
+        aula.setContent(texto);
+        when(lessonRepository.findById(aula.getId())).thenReturn(Optional.of(aula));
         return aula;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> gravados(UUID aula) {
+        ArgumentCaptor<List<String>> lista = ArgumentCaptor.forClass(List.class);
+        verify(trechos).substituir(eq(aula), lista.capture());
+        return lista.getValue();
     }
 }
