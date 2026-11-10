@@ -31,6 +31,10 @@ Peça os valores a quem tem acesso ao Supabase.
 | `AWS_S3_ENDPOINT` | `https://<referência>.storage.supabase.co/storage/v1/s3` |
 | `AWS_S3_REGION`, `AWS_S3_BUCKET` | região do projeto e `trainify-media` |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | chaves do Storage |
+| `GROQ_API_KEY` | chave da Groq (console.groq.com/keys) para os recursos de IA. Sem ela o sistema funciona normalmente e só a IA fica desligada |
+
+Os recursos de IA (assistente, quiz e criação de curso a partir de documentos) estão
+explicados em [`docs/ia-no-trainify.md`](../docs/ia-no-trainify.md).
 
 ```bash
 ./mvnw spring-boot:run
