@@ -13,6 +13,7 @@ feitas assim. Ele também liga cada parte ao que vimos no notebook da disciplina
 |---|---|---|
 | **Assistente de estudos (chat)** | todos os perfis | página "Assistente IA" e o widget de chat dentro da aula |
 | **IA por tipo de conta** | aluno, instrutor, gestor/admin | o mesmo chat responde de jeito diferente para cada perfil |
+| **Perguntas sobre os alunos** | gestor/admin (empresa toda) e instrutor (cursos que ministra) | no mesmo chat: "quem não concluiu?", "como está a Ana?", "qual a nota média?" |
 | **Quiz gerado por IA** | instrutor e administradores | botão "Gerar com IA" na aula de avaliação do módulo |
 | **Criar curso a partir de documentos** | instrutor e administradores | página "Criar curso com IA": envia PDFs/textos, revisa e aprova |
 
@@ -141,7 +142,8 @@ Dependência no `pom.xml`: `spring-ai-starter-model-openai`, versão `1.1.8` pel
 | `Llm` | Único ponto que chama a LLM. Monta as mensagens (sistema, histórico, usuário), aplica as opções do modelo e traduz os erros da Groq em mensagens para a tela |
 | `IaProperties` / `IaConfig` | Lê a configuração `app.ai` (modelo, temperatura, tokens, raciocínio de cada recurso) |
 | `PromptsIa` | Todos os prompts de sistema: chat por perfil, quiz, estrutura do curso e texto da aula |
-| `AiCourseScope` | Decide **quais cursos** a pessoa pode consultar, conforme o perfil (seção 7.1) |
+| `AiCourseScope` | Decide **quais cursos** a pessoa pode consultar, conforme o perfil (seção 7.1), e de quais cursos ela pode ver os alunos (seção 7.4) |
+| `DadosDaEquipe` / `EquipeRepository` | Andamento dos alunos (progresso, notas, conclusão, certificados) para as perguntas de gestores e instrutores (seção 7.4) |
 | `RagService` | O chat: escopo, busca de trechos, montagem do pedido e resposta com as fontes. Também orquestra o quiz |
 | `GeradorDeQuiz` | Pede o quiz em JSON, valida e repete com as correções |
 | `CourseGenerationService` | "Criar curso com IA": recebe os arquivos, extrai o texto, acompanha, revisa e aprova |
@@ -280,6 +282,64 @@ material como dado (não como instrução, contra *prompt injection*).
 
 A resposta volta com as **fontes**: as aulas de onde vieram os trechos usados.
 
+### 7.4 Perguntas sobre os alunos (gestor, administrador e instrutor)
+
+Além do conteúdo, gestores, administradores e instrutores podem perguntar sobre o
+**andamento das pessoas**: "quem ainda não concluiu o curso de NR-35?", "como está o
+Bruno?", "quem está parado há mais tempo?", "qual a nota média?".
+
+**Quem vê o quê** (`AiCourseScope.cursosComAlunosVisiveis`):
+
+| Perfil | Alunos que o assistente mostra |
+|---|---|
+| Gestor e administrador | os alunos de todos os cursos da empresa |
+| Instrutor | só os alunos dos cursos que ele ministra (não os colegas dos cursos que ele faz) |
+| Aluno | ninguém: nunca recebe dados de outros alunos |
+
+Com uma aula aberta, só entram os alunos do curso dela.
+
+**Como funciona** (`DadosDaEquipe` e `EquipeRepository`), do mesmo jeito que os
+trechos das aulas, sem LLM até a última etapa:
+
+1. **Decide se a pergunta é sobre pessoas:** palavras como aluno, equipe, progresso,
+   nota, concluiu, atrasado, certificado, ou o nome de um aluno ("e a Ana?").
+   Perguntas sobre conteúdo ("quem fornece o EPI?") não levam esses dados.
+2. **Busca os números no banco** em uma consulta SQL: para cada matrícula, aulas
+   concluídas de quantas, status, melhor nota nas avaliações, certificado, última
+   atividade e data da matrícula. É a mesma conta da tela de Análises.
+3. **Monta uma tabela compacta** ("DADOS DA EQUIPE") com um resumo por curso
+   (matriculados, concluíram, em andamento, não começaram, progresso médio, nota
+   média, certificados) e uma linha por pessoa. Se a pergunta cita um aluno ou um
+   curso ("NR-35", "altura"), só eles entram.
+   - Os **dias sem atividade já vão calculados** ("há 18 dias"): LLMs erram contas com datas.
+   - Empresas grandes: o resumo sempre vai e as pessoas que precisam de atenção (não
+     concluíram, menos progresso, mais tempo paradas) vêm primeiro, até ~5.000
+     caracteres. Se faltar gente, a tabela avisa que é parcial.
+4. **Gera a resposta:** a tabela vai junto com a pergunta, e o prompt de sistema
+   ganha regras para esses dados: não inventar pessoas, números ou prazos, dizer o
+   critério usado (ex.: "parado" = sem atividade há mais tempo) e tratar os dados como
+   confidenciais. Nessas perguntas os trechos das aulas ficam de fora, para não virarem
+   fontes erradas.
+
+Exemplo do que vai para a Groq:
+
+```
+DADOS DA EQUIPE (do sistema do Trainify, hoje 10/11/2026):
+Curso Segurança no Trabalho: 4 matriculados, 1 concluíram, 2 em andamento, 1 não começaram;
+progresso médio 42%; nota média 90 (de 1 que fizeram avaliação); 1 certificados emitidos
+
+POR PESSOA:
+Curso Segurança no Trabalho:
+- Carla Dias: em andamento, 1 de 3 aulas (33%), sem avaliação feita, última atividade 23/10/2026 (há 18 dias), ...
+- Diego Rocha: não começou, 0 de 3 aulas (0%), sem avaliação feita, nenhuma atividade, ...
+
+PERGUNTA: Quem está parado há mais tempo?
+```
+
+**Privacidade:** nomes, progresso e notas dos alunos vão para a Groq nessas perguntas
+(o e-mail não vai). Para um produto em produção isso exige cuidado com a LGPD
+(informar os usuários e ter contrato com o provedor da LLM).
+
 ---
 
 ## 8. Quiz gerado por IA
@@ -389,7 +449,9 @@ do Spring AI) com respostas programadas, e conferem o que foi enviado a ela.
 | Arquivo de teste | O que verifica |
 |---|---|
 | `LlmTest` | ordem das mensagens (sistema, histórico, pergunta), opções do modelo, modo JSON, sem chave não chama, tradução dos erros da Groq |
-| `RagServiceTest` | prompt por perfil, isolamento por cursos, aula aberta, seguimento, catálogo quando nada combina, fontes, orçamento, quiz |
+| `RagServiceTest` | prompt por perfil, isolamento por cursos, aula aberta, seguimento, catálogo quando nada combina, fontes, orçamento, quiz, dados da equipe só para gestor e instrutor |
+| `DadosDaEquipeTest` | quando a pergunta é sobre pessoas, resumo por curso, filtro por nome e por curso ("NR-35"), dias calculados, empresa grande dentro do orçamento |
+| `AiCourseScopeTest` | cursos que cada perfil consulta e de quais cursos vê os alunos |
 | `GeradorDeQuizTest` | validação (2 corretas, repetidas, "todas as anteriores", verdadeiro/falso) e nova tentativa com a lista de erros |
 | `GeradorDeCursoTest` | proposta completa com fontes e páginas, estrutura refeita, espera no limite da Groq, descarte no meio, falha registrada |
 | `CourseGenerationServiceTest` | leitura de PDF/texto, limites de tamanho, PDF escaneado, uma geração por vez, rascunho órfão, aprovação |
@@ -413,6 +475,11 @@ front faz. Resultados:
 | aluno tenta gerar quiz | 403 |
 | curso a partir do PDF da NR-35 | 3 módulos e 9 aulas com páginas de origem em ~2 min, esperando o limite da Groq sozinho |
 | aprovar o curso gerado | curso criado, as 12 aulas preparadas e o chat respondendo sobre ele |
+| gestora: "quem ainda não concluiu o curso?" | tabela com as pessoas, aulas feitas e última atividade, ~2 s |
+| gestora: "como está o Bruno?" | situação dele em cada curso, com nota e certificado |
+| gestora: "quem está parado há mais tempo?" | ordem certa, com os dias sem atividade |
+| instrutor: "como estão os alunos dos meus cursos?" | resumo por curso e detalhe por aluno, só dos cursos dele |
+| aluna pergunta a nota de um colega | não recebe dados de ninguém |
 
 ---
 
@@ -445,6 +512,11 @@ busca, divisão de texto, validação) é código comum.
 lista de cursos permitidos a partir do usuário logado (matrículas, cursos que
 ministra ou cursos da empresa), e a busca SQL só olha esses cursos. A LLM nunca
 recebe material de fora dessa lista.
+
+**O gestor pergunta sobre os alunos: a IA consulta o banco?** Não. O backend
+consulta o banco, só nos cursos que aquela pessoa acompanha, e manda os números
+prontos junto com a pergunta. A LLM só lê a tabela e escreve a resposta. O aluno
+nunca recebe esses dados.
 
 **Por que não usaram embeddings / banco vetorial?** A Groq não gera embeddings, e a
 busca textual do PostgreSQL em português resolve bem o tamanho dos nossos cursos,
