@@ -102,6 +102,38 @@ public class AiCourseScope {
         return cursos;
     }
 
+    /**
+     * Cursos cujos alunos a pessoa pode acompanhar pelo assistente (progresso,
+     * notas, conclusao). Diferente de {@link #cursosPermitidos}: o instrutor ve o
+     * conteudo dos cursos em que esta matriculado, mas os colegas de turma nao.
+     *
+     * <ul>
+     *   <li>Gestor e administrador: todos os cursos da empresa.</li>
+     *   <li>Instrutor: so os cursos que ministra.</li>
+     *   <li>Aluno: nenhum.</li>
+     * </ul>
+     */
+    @Transactional(readOnly = true)
+    public Set<UUID> cursosComAlunosVisiveis() {
+        CustomUserDetails usuario = usuarioAtual();
+        UUID empresa = usuario.getTenantId();
+        Set<UUID> cursos = new LinkedHashSet<>();
+        if (empresa == null) {
+            return cursos;
+        }
+        switch (papelDe(usuario)) {
+            case SUPER_ADMIN, ADMIN, MANAGER ->
+                    courseRepository.findByTenantId(empresa).forEach(c -> cursos.add(c.getId()));
+            case INSTRUCTOR -> courseRepository.findByInstructorId(usuario.getId()).stream()
+                    .filter(c -> c.getTenant() != null && empresa.equals(c.getTenant().getId()))
+                    .forEach(c -> cursos.add(c.getId()));
+            default -> {
+                // Aluno nao ve dados de outros alunos
+            }
+        }
+        return cursos;
+    }
+
     private void matriculas(CustomUserDetails usuario, Set<UUID> cursos) {
         if (usuario.getTenantId() == null) {
             return;

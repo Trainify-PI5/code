@@ -2,8 +2,10 @@ package com.trainify.lms.ai;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import com.trainify.lms.ai.TrechoRepository.Trecho;
 import com.trainify.lms.domain.entities.Lesson;
+import com.trainify.lms.domain.enums.Role;
 import com.trainify.lms.dto.CreateAssessmentRequest;
 import com.trainify.lms.repositories.LessonRepository;
 import com.trainify.lms.services.AssessmentService;
@@ -32,6 +35,10 @@ import lombok.RequiredArgsConstructor;
  *   <li><b>Gerar</b>: a LLM recebe o prompt de sistema do tipo de conta, o
  *       historico e a pergunta junto com os trechos.</li>
  * </ol>
+ *
+ * <p>Para gestores e instrutores, perguntas sobre pessoas ("quem nao concluiu?")
+ * levam tambem os DADOS DA EQUIPE ({@link DadosDaEquipe}): o andamento real dos
+ * alunos dos cursos que eles acompanham, tirado do banco.
  */
 @Service
 @RequiredArgsConstructor
@@ -60,6 +67,7 @@ public class RagService {
     private final TrechoRepository trechos;
     private final LessonRepository lessonRepository;
     private final GeradorDeQuiz geradorDeQuiz;
+    private final DadosDaEquipe dadosDaEquipe;
 
     public record Mensagem(String role, String content) {}
     public record Fonte(String courseId, String lessonId, String lessonTitle) {}
@@ -92,18 +100,42 @@ public class RagService {
         // A aula de avaliacao nao tem conteudo proprio: a pergunta vale para o curso
         UUID aula = ehAulaDeAvaliacao(lessonId) ? null : lessonId;
 
-        // 2. Recuperar os trechos
+        // 2. Recuperar os trechos e, para gestor e instrutor, o andamento dos alunos
         List<Mensagem> anteriores = historicoValido(historico);
-        List<Trecho> material = recuperar(cursos, aula, consulta(pergunta.trim(), anteriores));
+        String consulta = consulta(pergunta.trim(), anteriores);
+        List<Trecho> material = recuperar(cursos, aula, consulta);
+        String equipe = dadosDaEquipe(escopo, cursos, consulta);
+        if (equipe != null) {
+            // Pergunta sobre pessoas: os trechos que a busca achou so combinaram por
+            // palavras como "curso" ou "concluiu" e virariam fontes erradas.
+            material = List.of();
+        }
 
         // 3. Gerar
-        String mensagem = material.isEmpty()
-                ? semTrechos(cursos, pergunta.trim())
-                : comTrechos(material, pergunta.trim());
-        String resposta = llm.conversar(props.chat(), PromptsIa.sistemaDoChat(escopo.role()),
-                paraMensagens(anteriores), mensagem);
+        String mensagem;
+        if (equipe == null) {
+            mensagem = material.isEmpty() ? semTrechos(cursos, pergunta.trim()) : comTrechos(material, pergunta.trim());
+        } else {
+            mensagem = equipe + "\nPERGUNTA: " + pergunta.trim();
+        }
+        String sistema = PromptsIa.sistemaDoChat(escopo.role()) + (equipe == null ? "" : "\n\n" + PromptsIa.DADOS_DA_EQUIPE);
+        String resposta = llm.conversar(props.chat(), sistema, paraMensagens(anteriores), mensagem);
 
         return new RespostaChat(resposta, fontes(material));
+    }
+
+    /**
+     * Andamento dos alunos para gestores e instrutores, so dos cursos que eles
+     * acompanham e que estao no escopo da conversa (com uma aula aberta, so o curso
+     * dela). Aluno nunca recebe dados de outros alunos.
+     */
+    private String dadosDaEquipe(AiCourseScope.Escopo escopo, List<UUID> cursos, String consulta) {
+        if (escopo.role() == Role.STUDENT || dadosDaEquipe == null) {
+            return null;
+        }
+        Set<UUID> visiveis = new LinkedHashSet<>(scope.cursosComAlunosVisiveis());
+        visiveis.retainAll(cursos);
+        return dadosDaEquipe.paraPergunta(visiveis, consulta);
     }
 
     /**
@@ -173,13 +205,17 @@ public class RagService {
     }
 
     static String comTrechos(List<Trecho> material, String pergunta) {
+        return materialDoCurso(material) + "\nPERGUNTA: " + pergunta;
+    }
+
+    static String materialDoCurso(List<Trecho> material) {
         StringBuilder texto = new StringBuilder("MATERIAL DO CURSO:\n");
         for (Trecho trecho : material) {
             texto.append("\n[Curso: ").append(trecho.courseTitle())
                     .append(" | Aula: ").append(trecho.lessonTitle()).append("]\n")
                     .append(semTitulo(trecho)).append('\n');
         }
-        return texto.append("\nPERGUNTA: ").append(pergunta).toString();
+        return texto.toString();
     }
 
     /** O titulo da aula vai no cabecalho; no trecho ele so repetiria. */

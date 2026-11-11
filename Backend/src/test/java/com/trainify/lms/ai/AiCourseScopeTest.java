@@ -1,6 +1,7 @@
 package com.trainify.lms.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -126,6 +127,34 @@ class AiCourseScopeTest {
     }
 
     // ── apoio ──
+
+    // ── alunos que cada perfil acompanha (dados da equipe no chat) ──
+
+    @Test
+    void gestorAcompanhaOsAlunosDeTodosOsCursosDaEmpresa() {
+        logar(Role.MANAGER);
+        when(courseRepository.findByTenantId(empresa.getId())).thenReturn(List.of(matriculado, outroDaEmpresa));
+
+        assertEquals(java.util.Set.of(matriculado.getId(), outroDaEmpresa.getId()), scope.cursosComAlunosVisiveis());
+    }
+
+    /** Instrutor ve os alunos dos cursos que ministra, nao os colegas dos cursos que ele faz. */
+    @Test
+    void instrutorAcompanhaSoOsCursosQueMinistra() {
+        User instrutor = logar(Role.INSTRUCTOR);
+        when(courseRepository.findByInstructorId(instrutor.getId())).thenReturn(List.of(outroDaEmpresa, deOutraEmpresa));
+        when(enrollmentRepository.findByUserId(instrutor.getId())).thenReturn(List.of(matricula(instrutor, matriculado)));
+
+        assertEquals(java.util.Set.of(outroDaEmpresa.getId()), scope.cursosComAlunosVisiveis());
+    }
+
+    @Test
+    void alunoNaoAcompanhaNinguem() {
+        User aluno = logar(Role.STUDENT);
+        when(enrollmentRepository.findByUserId(aluno.getId())).thenReturn(List.of(matricula(aluno, matriculado)));
+
+        assertTrue(scope.cursosComAlunosVisiveis().isEmpty());
+    }
 
     private User logar(Role role) {
         User usuario = new User();

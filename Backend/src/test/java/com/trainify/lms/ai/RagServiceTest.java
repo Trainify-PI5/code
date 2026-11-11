@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +37,7 @@ class RagServiceTest {
     private final AiCourseScope scope = mock(AiCourseScope.class);
     private final TrechoRepository trechos = mock(TrechoRepository.class);
     private final LessonRepository lessonRepository = mock(LessonRepository.class);
+    private final DadosDaEquipe dadosDaEquipe = mock(DadosDaEquipe.class);
     private LlmFalsa modelo;
     private RagService rag;
 
@@ -47,7 +49,7 @@ class RagServiceTest {
         modelo = new LlmFalsa();
         Llm llm = modelo.llm();
         rag = new RagService(llm, LlmFalsa.propriedades(), scope, trechos, lessonRepository,
-                new GeradorDeQuiz(llm, LlmFalsa.propriedades()));
+                new GeradorDeQuiz(llm, LlmFalsa.propriedades()), dadosDaEquipe);
         when(lessonRepository.findById(any())).thenReturn(Optional.empty());
     }
 
@@ -242,9 +244,75 @@ class RagServiceTest {
     void semChaveOsRecursosFicamDesligados() {
         RagService semChave = new RagService(
                 new Llm(org.springframework.ai.chat.client.ChatClient.builder(modelo), new IaProperties(null, null, null, null, null)),
-                LlmFalsa.propriedades(), scope, trechos, lessonRepository, null);
+                LlmFalsa.propriedades(), scope, trechos, lessonRepository, null, null);
         assertFalse(semChave.disponivel());
         assertTrue(rag.disponivel());
+    }
+
+
+    // ── dados da equipe ──
+
+    @Test
+    void gestorPerguntaSobreAlunosERecebeOsDadosDaEquipe() {
+        escopo(Role.MANAGER, null);
+        when(scope.cursosComAlunosVisiveis()).thenReturn(Set.of(curso));
+        when(dadosDaEquipe.paraPergunta(eq(Set.of(curso)), any())).thenReturn("DADOS DA EQUIPE (...):\n- Ana Souza: não começou");
+        // A busca acha um trecho so pela palavra "concluiu": nao pode virar fonte
+        when(trechos.buscar(eq(List.of(curso)), isNull(), any(), anyInt())).thenReturn(List.of(
+                trecho(aulaEpi, "Uso do EPI", "Uso do EPI\nAo concluir o treinamento...")));
+        modelo.responde("A Ana ainda não começou.");
+
+        RagService.RespostaChat resposta = rag.chat("Quem ainda não concluiu o curso?", List.of(), null, null);
+
+        assertEquals("A Ana ainda não começou.", resposta.response());
+        assertTrue(resposta.sources().isEmpty());
+        assertFalse(modelo.ultimo().getInstructions().get(1).getText().contains("MATERIAL DO CURSO"));
+        List<Message> enviadas = modelo.ultimo().getInstructions();
+        assertTrue(enviadas.get(0).getText().contains("DADOS DA EQUIPE: o andamento real"),
+                "o prompt de sistema explica como usar os dados");
+        String pergunta = enviadas.get(enviadas.size() - 1).getText();
+        assertTrue(pergunta.contains("- Ana Souza: não começou"));
+        assertTrue(pergunta.endsWith("PERGUNTA: Quem ainda não concluiu o curso?"));
+    }
+
+    @Test
+    void perguntaSobreConteudoNaoLevaDadosDaEquipe() {
+        escopo(Role.MANAGER, null);
+        when(scope.cursosComAlunosVisiveis()).thenReturn(Set.of(curso));
+        when(dadosDaEquipe.paraPergunta(any(), any())).thenReturn(null);
+        when(trechos.buscar(eq(List.of(curso)), isNull(), any(), anyInt())).thenReturn(List.of(
+                trecho(aulaEpi, "Uso do EPI", "Uso do EPI\nO empregador fornece o EPI.")));
+        modelo.responde("O empregador.");
+
+        rag.chat("Quem fornece o EPI?", List.of(), null, null);
+
+        assertFalse(modelo.ultimo().getInstructions().get(0).getText().contains("o andamento real dos alunos"));
+        assertFalse(modelo.ultimo().getInstructions().get(1).getText().contains("DADOS DA EQUIPE"));
+    }
+
+    /** O aluno nunca recebe dados de outros alunos: nem a lista de cursos e consultada. */
+    @Test
+    void alunoNuncaRecebeDadosDaEquipe() {
+        escopo(Role.STUDENT, null);
+        modelo.responde("ok");
+
+        rag.chat("Quem da minha turma já concluiu o curso?", List.of(), null, null);
+
+        verify(scope, never()).cursosComAlunosVisiveis();
+        verify(dadosDaEquipe, never()).paraPergunta(any(), any());
+    }
+
+    /** O instrutor so ve alunos dos cursos que ministra, e com uma aula aberta so do curso dela. */
+    @Test
+    void dadosDaEquipeSoDosCursosQueEstaoNoEscopoDaConversa() {
+        UUID outroCurso = UUID.randomUUID();
+        escopo(Role.INSTRUCTOR, null);
+        when(scope.cursosComAlunosVisiveis()).thenReturn(Set.of(curso, outroCurso));
+        modelo.responde("ok");
+
+        rag.chat("Como estão os alunos?", List.of(), null, null);
+
+        verify(dadosDaEquipe).paraPergunta(eq(Set.of(curso)), any());
     }
 
     // ── quiz ──

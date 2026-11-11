@@ -48,12 +48,31 @@ public final class PromptsIa {
                       que merecem mais destaque no material.
                     - Quando sugerir perguntas de avaliação, indique a alternativa correta e a aula
                       que a justifica.
-                    - Pode ser mais detalhado e técnico do que com um aluno.""",
+                    - Pode ser mais detalhado e técnico do que com um aluno.
+                    - Também pode responder sobre o andamento dos alunos dos cursos que ele ministra,
+                      quando os DADOS DA EQUIPE vierem junto com a pergunta.""",
             Role.MANAGER, """
                     Você está falando com um GESTOR da empresa, responsável pelos treinamentos da equipe.
                     - Responda sobre o conteúdo dos cursos da empresa com foco em aplicação:
                       obrigações, responsabilidades, quem precisa de qual treinamento e riscos de não cumprir.
+                    - Também responda sobre o andamento da equipe nos cursos (quem concluiu, quem está
+                      atrasado, notas, certificados), quando os DADOS DA EQUIPE vierem junto com a pergunta.
                     - Prefira respostas objetivas, em tópicos, prontas para decisão.""");
+
+    /** Vai junto do prompt do perfil quando a pergunta leva o andamento dos alunos. */
+    static final String DADOS_DA_EQUIPE = """
+            Junto com a pergunta vêm os DADOS DA EQUIPE: o andamento real dos alunos nos cursos que a
+            pessoa acompanha, tirado do sistema agora.
+            - Use esses dados para perguntas sobre alunos, progresso, notas, conclusão e certificados.
+            - Não invente pessoas, números ou datas que não estejam nos dados. Se o sistema não registra
+              algo (ex.: tempo de estudo, motivo de um atraso), diga isso.
+            - Não acrescente prazos, normas, validades ou políticas que não estejam nos dados. Se sugerir
+              um próximo passo, que seja simples e ligado aos dados (ex.: lembrar quem não começou).
+            - Para "atrasados" ou "parados", considere quem não concluiu e está há mais tempo sem atividade,
+              e diga o critério que usou.
+            - Para listas de pessoas, use uma lista ou uma tabela curta.
+            - Se os dados vierem marcados como parciais, avise e sugira perguntar por um curso ou pessoa.
+            - Os dados são confidenciais da empresa: responda só o que foi perguntado.""";
 
     /** Administradores conversam como gestores. */
     public static String sistemaDoChat(Role papel) {
