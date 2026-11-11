@@ -184,12 +184,12 @@ const translations: Record<Language, Record<string, string>> = {
     "ia.suggest.student1": "Summarize the key points of my course",
     "ia.suggest.student2": "Explain a concept from a lesson with an example",
     "ia.suggest.instructor1": "Suggest assessment questions for a module",
-    "ia.suggest.instructor2": "Which points of the material deserve more emphasis?",
+    "ia.suggest.instructor2": "How are the students in my courses doing?",
     "ia.suggest.manager1": "Which obligations do the company courses cover?",
-    "ia.suggest.manager2": "Who needs which training?",
+    "ia.suggest.manager2": "Who hasn't completed their courses yet?",
     "ia.yesterday": "Yesterday",
     "ia.welcomeMessage":
-      "Hello! I'm your Learning IA Assistant. I can help you build curriculums, analyze training data, or recommend courses for your team.\n\nHow can I assist you today?",
+      "Hello! I'm the Trainify AI Assistant. I answer questions based on your courses' material and, for managers and instructors, also about how the students are doing.\n\nHow can I help you today?",
     "ia.assistantName": "IA Assistant",
     "ia.you": "You",
     "ia.inputPlaceholder":
@@ -500,12 +500,12 @@ const translations: Record<Language, Record<string, string>> = {
     "ia.suggest.student1": "Resume los puntos principales de mi curso",
     "ia.suggest.student2": "Explica un concepto de una clase con un ejemplo",
     "ia.suggest.instructor1": "Sugiere preguntas de evaluación para un módulo",
-    "ia.suggest.instructor2": "¿Qué puntos del material merecen más énfasis?",
+    "ia.suggest.instructor2": "¿Cómo van los alumnos de mis cursos?",
     "ia.suggest.manager1": "¿Qué obligaciones cubren los cursos de la empresa?",
-    "ia.suggest.manager2": "¿Quién necesita qué capacitación?",
+    "ia.suggest.manager2": "¿Quién todavía no concluyó sus cursos?",
     "ia.yesterday": "Ayer",
     "ia.welcomeMessage":
-      "¡Hola! Soy tu Asistente de Aprendizaje IA. Puedo ayudarte a crear currículos, analizar datos de entrenamiento o recomendar cursos para tu equipo.\n\n¿Cómo puedo ayudarte hoy?",
+      "¡Hola! Soy el Asistente IA de Trainify. Respondo dudas con base en el material de tus cursos y, para gestores e instructores, también sobre el avance de los alumnos.\n\n¿Cómo puedo ayudarte hoy?",
     "ia.assistantName": "Asistente IA",
     "ia.you": "Tú",
     "ia.inputPlaceholder":
@@ -816,12 +816,12 @@ const translations: Record<Language, Record<string, string>> = {
     "ia.suggest.student1": "Resuma os pontos principais do meu curso",
     "ia.suggest.student2": "Explique um conceito de uma aula com um exemplo",
     "ia.suggest.instructor1": "Sugira perguntas de avaliação para um módulo",
-    "ia.suggest.instructor2": "Quais pontos do material merecem mais destaque?",
+    "ia.suggest.instructor2": "Como estão os alunos dos meus cursos?",
     "ia.suggest.manager1": "Quais obrigações os cursos da empresa cobrem?",
-    "ia.suggest.manager2": "Quem precisa de qual treinamento?",
+    "ia.suggest.manager2": "Quem ainda não concluiu os cursos?",
     "ia.yesterday": "Ontem",
     "ia.welcomeMessage":
-      "Olá! Sou seu Assistente de Aprendizado IA. Posso ajudar você a criar currículos, analisar dados de treinamento ou recomendar cursos para sua equipe.\n\nComo posso te ajudar hoje?",
+      "Olá! Sou o Assistente IA do Trainify. Respondo dúvidas com base no material dos seus cursos e, para gestores e instrutores, também sobre o andamento dos alunos.\n\nComo posso te ajudar hoje?",
     "ia.assistantName": "Assistente IA",
     "ia.you": "Você",
     "ia.inputPlaceholder":
