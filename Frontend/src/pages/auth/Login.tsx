@@ -272,6 +272,7 @@ export default function Login({ onNavigate }: LoginProps) {
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
                   >
