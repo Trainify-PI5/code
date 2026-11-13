@@ -136,14 +136,17 @@ describe('Navegação de aulas', () => {
     let consultas = 0;
     get.mockImplementation(async (...args) => {
       if (args[0] === '/enrollments') return { data: [{ id: 'enrollment', course: { id: 'course' },
-        status: ++consultas === 1 ? 'IN_PROGRESS' : 'COMPLETED' }] };
+        status: ++consultas <= 4 ? 'IN_PROGRESS' : 'COMPLETED' }] };
       if (args[0] === '/progress/enrollments/enrollment/lessons') return {
         data: lessons.map(l => ({ lessonId: l.id, locked: false, status: 'COMPLETED' })),
       };
       return normal(...args);
     });
     renderPlayer();
+    expect(await screen.findByText(/Estamos confirmando/)).toBeInTheDocument();
+    const verificar = await screen.findByRole('button', { name: 'Verificar novamente' }, { timeout: 8000 });
+    await userEvent.click(verificar);
     expect(await screen.findByRole('button', { name: 'Ver meus certificados' })).toBeInTheDocument();
-    expect(consultas).toBe(2);
-  });
+    expect(consultas).toBe(5);
+  }, 10000);
 });

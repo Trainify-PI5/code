@@ -76,6 +76,8 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
 
   // Estados
   const [course, setCourse] = useState<any>(null);
+  const [revisaoConclusao, setRevisaoConclusao] = useState(0);
+  const [aguardandoRevisao, setAguardandoRevisao] = useState(false);
   const [enrollment, setEnrollment] = useState<any>(null);
   const [activeLesson, setActiveLesson] = useState<any>(null);
   const [avisoFonte, setAvisoFonte] = useState('');
@@ -232,6 +234,7 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
   useEffect(() => {
     if (!enrollment?.id || enrollment.status === 'COMPLETED' || !aulasConcluidas) return;
     let cancelado = false;
+    setAguardandoRevisao(false);
     let timer: ReturnType<typeof setTimeout>;
     const conferir = async (tentativa: number) => {
       try {
@@ -245,11 +248,13 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
       } catch {
         // O progresso das aulas continua disponível enquanto a matrícula é atualizada.
       }
-      if (!cancelado && tentativa < 3) timer = setTimeout(() => conferir(tentativa + 1), tentativa * 1500);
+      if (cancelado) return;
+      if (tentativa === 3) { setAguardandoRevisao(true); return; }
+      timer = setTimeout(() => conferir(tentativa + 1), tentativa * 1500);
     };
     void conferir(1);
     return () => { cancelado = true; clearTimeout(timer); };
-  }, [aulasConcluidas, enrollment?.id, enrollment?.status]);
+  }, [aulasConcluidas, enrollment?.id, enrollment?.status, revisaoConclusao]);
 
   const handleVideoProgress = (time: number) => {
     setWatchedSeconds(time);
@@ -337,6 +342,14 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
         </div>
       </div>
 
+      {enrollment?.id && enrollment.status !== 'COMPLETED' && aulasConcluidas && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant px-4 py-3">
+          <p role="status">{aguardandoRevisao
+            ? 'Todas as aulas foram concluídas. A confirmação do curso ainda está pendente.'
+            : 'Você concluiu todas as aulas. Estamos confirmando a conclusão do curso.'}</p>
+          {aguardandoRevisao && <Button onClick={() => setRevisaoConclusao(n => n + 1)}>Verificar novamente</Button>}
+        </div>
+      )}
       {enrollment?.status === 'COMPLETED' && aulasConcluidas && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant bg-primary-fixed px-4 py-3">
           <strong className="text-on-surface">Curso concluído</strong>
