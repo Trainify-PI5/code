@@ -38,21 +38,18 @@ export default function Login({ onNavigate }: LoginProps) {
   const passwordValid = password.length >= 6;
   const recaptchaValid = !recaptchaAtivo || Boolean(recaptchaToken);
 
-  const entrarNaEmpresa = async (tenantId: string) => {
-    await login(email, password, rememberMe, tenantId, recaptchaToken ?? undefined);
+  const autenticar = async (tenantId?: string) => {
+    if (isLoading || !recaptchaValid) return;
+    const token = recaptchaToken ?? undefined;
+    recaptchaRef.current?.reset();
+    setRecaptchaToken(null);
+    await login(email, password, rememberMe, tenantId, token);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
-    if (!emailValid || !passwordValid || !recaptchaValid) return;
-    await login(email, password, rememberMe, undefined, recaptchaToken ?? undefined);
-    // O token do reCAPTCHA é de uso único: se o login falhou, limpa o desafio
-    // para a próxima tentativa, já que o Google não aceita o mesmo token de novo.
-    if (useAuthStore.getState().error) {
-      recaptchaRef.current?.reset();
-      setRecaptchaToken(null);
-    }
+    if (emailValid && passwordValid) await autenticar();
   };
 
   return (
@@ -148,13 +145,19 @@ export default function Login({ onNavigate }: LoginProps) {
                   </p>
                 </div>
 
+                {recaptchaAtivo && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-on-surface-variant">Confirme a verificação para entrar na empresa escolhida.</p>
+                    <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   {tenantOptions.map((empresa) => (
                     <button
                       key={empresa.id}
                       type="button"
-                      disabled={isLoading}
-                      onClick={() => entrarNaEmpresa(empresa.id)}
+                      disabled={isLoading || !recaptchaValid}
+                      onClick={() => autenticar(empresa.id)}
                       className="w-full text-left px-4 py-3 rounded-xl border border-outline-variant hover:border-primary hover:bg-primary-fixed transition-colors font-medium text-on-surface disabled:opacity-60"
                     >
                       {empresa.name}
@@ -164,7 +167,7 @@ export default function Login({ onNavigate }: LoginProps) {
 
                 <button
                   type="button"
-                  onClick={clearTenantOptions}
+                  onClick={() => { setRecaptchaToken(null); clearTenantOptions(); }}
                   className="text-sm text-on-surface-variant underline"
                 >
                   Usar outro e-mail
@@ -203,12 +206,13 @@ export default function Login({ onNavigate }: LoginProps) {
               )}
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-on-surface">
+                <label htmlFor="login-email" className="text-sm font-semibold text-on-surface">
                   E-mail
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
                   <input
+                    id="login-email"
                     type="email"
                     value={email}
                     onChange={(e) => {
@@ -235,7 +239,7 @@ export default function Login({ onNavigate }: LoginProps) {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-on-surface">
+                  <label htmlFor="login-password" className="text-sm font-semibold text-on-surface">
                     Senha
                   </label>
                   <button
@@ -249,6 +253,7 @@ export default function Login({ onNavigate }: LoginProps) {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
                   <input
+                    id="login-password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => {
@@ -312,7 +317,7 @@ export default function Login({ onNavigate }: LoginProps) {
                 </span>
               </label>
 
-              {recaptchaAtivo && (
+              {recaptchaAtivo && tenantOptions.length === 0 && (
                 <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
               )}
 
