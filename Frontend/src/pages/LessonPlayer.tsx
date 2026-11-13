@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { montarHistorico, perguntarAssistente, type FonteIa } from '../lib/iaChat';
@@ -45,6 +46,28 @@ function indexProgress(items: LessonProgressItem[]): Record<string, LessonProgre
 
 export default function LessonPlayer() {
   const { id } = useParams<{ id: string }>();
+  return <PlayerDoCurso key={id} id={id!} />;
+}
+
+type Falha = 'ausente' | 'acesso' | 'curso' | 'matricula' | 'progresso';
+
+const mensagensDeFalha: Record<Falha, string> = {
+  ausente: 'Curso não encontrado.',
+  acesso: 'Você não tem acesso a este curso.',
+  curso: 'Não foi possível carregar o curso.',
+  matricula: 'Não foi possível verificar sua matrícula.',
+  progresso: 'Não foi possível confirmar seu progresso e quais aulas estão liberadas.',
+};
+
+function progressoDoCurso(items: LessonProgressItem[], lessons: { id: string }[]) {
+  const mapa = indexProgress(items);
+  if (lessons.some(l => typeof mapa[l.id]?.locked !== 'boolean')) {
+    throw new Error('Progresso incompleto');
+  }
+  return mapa;
+}
+
+function PlayerDoCurso({ id }: { id: string }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
@@ -54,6 +77,9 @@ export default function LessonPlayer() {
   const [activeLesson, setActiveLesson] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
   const [showLessons, setShowLessons] = useState(false);
+  const [falha, setFalha] = useState<Falha | null>(null);
+  const [tentativa, setTentativa] = useState(0);
+  const preview = ['INSTRUCTOR', 'ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(user?.role ?? '');
   const [loading, setLoading] = useState(true);
   const [initialTime, setInitialTime] = useState(0);
   const [mediaUrl, setMediaUrl] = useState<string>('');
@@ -91,45 +117,46 @@ export default function LessonPlayer() {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    let atual = true;
+    const carregar = async () => {
+      setLoading(true);
+      setFalha(null);
+      setActiveLesson(null);
+      setEnrollment(null);
+      let etapa: Falha = 'curso';
       try {
-        setLoading(true);
-        const courseRes = await api.get(`/courses/${id}`);
-        setCourse(courseRes.data);
-
-        // Pega o enrollment do user atual para este curso
-        const enrollmentRes = await api.get('/enrollments');
-        const currentEnrollment = enrollmentRes.data.find((e: any) => e.course?.id === id);
-        setEnrollment(currentEnrollment);
-
-        // Status e bloqueio de cada aula vem do backend. Sem matricula (ex.: preview
-        // do instrutor) nao ha progresso e nenhuma aula e bloqueada.
-        let progressById: Record<string, LessonProgressItem> = {};
-        if (currentEnrollment?.id) {
-          try {
-            const progressRes = await api.get(`/progress/enrollments/${currentEnrollment.id}/lessons`);
-            progressById = indexProgress(progressRes.data);
-          } catch (e) {
-            console.error(e);
-          }
+        const { data: curso } = await api.get(`/courses/${id}`);
+        if (!atual) return;
+        etapa = 'matricula';
+        const { data: matriculas } = await api.get('/enrollments');
+        if (!atual) return;
+        const matricula = matriculas.find((item: any) => item.course?.id === id);
+        if (!matricula && !preview) {
+          setFalha('acesso');
+          return;
         }
-        setLessonProgress(progressById);
-
-        // Retoma de onde o aluno parou: primeira aula liberada ainda nao concluida
-        const lessons = (courseRes.data.modules || []).flatMap((mod: any) => mod.lessons || []);
-        const resumeLesson = lessons.find((lesson: any) => {
-          const progress = progressById[lesson.id];
-          return progress && !progress.locked && progress.status !== 'COMPLETED';
-        });
-        setActiveLesson(resumeLesson || lessons[0] || null);
-      } catch (e) {
-        console.error(e);
+        etapa = 'progresso';
+        const aulas = (curso.modules || []).flatMap((mod: any) => mod.lessons || []);
+        const progresso = matricula
+          ? progressoDoCurso((await api.get(`/progress/enrollments/${matricula.id}/lessons`)).data, aulas)
+          : {};
+        if (!atual) return;
+        const liberadas = matricula ? aulas.filter((l: any) => progresso[l.id]?.locked === false) : aulas;
+        setCourse(curso);
+        setEnrollment(matricula);
+        setLessonProgress(progresso);
+        setActiveLesson(liberadas.find((l: any) => progresso[l.id]?.status !== 'COMPLETED') || liberadas[0] || null);
+      } catch (erro) {
+        if (!atual) return;
+        const status = axios.isAxiosError(erro) ? erro.response?.status : undefined;
+        setFalha(status === 403 ? 'acesso' : etapa === 'curso' && status === 404 ? 'ausente' : etapa);
       } finally {
-        setLoading(false);
+        if (atual) setLoading(false);
       }
     };
-    fetchData();
-  }, [id]);
+    void carregar();
+    return () => { atual = false; };
+  }, [id, tentativa, preview]);
 
   useEffect(() => {
     // Limpa a midia da aula anterior e descarta respostas que chegarem depois de
@@ -182,11 +209,15 @@ export default function LessonPlayer() {
     if (!enrollment?.id) return;
     try {
       const progressRes = await api.get(`/progress/enrollments/${enrollment.id}/lessons`);
-      setLessonProgress(indexProgress(progressRes.data));
+      const aulas = course.modules.flatMap((mod: any) => mod.lessons || []);
+      const mapa = progressoDoCurso(progressRes.data, aulas);
+      setLessonProgress(mapa);
+      if (activeLesson && mapa[activeLesson.id]?.locked !== false) setActiveLesson(null);
     } catch (e) {
-      console.error(e);
+      setActiveLesson(null);
+      setFalha('progresso');
     }
-  }, [enrollment?.id]);
+  }, [enrollment?.id, course, activeLesson]);
 
   const handleVideoProgress = (time: number) => {
     setWatchedSeconds(time);
@@ -210,8 +241,18 @@ export default function LessonPlayer() {
     }
   };
 
-  if (loading) return <div className="p-8">Carregando player...</div>;
-  if (!course) return <div className="p-8">Curso não encontrado.</div>;
+  if (loading) return <div role="status" className="p-8">Carregando curso e aulas...</div>;
+  if (falha || !course) return (
+    <section className="mx-auto max-w-lg space-y-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
+      <h1 className="text-xl font-semibold text-on-surface" role="alert">{mensagensDeFalha[falha ?? 'curso']}</h1>
+      <div className="flex flex-wrap gap-3">
+        {falha !== 'ausente' && falha !== 'acesso' && (
+          <Button onClick={() => setTentativa(n => n + 1)}>Tentar novamente</Button>
+        )}
+        <Button variant="secondary" onClick={() => navigate('/courses')}>Voltar aos cursos</Button>
+      </div>
+    </section>
+  );
 
   const allLessons = (course.modules || []).flatMap((mod: any) => mod.lessons || []);
   const progressItems = Object.values(lessonProgress);
@@ -330,7 +371,7 @@ export default function LessonPlayer() {
              </>
            ) : (
              <div className="flex items-center justify-center h-full text-on-surface-variant">
-                Selecione uma aula no menu lateral.
+                {allLessons.length ? 'Nenhuma aula está liberada no momento.' : 'Este curso ainda não tem aulas.'}
              </div>
            )}
 
@@ -411,7 +452,7 @@ export default function LessonPlayer() {
                    <div className="flex flex-col gap-1">
                       {mod.lessons?.map((lesson: any) => {
                          const progress = lessonProgress[lesson.id];
-                         const locked = !!progress?.locked;
+                         const locked = !!enrollment && progress?.locked !== false;
                          const completed = progress?.status === 'COMPLETED';
 
                          return (

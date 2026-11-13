@@ -22,11 +22,15 @@ const lessons = [
   { id: 'third', title: 'Conclusão', lessonType: 'ARTICLE', content: 'Texto final' },
 ];
 
-async function openLessons() {
-  const user = userEvent.setup();
+function renderPlayer() {
   render(<MemoryRouter initialEntries={['/courses/course/learn']}>
     <Routes><Route path="/courses/:id/learn" element={<LessonPlayer />} /></Routes>
   </MemoryRouter>);
+}
+
+async function openLessons() {
+  const user = userEvent.setup();
+  renderPlayer();
   const toggle = await screen.findByRole('button', { name: 'Conteúdo do curso' });
   expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await user.click(toggle);
@@ -74,5 +78,42 @@ describe('Navegação de aulas', () => {
     await user.click(locked);
     expect(screen.getByRole('heading', { name: 'Prática' })).toBeInTheDocument();
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it.each([
+    [404, 'Curso não encontrado.'],
+    [403, 'Você não tem acesso a este curso.'],
+    [503, 'Não foi possível carregar o curso.'],
+  ])('distingue a resposta %i ao abrir o curso', async (status, mensagem) => {
+    vi.mocked(api.get).mockRejectedValueOnce({ isAxiosError: true, response: { status } });
+    renderPlayer();
+    expect(await screen.findByRole('alert')).toHaveTextContent(String(mensagem));
+  });
+
+  it.each(['falha', 'incompleto'])('não abre conteúdo com progresso %s e permite recuperar', async (modo) => {
+    const get = vi.mocked(api.get);
+    const normal = get.getMockImplementation()!;
+    let primeira = true;
+    get.mockImplementation(async (...args) => {
+      if (primeira && args[0] === '/progress/enrollments/enrollment/lessons') {
+        primeira = false;
+        if (modo === 'falha') throw new Error('Sem conexão');
+        return { data: [{ lessonId: 'first', locked: false }] };
+      }
+      return normal(...args);
+    });
+    renderPlayer();
+    expect(await screen.findByRole('alert')).toHaveTextContent('quais aulas estão liberadas');
+    expect(screen.queryByText('Texto inicial')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByRole('heading', { name: 'Prática' })).toBeInTheDocument();
+  });
+
+  it('não interpreta falha na consulta de matrícula como prévia sem restrições', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ data: { modules: [{ lessons }] } })
+      .mockRejectedValueOnce(new Error('Sem conexão'));
+    renderPlayer();
+    expect(await screen.findByRole('alert')).toHaveTextContent('verificar sua matrícula');
+    expect(screen.queryByText('Texto inicial')).not.toBeInTheDocument();
   });
 });
