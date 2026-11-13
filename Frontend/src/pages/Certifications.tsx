@@ -21,7 +21,7 @@ interface Certificate {
 
 export default function Certifications() {
   const toast = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +48,7 @@ export default function Certifications() {
       await buscarPdf(cert);
     } catch (err) {
       console.error("Erro ao baixar certificado", err);
-      toast.error("Não foi possível baixar o certificado.");
+      toast.error(t("cert.downloadError"));
     } finally {
       setBaixando(null);
     }
@@ -57,10 +57,7 @@ export default function Certifications() {
   // Um PDF por vez: o navegador bloqueia downloads simultaneos e o backend
   // gera cada arquivo sob demanda.
   const baixarTodos = async () => {
-    if (certificates.length === 0) {
-      toast.info("Você ainda não tem certificados.");
-      return;
-    }
+    if (certificates.length === 0) return;
 
     setBaixandoTodos(true);
     let falhas = 0;
@@ -75,11 +72,11 @@ export default function Certifications() {
     setBaixandoTodos(false);
 
     if (falhas === 0) {
-      toast.success(`${certificates.length} certificado(s) baixado(s).`);
+      toast.success(t("cert.downloaded").replace("{count}", String(certificates.length)));
     } else if (falhas === certificates.length) {
-      toast.error("Não foi possível baixar os certificados.");
+      toast.error(t("cert.allError"));
     } else {
-      toast.warning(`${certificates.length - falhas} baixado(s), ${falhas} com erro.`);
+      toast.warning(t("cert.partial").replace("{count}", String(certificates.length - falhas)).replace("{failed}", String(falhas)));
     }
   };
 
@@ -97,9 +94,9 @@ export default function Certifications() {
         }
       }
       baixarBlob(arquivo, arquivo.name);
-      toast.info("PDF baixado. Você pode enviá-lo como anexo.");
+      toast.info(t("cert.shareFallback"));
     } catch {
-      toast.error("Não foi possível obter o PDF do certificado. Tente novamente.");
+      toast.error(t("cert.shareError"));
     } finally {
       setBaixando(null);
     }
@@ -111,8 +108,8 @@ export default function Certifications() {
     setError(false);
     api.get<{ id: string; courseTitle: string; issuedAt: string }[]>('/certifications').then(({ data }) => {
       if (atual) setCertificates(data.map(c => ({
-        id: c.id, title: c.courseTitle || "Curso sem título",
-        date: c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() : "",
+        id: c.id, title: c.courseTitle,
+        date: c.issuedAt,
         issuer: "Trainify LMS", color: "bg-primary-container text-white",
       })));
     }).catch(() => { if (atual) setError(true); })
@@ -120,8 +117,8 @@ export default function Certifications() {
     return () => { atual = false; };
   }, [revisao]);
 
-  if (loading) return <PageContainer><p role="status">Carregando certificados...</p></PageContainer>;
-  if (error) return <PageContainer><p role="alert">Não foi possível carregar os certificados.</p><Button onClick={() => setRevisao(n => n + 1)}>Tentar novamente</Button></PageContainer>;
+  if (loading) return <PageContainer><p role="status">{t("cert.loading")}</p></PageContainer>;
+  if (error) return <PageContainer><p role="alert">{t("cert.loadError")}</p><Button onClick={() => setRevisao(n => n + 1)}>{t("cert.retry")}</Button></PageContainer>;
 
   return (
     <PageContainer>
@@ -129,7 +126,7 @@ export default function Certifications() {
         title={t("cert.title")}
         subtitle={t("cert.subtitle")}
         actions={
-          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => setRevisao(n => n + 1)}>Atualizar</Button>
+          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => setRevisao(n => n + 1)}>{t("cert.refresh")}</Button>
           <Button onClick={baixarTodos} disabled={!certificates.length || !!baixando || baixandoTodos}>
             <Download className="w-4 h-4" /> {t("cert.downloadAll")}
           </Button></div>
@@ -158,7 +155,7 @@ export default function Certifications() {
         {t("cert.yourCredentials")}
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {certificates.length === 0 && <p className="text-on-surface-variant">Você ainda não tem certificados. Eles são emitidos automaticamente ao concluir um curso. Se acabou de concluir, aguarde um momento e atualize a lista.</p>}
+        {certificates.length === 0 && <p className="text-on-surface-variant">{t("cert.empty")}</p>}
         {certificates.map((cert) => (
           <div
             key={cert.id}
@@ -179,7 +176,7 @@ export default function Certifications() {
                   {cert.issuer}
                 </p>
                 <h4 className="font-display font-bold text-xl leading-tight mt-1">
-                  {cert.title}
+                  {cert.title || t("cert.untitled")}
                 </h4>
               </div>
             </div>
@@ -187,7 +184,7 @@ export default function Certifications() {
             <div className="p-5 flex items-center justify-between">
               <div>
                 <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest">
-                  {t("cert.issued")} {cert.date}
+                  {t("cert.issued")} {cert.date && new Date(cert.date).toLocaleDateString(language)}
                 </p>
               </div>
               <div className="flex items-center gap-2">

@@ -65,22 +65,22 @@ describe('Dados reais nas páginas', () => {
   it.each([Home, Profile, Certifications])('mostra erro quando a API falha', async (Page) => {
     vi.mocked(api.get).mockRejectedValue(new Error('offline'));
     render(<MemoryRouter><Page /></MemoryRouter>);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar');
+    expect(await screen.findByRole('alert')).toHaveTextContent(Page === Certifications ? 'cert.loadError' : 'Não foi possível carregar');
   });
 
   it('mostra estado vazio quando não há certificados', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] });
     render(<Certifications />);
-    expect(await screen.findByText(/emitidos automaticamente ao concluir um curso/)).toBeInTheDocument();
+    expect(await screen.findByText('cert.empty')).toBeInTheDocument();
   });
 
   it('permite recuperar a lista e atualizar depois da emissão', async () => {
     vi.mocked(api.get).mockRejectedValueOnce(new Error('rede')).mockResolvedValueOnce({ data: [] })
       .mockResolvedValueOnce({ data: [{ id: 'id', courseTitle: 'Curso concluído' }] });
     render(<Certifications />);
-    await userEvent.click(await screen.findByText('Tentar novamente'));
+    await userEvent.click(await screen.findByText('cert.retry'));
     expect(await screen.findByText('cert.downloadAll')).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Atualizar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'cert.refresh' }));
     expect(await screen.findByText('Curso concluído')).toBeInTheDocument();
   });
 
