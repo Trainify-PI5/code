@@ -129,4 +129,21 @@ describe('Navegação de aulas', () => {
     expect(screen.getByText('Texto da prática')).toBeInTheDocument();
     expect(screen.queryByText('Texto final')).not.toBeInTheDocument();
   });
+
+  it('oferece certificados quando a matrícula confirma a conclusão de todas as aulas', async () => {
+    const get = vi.mocked(api.get);
+    const normal = get.getMockImplementation()!;
+    let consultas = 0;
+    get.mockImplementation(async (...args) => {
+      if (args[0] === '/enrollments') return { data: [{ id: 'enrollment', course: { id: 'course' },
+        status: ++consultas === 1 ? 'IN_PROGRESS' : 'COMPLETED' }] };
+      if (args[0] === '/progress/enrollments/enrollment/lessons') return {
+        data: lessons.map(l => ({ lessonId: l.id, locked: false, status: 'COMPLETED' })),
+      };
+      return normal(...args);
+    });
+    renderPlayer();
+    expect(await screen.findByRole('button', { name: 'Ver meus certificados' })).toBeInTheDocument();
+    expect(consultas).toBe(2);
+  });
 });

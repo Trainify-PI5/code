@@ -225,6 +225,32 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
     }
   }, [enrollment?.id, course, activeLesson]);
 
+  const aulasDoCurso = (course?.modules ?? []).flatMap((mod: any) => mod.lessons ?? []);
+  const aulasConcluidas = aulasDoCurso.length > 0 && aulasDoCurso.every(
+    (l: { id: string }) => lessonProgress[l.id]?.status === 'COMPLETED'
+  );
+  useEffect(() => {
+    if (!enrollment?.id || enrollment.status === 'COMPLETED' || !aulasConcluidas) return;
+    let cancelado = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const conferir = async (tentativa: number) => {
+      try {
+        const { data } = await api.get('/enrollments');
+        const atual = data.find((item: { id: string }) => item.id === enrollment.id);
+        if (cancelado) return;
+        if (atual?.status === 'COMPLETED') {
+          setEnrollment(atual);
+          return;
+        }
+      } catch {
+        // O progresso das aulas continua disponível enquanto a matrícula é atualizada.
+      }
+      if (!cancelado && tentativa < 3) timer = setTimeout(() => conferir(tentativa + 1), tentativa * 1500);
+    };
+    void conferir(1);
+    return () => { cancelado = true; clearTimeout(timer); };
+  }, [aulasConcluidas, enrollment?.id, enrollment?.status]);
+
   const handleVideoProgress = (time: number) => {
     setWatchedSeconds(time);
   };
@@ -260,7 +286,7 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
     </section>
   );
 
-  const allLessons = (course.modules || []).flatMap((mod: any) => mod.lessons || []);
+  const allLessons = aulasDoCurso;
   const progressItems = Object.values(lessonProgress);
   // Mesmo calculo do backend (aulas concluidas / total). O percentual da matricula
   // e recalculado de forma assincrona e chegaria desatualizado logo apos concluir.
@@ -311,6 +337,12 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
         </div>
       </div>
 
+      {enrollment?.status === 'COMPLETED' && aulasConcluidas && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant bg-primary-fixed px-4 py-3">
+          <strong className="text-on-surface">Curso concluído</strong>
+          <Button onClick={() => navigate('/certifications')}>Ver meus certificados</Button>
+        </div>
+      )}
       {avisoFonte && <p role="status" className="border-b border-outline-variant bg-surface-container px-4 py-3 text-sm text-on-surface">{avisoFonte}</p>}
       {/* Área de Conteúdo Principal */}
       <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
