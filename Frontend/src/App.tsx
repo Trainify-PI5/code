@@ -62,7 +62,7 @@ function ProtectedRoute({
 export default function App() {
   const { isAuthenticated, token, updateUser, user } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useThemeStore();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => window.innerWidth < 1024);
   const [paletaAberta, setPaletaAberta] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();

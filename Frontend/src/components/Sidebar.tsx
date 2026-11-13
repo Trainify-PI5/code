@@ -84,7 +84,7 @@ export default function Sidebar({
         // No mobile, se "isCollapsed" é true (fechada), esconde usando off-canvas (-translate-x-full).
         // Se false, mostra.
         isCollapsed
-          ? "-translate-x-full lg:translate-x-0 lg:w-[80px]"
+          ? "invisible -translate-x-full lg:visible lg:translate-x-0 lg:w-[80px]"
           : "translate-x-0 w-[260px]",
         !isCollapsed && "shadow-2xl lg:shadow-none"
       )}
