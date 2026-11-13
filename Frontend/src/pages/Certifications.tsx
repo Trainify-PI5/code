@@ -26,14 +26,20 @@ export default function Certifications() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [revisao, setRevisao] = useState(0);
   const [baixando, setBaixando] = useState<string | null>(null);
   const [baixandoTodos, setBaixandoTodos] = useState(false);
 
-  const buscarPdf = async (cert: Certificate) => {
+  const obterPdf = async (cert: Certificate) => {
     const { data } = await api.get(`/certifications/${cert.id}/pdf`, {
       responseType: "blob",
     });
-    baixarBlob(data, `certificado-${nomeDeArquivo(cert.title, cert.id)}.pdf`);
+    return new File([data], `certificado-${nomeDeArquivo(cert.title, cert.id)}.pdf`, { type: "application/pdf" });
+  };
+
+  const buscarPdf = async (cert: Certificate) => {
+    const arquivo = await obterPdf(cert);
+    baixarBlob(arquivo, arquivo.name);
   };
 
   const baixarUm = async (cert: Certificate) => {
@@ -77,46 +83,45 @@ export default function Certifications() {
     }
   };
 
-  // Web Share onde existir (celular), senao copia o link para a area de
-  // transferencia — os dois caminhos sao do proprio navegador.
   const compartilhar = async (cert: Certificate) => {
-    const url = `${window.location.origin}/certifications`;
-    const texto = `Concluí "${cert.title}" na Trainify.`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Certificado Trainify", text: texto, url });
-        return;
-      } catch {
-        return; // usuario cancelou o compartilhamento
-      }
-    }
-
+    setBaixando(cert.id);
     try {
-      await navigator.clipboard.writeText(`${texto} ${url}`);
-      toast.success("Link copiado para a área de transferência.");
+      const arquivo = await obterPdf(cert);
+      const dados = { files: [arquivo], title: cert.title };
+      if (navigator.share && navigator.canShare?.(dados)) {
+        try {
+          await navigator.share(dados);
+          return;
+        } catch (erro) {
+          if (erro instanceof Error && erro.name === "AbortError") return;
+        }
+      }
+      baixarBlob(arquivo, arquivo.name);
+      toast.info("PDF baixado. Você pode enviá-lo como anexo.");
     } catch {
-      toast.error("Não foi possível copiar o link.");
+      toast.error("Não foi possível obter o PDF do certificado. Tente novamente.");
+    } finally {
+      setBaixando(null);
     }
   };
-  
+
   useEffect(() => {
-    import("../services/api").then(api => {
-      api.default.get('/certifications').then(res => {
-        const mapped = res.data.map((c: any) => ({
-          id: c.id,
-          title: c.courseTitle || "Curso sem Título",
-          date: c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() : "",
-          issuer: "Trainify LMS",
-          color: "bg-primary-container text-white",
-        }));
-        setCertificates(mapped);
-      }).catch(() => setError(true)).finally(() => setLoading(false));
-    });
-  }, []);
+    let atual = true;
+    setLoading(true);
+    setError(false);
+    api.get<{ id: string; courseTitle: string; issuedAt: string }[]>('/certifications').then(({ data }) => {
+      if (atual) setCertificates(data.map(c => ({
+        id: c.id, title: c.courseTitle || "Curso sem título",
+        date: c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() : "",
+        issuer: "Trainify LMS", color: "bg-primary-container text-white",
+      })));
+    }).catch(() => { if (atual) setError(true); })
+      .finally(() => { if (atual) setLoading(false); });
+    return () => { atual = false; };
+  }, [revisao]);
 
   if (loading) return <PageContainer><p role="status">Carregando certificados...</p></PageContainer>;
-  if (error) return <PageContainer><p role="alert">Não foi possível carregar os certificados.</p></PageContainer>;
+  if (error) return <PageContainer><p role="alert">Não foi possível carregar os certificados.</p><Button onClick={() => setRevisao(n => n + 1)}>Tentar novamente</Button></PageContainer>;
 
   return (
     <PageContainer>
@@ -124,9 +129,10 @@ export default function Certifications() {
         title={t("cert.title")}
         subtitle={t("cert.subtitle")}
         actions={
-          <Button onClick={baixarTodos} disabled={baixandoTodos}>
+          <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => setRevisao(n => n + 1)}>Atualizar</Button>
+          <Button onClick={baixarTodos} disabled={!certificates.length || !!baixando || baixandoTodos}>
             <Download className="w-4 h-4" /> {t("cert.downloadAll")}
-          </Button>
+          </Button></div>
         }
       />
 
@@ -152,7 +158,7 @@ export default function Certifications() {
         {t("cert.yourCredentials")}
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {certificates.length === 0 && <p className="text-on-surface-variant">Nenhum certificado disponível.</p>}
+        {certificates.length === 0 && <p className="text-on-surface-variant">Você ainda não tem certificados. Eles são emitidos automaticamente ao concluir um curso. Se acabou de concluir, aguarde um momento e atualize a lista.</p>}
         {certificates.map((cert) => (
           <div
             key={cert.id}
@@ -187,7 +193,7 @@ export default function Certifications() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => baixarUm(cert)}
-                  disabled={baixando === cert.id}
+                  disabled={!!baixando || baixandoTodos}
                   className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-primary transition-colors"
                   title={t("cert.downloadPdf")}
                   aria-label={t("cert.downloadPdf")}
@@ -196,6 +202,7 @@ export default function Certifications() {
                 </button>
                 <button
                   onClick={() => compartilhar(cert)}
+                  disabled={!!baixando || baixandoTodos}
                   className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-primary transition-colors"
                   title={t("cert.share")}
                   aria-label={t("cert.share")}

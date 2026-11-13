@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Home from './Home';
@@ -70,6 +71,35 @@ describe('Dados reais nas páginas', () => {
   it('mostra estado vazio quando não há certificados', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] });
     render(<Certifications />);
-    expect(await screen.findByText('Nenhum certificado disponível.')).toBeInTheDocument();
+    expect(await screen.findByText(/emitidos automaticamente ao concluir um curso/)).toBeInTheDocument();
+  });
+
+  it('permite recuperar a lista e atualizar depois da emissão', async () => {
+    vi.mocked(api.get).mockRejectedValueOnce(new Error('rede')).mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({ data: [{ id: 'id', courseTitle: 'Curso concluído' }] });
+    render(<Certifications />);
+    await userEvent.click(await screen.findByText('Tentar novamente'));
+    expect(await screen.findByText('cert.downloadAll')).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Atualizar' }));
+    expect(await screen.findByText('Curso concluído')).toBeInTheDocument();
+  });
+
+  it('compartilha o arquivo PDF do certificado, sem endereço privado', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ data: [{ id: 'id', courseTitle: 'Curso concluído' }] })
+      .mockResolvedValueOnce({ data: new Blob(['pdf'], { type: 'application/pdf' }) });
+    const share = vi.fn().mockResolvedValue(undefined);
+    const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
+    const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
+    try {
+      Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+      render(<Certifications />);
+      await userEvent.click(await screen.findByRole('button', { name: 'cert.share' }));
+      expect(share).toHaveBeenCalledWith({ files: [expect.any(File)], title: 'Curso concluído' });
+      expect(share.mock.calls[0][0].files[0].type).toBe('application/pdf');
+    } finally {
+      if (originalShare) Object.defineProperty(navigator, 'share', originalShare); else Reflect.deleteProperty(navigator, 'share');
+      if (originalCanShare) Object.defineProperty(navigator, 'canShare', originalCanShare); else Reflect.deleteProperty(navigator, 'canShare');
+    }
   });
 });
