@@ -67,6 +67,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
   const { t } = useLanguage();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [recarregar, setRecarregar] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -80,13 +81,15 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
     let cancelled = false;
 
     setLoading(true);
+    setQuiz(null);
+    setError(null);
     api
       .get<Quiz>(`/assessments/lessons/${lessonId}`)
       .then((res) => {
         if (!cancelled) setQuiz(res.data);
       })
-      .catch(() => {
-        if (!cancelled) setError(t("assessment.loadError"));
+      .catch((err) => {
+        if (!cancelled && err?.response?.status !== 404) setError(t("assessment.loadError"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -95,7 +98,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
     return () => {
       cancelled = true;
     };
-  }, [lessonId, t]);
+  }, [lessonId, t, recarregar]);
 
   const startAttempt = () => {
     setSelectedAnswers({});
@@ -139,6 +142,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
         setError(t("assessment.lockedError"));
       } else if (type === "urn:problem-type:assessment-attempts-exhausted") {
         setError(e.response.data.detail);
+        setQuiz({ ...quiz, attemptsRemaining: 0 });
         setStarted(false);
       } else {
         setError(t("assessment.submitError"));
@@ -156,6 +160,16 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
       </div>
     );
   }
+
+  if (!quiz && error) return (
+    <section className="mx-auto max-w-lg space-y-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-6">
+      <p role="alert" className="font-semibold text-on-surface">{error}</p>
+      <div className="flex flex-wrap gap-3">
+        <button className="rounded-lg bg-primary-container px-4 py-2 text-white" onClick={() => setRecarregar(n => n + 1)}>{t("assessment.tryAgain")}</button>
+        <button className="rounded-lg px-4 py-2 text-primary" onClick={onBack}>{t("assessment.back")}</button>
+      </div>
+    </section>
+  );
 
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return (
@@ -294,7 +308,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
         <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 space-y-6">
           <h2 className="text-2xl font-display font-bold text-on-surface">{quiz.title}</h2>
 
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 text-center">
             <div>
               <p className="text-2xl font-display font-bold text-on-surface">{quiz.questions.length}</p>
               <p className="text-xs text-on-surface-variant uppercase tracking-widest">
@@ -352,7 +366,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
   const isLast = currentStep === quiz.questions.length - 1;
 
   return (
-    <div className="max-w-3xl mx-auto py-8 animate-in fade-in duration-500 flex flex-col bg-surface-bright p-8 rounded-xl border border-outline-variant shadow-sm">
+    <div className="max-w-3xl mx-auto py-8 animate-in fade-in duration-500 flex flex-col bg-surface-bright p-4 sm:p-8 rounded-xl border border-outline-variant shadow-sm">
       <div className="flex items-center justify-between mb-8 shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 hover:bg-surface-container rounded-lg text-on-surface-variant">
@@ -387,6 +401,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
         <div className="grid grid-cols-1 gap-4">
           {currentQuestion.options.map((option, idx) => (
             <button
+              aria-pressed={selectedAnswers[currentQuestion.id] === option.id}
               key={option.id}
               onClick={() => handleSelect(option.id)}
               className={cn(
@@ -415,7 +430,7 @@ export default function CourseAssessment({ onBack }: CourseAssessmentProps) {
       </div>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">{error}</div>
+        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">{error}</div>
       )}
 
       <div className="mt-8 flex justify-end shrink-0">
