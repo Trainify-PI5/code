@@ -7,7 +7,7 @@ import {
   FileText,
   Eraser,
   ChevronLeft,
-  MessageSquarePlus,
+  PanelLeftOpen,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
@@ -62,7 +62,15 @@ export default function IAAssistant() {
   const [limparAberto, setLimparAberto] = useState(false);
   const toast = useToast();
 
+  const requisicao = useRef<AbortController | null>(null);
+  useEffect(() => () => requisicao.current?.abort(), []);
+
   const limparConversa = () => {
+    requisicao.current?.abort();
+    requisicao.current = null;
+    setIsTyping(false);
+    setInput("");
+    setSidebarOpen(false);
     setMessages([
       {
         id: String(Date.now()),
@@ -87,7 +95,9 @@ export default function IAAssistant() {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || requisicao.current) return;
+    const controle = new AbortController();
+    requisicao.current = controle;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -105,7 +115,8 @@ export default function IAAssistant() {
     setIsTyping(true);
 
     try {
-      const resposta = await perguntarAssistente(input.trim(), historico);
+      const resposta = await perguntarAssistente(input.trim(), historico, { signal: controle.signal });
+      if (controle.signal.aborted) return;
 
       const modelMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -120,6 +131,7 @@ export default function IAAssistant() {
 
       setMessages((prev) => [...prev, modelMsg]);
     } catch (err) {
+      if (controle.signal.aborted) return;
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "model",
@@ -135,7 +147,10 @@ export default function IAAssistant() {
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
-      setIsTyping(false);
+      if (requisicao.current === controle && !controle.signal.aborted) {
+        requisicao.current = null;
+        setIsTyping(false);
+      }
     }
   };
 
@@ -156,7 +171,7 @@ export default function IAAssistant() {
           "lg:relative lg:translate-x-0 lg:w-80 lg:flex lg:flex-col lg:z-auto",
           // Mobile: drawer absoluto que desliza
           "absolute top-0 left-0 h-full w-[280px] z-30 flex flex-col transition-transform duration-300",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "invisible -translate-x-full lg:visible lg:translate-x-0",
           "border-r border-outline-variant bg-surface-bright/30",
         )}
       >
@@ -176,6 +191,7 @@ export default function IAAssistant() {
             {/* Botão fechar — só mobile */}
             <button
               onClick={() => setSidebarOpen(false)}
+              aria-label="Fechar painel de sugestões"
               className="lg:hidden p-2 hover:bg-surface-container rounded-lg transition-colors"
             >
               <ChevronLeft className="w-4 h-4 text-on-surface-variant" />
@@ -216,10 +232,12 @@ export default function IAAssistant() {
         {/* Header mobile com botão para abrir sidebar */}
         <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-outline-variant bg-surface-container-lowest">
           <button
+            aria-label="Abrir painel de sugestões"
+            aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant"
           >
-            <MessageSquarePlus className="w-5 h-5" />
+            <PanelLeftOpen className="w-5 h-5" />
           </button>
           <span className="text-sm font-semibold text-on-surface">
             {t("ia.assistantName") || "IA Assistant"}
@@ -304,6 +322,7 @@ export default function IAAssistant() {
           <div className="max-w-4xl mx-auto">
             <div className="bg-surface-bright border border-outline-variant rounded-2xl focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all flex flex-col overflow-hidden">
               <textarea
+                aria-label={t("ia.inputPlaceholder")}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) =>
@@ -318,6 +337,7 @@ export default function IAAssistant() {
               <div className="flex justify-between items-center px-3 sm:px-4 py-2 sm:py-3 border-t border-outline-variant/30">
                 <div />
                 <button
+                  aria-label={t("ia.send")}
                   onClick={handleSend}
                   disabled={!input.trim() || isTyping}
                   className="bg-primary-container text-white px-4 sm:px-5 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"

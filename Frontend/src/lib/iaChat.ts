@@ -39,13 +39,16 @@ export function montarHistorico(
 export async function perguntarAssistente(
   pergunta: string,
   historico: MensagemHistorico[] = [],
-  contexto: { lessonId?: string | null; courseId?: string | null } = {},
+  contexto: { lessonId?: string | null; courseId?: string | null; signal?: AbortSignal } = {},
 ): Promise<RespostaIa> {
   const { data } = await api.post('/ia/chat', {
     query: pergunta,
     history: historico,
     ...(contexto.lessonId ? { lessonId: contexto.lessonId } : {}),
     ...(contexto.courseId ? { courseId: contexto.courseId } : {}),
-  });
+  }, ...(contexto.signal ? [{ signal: contexto.signal }] : []));
+  if (typeof data?.response !== "string" || !data.response.trim()) {
+    throw new Error("O assistente não retornou uma resposta. Tente novamente.");
+  }
   return { response: data?.response ?? '', sources: Array.isArray(data?.sources) ? data.sources : [] };
 }
