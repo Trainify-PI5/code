@@ -177,7 +177,7 @@ export default function IAAssistant() {
       >
         <div className="p-4 sm:p-5 border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest">
           <h2 className="text-lg sm:text-xl font-display font-bold">
-            {t("ia.conversations")}
+            {t("ia.suggestedActions")}
           </h2>
           <div className="flex items-center gap-1">
             <button
@@ -200,9 +200,6 @@ export default function IAAssistant() {
         </div>
 
         <div className="p-4 sm:p-5 space-y-4">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest px-1">
-            {t("ia.suggestedActions")}
-          </span>
           <div className="space-y-2">
             {suggestedActions.map((action, idx) => (
               <button
@@ -219,12 +216,6 @@ export default function IAAssistant() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 pb-5">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest px-4 py-4 block">
-            {t("ia.recent")}
-          </span>
-<p className="px-4 text-sm text-on-surface-variant">O histórico de conversas não está disponível. As mensagens desta sessão aparecem ao lado.</p>
-        </div>
       </aside>
 
       {/* Área do Chat */}

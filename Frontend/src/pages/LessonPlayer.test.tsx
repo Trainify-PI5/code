@@ -22,8 +22,8 @@ const lessons = [
   { id: 'third', title: 'Conclusão', lessonType: 'ARTICLE', content: 'Texto final' },
 ];
 
-function renderPlayer() {
-  render(<MemoryRouter initialEntries={['/courses/course/learn']}>
+function renderPlayer(busca = '') {
+  render(<MemoryRouter initialEntries={['/courses/course/learn' + busca]}>
     <Routes><Route path="/courses/:id/learn" element={<LessonPlayer />} /></Routes>
   </MemoryRouter>);
 }
@@ -115,5 +115,18 @@ describe('Navegação de aulas', () => {
     renderPlayer();
     expect(await screen.findByRole('alert')).toHaveTextContent('verificar sua matrícula');
     expect(screen.queryByText('Texto inicial')).not.toBeInTheDocument();
+  });
+
+  it('abre a aula citada mesmo quando a retomada automática iria para outra aula', async () => {
+    renderPlayer('?aula=first');
+    expect(await screen.findByText('Texto inicial')).toBeInTheDocument();
+    expect(screen.queryByText('Texto da prática')).not.toBeInTheDocument();
+  });
+
+  it.each(['third', 'inexistente'])('não libera conteúdo por uma referência restrita ou inexistente (%s)', async aula => {
+    renderPlayer('?aula=' + aula);
+    expect(await screen.findByText(/referência não está disponível/)).toBeInTheDocument();
+    expect(screen.getByText('Texto da prática')).toBeInTheDocument();
+    expect(screen.queryByText('Texto final')).not.toBeInTheDocument();
   });
 });

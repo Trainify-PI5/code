@@ -1,15 +1,16 @@
 import axios from 'axios';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { montarHistorico, perguntarAssistente, type FonteIa } from '../lib/iaChat';
 import MarkdownText from '../components/MarkdownText';
 import { ArrowLeft, CheckCircle2, Circle, List, Lock, MessageSquare } from 'lucide-react';
 import api from '../services/api';
-import { VideoPlayer } from '../components/VideoPlayer';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input } from '../components/ui';
 import { requestError } from '../lib/requestError';
+
+const VideoPlayer = React.lazy(() => import('../components/VideoPlayer').then(m => ({ default: m.VideoPlayer })));
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   VIDEO: 'Vídeo',
@@ -46,7 +47,9 @@ function indexProgress(items: LessonProgressItem[]): Record<string, LessonProgre
 
 export default function LessonPlayer() {
   const { id } = useParams<{ id: string }>();
-  return <PlayerDoCurso key={id} id={id!} />;
+  const [params] = useSearchParams();
+  const referencia = params.get('aula');
+  return <PlayerDoCurso key={JSON.stringify([id, referencia])} id={id!} referencia={referencia} />;
 }
 
 type Falha = 'ausente' | 'acesso' | 'curso' | 'matricula' | 'progresso';
@@ -67,7 +70,7 @@ function progressoDoCurso(items: LessonProgressItem[], lessons: { id: string }[]
   return mapa;
 }
 
-function PlayerDoCurso({ id }: { id: string }) {
+function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | null }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
@@ -75,6 +78,7 @@ function PlayerDoCurso({ id }: { id: string }) {
   const [course, setCourse] = useState<any>(null);
   const [enrollment, setEnrollment] = useState<any>(null);
   const [activeLesson, setActiveLesson] = useState<any>(null);
+  const [avisoFonte, setAvisoFonte] = useState('');
   const [showChat, setShowChat] = useState(false);
   const [showLessons, setShowLessons] = useState(false);
   const [falha, setFalha] = useState<Falha | null>(null);
@@ -145,7 +149,9 @@ function PlayerDoCurso({ id }: { id: string }) {
         setCourse(curso);
         setEnrollment(matricula);
         setLessonProgress(progresso);
-        setActiveLesson(liberadas.find((l: any) => progresso[l.id]?.status !== 'COMPLETED') || liberadas[0] || null);
+        const citada = liberadas.find((aula: { id: string }) => aula.id === referencia);
+        setAvisoFonte(referencia && !citada ? 'A aula de referência não está disponível para você neste momento.' : '');
+        setActiveLesson(citada || liberadas.find((l: any) => progresso[l.id]?.status !== 'COMPLETED') || liberadas[0] || null);
       } catch (erro) {
         if (!atual) return;
         const status = axios.isAxiosError(erro) ? erro.response?.status : undefined;
@@ -156,7 +162,7 @@ function PlayerDoCurso({ id }: { id: string }) {
     };
     void carregar();
     return () => { atual = false; };
-  }, [id, tentativa, preview]);
+  }, [id, tentativa, preview, referencia]);
 
   useEffect(() => {
     // Limpa a midia da aula anterior e descarta respostas que chegarem depois de
@@ -305,6 +311,7 @@ function PlayerDoCurso({ id }: { id: string }) {
         </div>
       </div>
 
+      {avisoFonte && <p role="status" className="border-b border-outline-variant bg-surface-container px-4 py-3 text-sm text-on-surface">{avisoFonte}</p>}
       {/* Área de Conteúdo Principal */}
       <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
 
@@ -315,6 +322,7 @@ function PlayerDoCurso({ id }: { id: string }) {
                 {activeLesson.lessonType === 'VIDEO' && mediaUrl ? (
                   <div className="w-full bg-black shrink-0">
                      <div className="max-w-5xl mx-auto w-full">
+                       <React.Suspense fallback={<p role="status" className="p-4 text-white">Carregando vídeo...</p>}>
                        <VideoPlayer
                          videoUrl={mediaUrl}
                          initialTime={initialTime}
@@ -322,6 +330,7 @@ function PlayerDoCurso({ id }: { id: string }) {
                          onEnded={handleVideoEnded}
                          className="rounded-none shadow-none"
                        />
+                       </React.Suspense>
                      </div>
                   </div>
                 ) : activeLesson.lessonType === 'DOCUMENT' && mediaUrl ? (

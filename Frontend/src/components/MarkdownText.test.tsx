@@ -33,6 +33,7 @@ it('lista cada aula de origem uma vez', () => {
     { courseId: 'c', lessonId: 'b', lessonTitle: 'NR-6' },
   ]} />);
   expect(screen.getAllByText(/NR-/)).toHaveLength(2);
+  expect(screen.getByRole('link', { name: 'Abrir aula: NR-6' })).toHaveAttribute('href', '/courses/c/learn?aula=b');
 });
 
 it('mostra citações (>) como bloco, sem o sinal', () => {

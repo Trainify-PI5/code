@@ -133,7 +133,7 @@ export function renderMarkdown(texto: string): ReactNode[] {
 
 export default function MarkdownText({ text, sources }: { text: string; sources?: FonteIa[] }) {
   // Varias fontes podem ser da mesma aula; mostra cada aula uma vez
-  const aulas = Array.from(new Map((sources ?? []).map((s) => [s.lessonId, s])).values());
+  const aulas = Array.from(new Map((sources ?? []).filter(s => s?.courseId && s.lessonId).map((s) => [s.lessonId, s])).values());
 
   return (
     <div className="break-words">
@@ -141,10 +141,13 @@ export default function MarkdownText({ text, sources }: { text: string; sources?
       {aulas.length > 0 && (
         <div className="mt-3 pt-2 border-t border-outline-variant/60 flex flex-wrap gap-1.5" aria-label="Fontes da resposta">
           {aulas.map((s) => (
-            <span key={s.lessonId} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
+            <a key={s.lessonId} href={`/courses/${encodeURIComponent(s.courseId)}/learn?aula=${encodeURIComponent(s.lessonId)}`}
+              aria-label={`Abrir aula: ${s.lessonTitle || 'Aula do curso'}`}
+              className="inline-flex items-center gap-1 rounded-full bg-surface-container px-3 py-1.5 text-xs font-semibold text-primary underline underline-offset-2 hover:bg-primary-fixed focus-visible:outline">
+
               <BookOpen className="w-3 h-3" aria-hidden="true" />
               {s.lessonTitle || 'Aula do curso'}
-            </span>
+            </a>
           ))}
         </div>
       )}
