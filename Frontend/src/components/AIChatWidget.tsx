@@ -57,14 +57,16 @@ export default function AIChatWidget() {
 
   return (
     <>
-      {/* Botão Flutuante */}
+      <div className="flex shrink-0 justify-end border-t border-outline-variant bg-surface-bright px-4 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:contents">
       <button
         onClick={() => setIsOpen(true)}
         aria-label="Abrir assistente Trainify"
-        className="fixed bottom-6 right-6 p-4 bg-primary-container text-white rounded-full shadow-lg hover:opacity-90 transition-opacity z-40"
+        className="sm:fixed sm:bottom-6 sm:right-6 p-3 sm:p-4 bg-primary-container text-white rounded-full shadow-lg hover:opacity-90 transition-opacity z-40"
       >
         <MessageSquare size={24} />
       </button>
+
+      </div>
 
       {/* Modal do Chat */}
       <AnimatePresence>

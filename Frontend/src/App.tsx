@@ -343,8 +343,8 @@ export default function App() {
             </AnimatePresence>
           </div>
         </main>
+        <AIChatWidget />
       </div>
-      <AIChatWidget />
       <CommandPalette open={paletaAberta} onClose={() => setPaletaAberta(false)} />
     </div>
     </CompanyBrandingProvider>
