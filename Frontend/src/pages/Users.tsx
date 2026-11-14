@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, UserPlus, Edit2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Search, UserPlus, Edit2, Check, X, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -16,9 +16,24 @@ interface User {
   department?: string;
 }
 
+const roleLabels: Record<string, string> = {
+  STUDENT: 'Aluno',
+  INSTRUCTOR: 'Instrutor',
+  MANAGER: 'Gestor',
+  ADMIN: 'Administrador',
+  SUPER_ADMIN: 'Superadministrador',
+};
+
+const editableRoles: Record<string, string[]> = {
+  MANAGER: ['STUDENT', 'INSTRUCTOR'],
+  ADMIN: ['STUDENT', 'INSTRUCTOR', 'MANAGER', 'ADMIN'],
+  SUPER_ADMIN: Object.keys(roleLabels),
+};
+
 export const Users: React.FC = () => {
   const actor = useAuthStore(state => state.user);
   const canInvite = actor?.role === 'ADMIN' || actor?.role === 'SUPER_ADMIN';
+  const roles = editableRoles[actor?.role ?? ''] ?? [];
   const [params, setParams] = useSearchParams();
   const tab = canInvite && params.get('tab') === 'invitations' ? 'invitations' : 'users';
   const [showInvite, setShowInvite] = useState(false);
@@ -26,13 +41,11 @@ export const Users: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [role, setRole] = useState('STUDENT');
   const [isActive, setIsActive] = useState(true);
 
@@ -54,23 +67,10 @@ export const Users: React.FC = () => {
     fetchUsers();
   }, [tab]);
 
-  const openCreateModal = () => {
-    setIsEditMode(false);
-    setSelectedUserId(null);
-    setName('');
-    setEmail('');
-    setPassword('');
-    setRole('STUDENT');
-    setIsActive(true);
-    setIsModalOpen(true);
-  };
-
   const openEditModal = (user: User) => {
-    setIsEditMode(true);
     setSelectedUserId(user.id);
     setName(user.name);
     setEmail(user.email);
-    setPassword(''); // leave blank on edit
     setRole(user.role);
     setIsActive(user.isActive);
     setIsModalOpen(true);
@@ -78,15 +78,12 @@ export const Users: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedUserId || !roles.includes(role)) return;
     try {
-      if (isEditMode && selectedUserId) {
-        await api.put(`/users/${selectedUserId}`, { name, email, role, isActive });
-      } else {
-        await api.post('/users', { name, email, password, role });
-      }
+      await api.put(`/users/${selectedUserId}`, { name, email, role, isActive });
       setIsModalOpen(false);
       fetchUsers();
-      toast.success(isEditMode ? 'Usuário atualizado.' : 'Usuário criado.');
+      toast.success('Usuário atualizado.');
     } catch (err) {
       console.error('Erro ao salvar usuário', err);
       toast.error('Não foi possível salvar o usuário. Confira os dados e tente novamente.');
@@ -120,7 +117,7 @@ export const Users: React.FC = () => {
     }
   };
 
-  const colunas: Coluna<any>[] = [
+  const colunas: Coluna<User>[] = [
     {
       key: "name",
       header: "Usuário",
@@ -148,7 +145,7 @@ export const Users: React.FC = () => {
       render: (user) => (
         <div className="flex items-center gap-2">
           {getRoleIcon(user.role)}
-          <span className="text-sm font-medium text-on-surface-variant">{user.role}</span>
+          <span className="text-sm font-medium text-on-surface-variant">{roleLabels[user.role] ?? user.role}</span>
         </div>
       ),
     },
@@ -168,7 +165,7 @@ export const Users: React.FC = () => {
       header: "Ações",
       align: "right",
       hideLabelOnMobile: true,
-      render: (user) => (
+      render: (user) => roles.includes(user.role) && (
         <div className="flex justify-end gap-2">
           <button
             onClick={() => handleToggleStatus(user)}
@@ -200,10 +197,7 @@ export const Users: React.FC = () => {
           canInvite ? <Button disabled={!actor?.tenantId} onClick={() => { setParams({ tab: 'invitations' }); setShowInvite(true); }}>
             <UserPlus className="w-4 h-4" />
             Convidar pessoa
-          </Button> : <Button onClick={openCreateModal}>
-            <Plus className="w-4 h-4" />
-            <span>Novo Usuário</span>
-          </Button>
+          </Button> : null
         }
       />
 
@@ -265,7 +259,7 @@ export const Users: React.FC = () => {
           >
             <div className="p-6 border-b border-outline-variant">
               <h2 className="text-xl font-display font-bold text-on-surface">
-                {isEditMode ? "Editar Usuário" : "Criar Novo Usuário"}
+                Editar usuário
               </h2>
             </div>
 
@@ -285,16 +279,6 @@ export const Users: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              {!isEditMode && (
-                <Input
-                  label="Senha Inicial"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              )}
-
               <div className="space-y-2">
                 <label
                   htmlFor="user-role"
@@ -308,14 +292,10 @@ export const Users: React.FC = () => {
                   onChange={(e) => setRole(e.target.value)}
                   className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary"
                 >
-                  <option value="STUDENT">Aluno (Student)</option>
-                  <option value="INSTRUCTOR">Instrutor (Instructor)</option>
-                  <option value="MANAGER">Gestor (Manager)</option>
-                  <option value="ADMIN">Administrador (Admin)</option>
+                  {roles.map(value => <option key={value} value={value}>{roleLabels[value]}</option>)}
                 </select>
               </div>
 
-              {isEditMode && (
                 <div className="flex items-center gap-2 pt-2">
                   <input
                     type="checkbox"
@@ -328,14 +308,13 @@ export const Users: React.FC = () => {
                     Usuário Ativo
                   </label>
                 </div>
-              )}
 
               <div className="pt-4 flex justify-end gap-3">
-                <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
+                <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  {isEditMode ? "Salvar Alterações" : "Criar Usuário"}
+                  Salvar alterações
                 </Button>
               </div>
             </form>

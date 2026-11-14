@@ -60,3 +60,18 @@ it('não libera convites para gestores por parâmetro de endereço', async () =>
   expect(screen.queryByRole('button', { name: 'Convidar pessoa' })).not.toBeInTheDocument();
   expect(api.get).not.toHaveBeenCalledWith('/tenants/company-1/invitations');
 });
+
+it('limita a edição do gestor aos perfis de aluno e instrutor', async () => {
+  useAuthStore.setState({ user: { ...useAuthStore.getState().user!, role: 'MANAGER' } });
+  vi.mocked(api.get).mockResolvedValue({ data: [
+    { id: 'a', name: 'Ana', email: 'ana@example.com', role: 'ADMIN', isActive: true },
+    { id: 'b', name: 'Bia', email: 'bia@example.com', role: 'STUDENT', isActive: true },
+  ] });
+  const user = setup();
+  await user.click(await screen.findByRole('button', { name: 'Editar Bia' }));
+  expect(screen.queryByRole('button', { name: 'Editar Ana' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Desativar Ana' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Novo Usuário' })).not.toBeInTheDocument();
+  expect(Array.from(screen.getByLabelText('Função (Role)').querySelectorAll('option'), option => option.value))
+    .toEqual(['STUDENT', 'INSTRUCTOR']);
+});
