@@ -14,6 +14,18 @@ interface MensagemWidget {
 }
 
 export default function AIChatWidget() {
+  const bounds = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ id: number; x: number; y: number; left: number; top: number } | null>(null);
+  const moved = useRef(false);
+  const [position, setPosition] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('trainify.assistant.position') ?? 'null');
+      if ([saved?.x, saved?.y].every(n => Number.isFinite(n) && n >= 0 && n <= 1)) {
+        return { x: Number(saved.x), y: Number(saved.y) };
+      }
+    } catch { /* Storage may be unavailable in private browsing. */ }
+    return { x: 1, y: 0.65 };
+  });
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<MensagemWidget[]>([]);
   const [input, setInput] = useState('');
@@ -57,15 +69,48 @@ export default function AIChatWidget() {
 
   return (
     <>
-      <div className="flex shrink-0 justify-end border-t border-outline-variant bg-surface-bright px-4 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:contents">
+      <div className="pointer-events-none fixed z-40 top-[max(0.75rem,env(safe-area-inset-top))] left-[max(0.75rem,env(safe-area-inset-left))] right-[max(0.75rem,env(safe-area-inset-right))] bottom-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div ref={bounds} className="absolute inset-0 right-12 bottom-12">
       <button
-        onClick={() => setIsOpen(true)}
+        type="button"
+        style={{ left: position.x * 100 + '%', top: position.y * 100 + '%' }}
+        onPointerDown={event => {
+          if (!event.isPrimary || event.button !== 0) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+          moved.current = false;
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={event => {
+          const start = drag.current;
+          if (!start || start.id !== event.pointerId || !bounds.current) return;
+          const dx = event.clientX - start.x;
+          const dy = event.clientY - start.y;
+          if (!moved.current && Math.hypot(dx, dy) < 6) return;
+          moved.current = true;
+          const area = bounds.current.getBoundingClientRect();
+          const fraction = (offset: number, size: number) => Math.max(0, Math.min(1, offset / Math.max(size, 1)));
+          setPosition({ x: fraction(start.left + dx - area.left, area.width), y: fraction(start.top + dy - area.top, area.height) });
+        }}
+        onPointerUp={event => {
+          if (drag.current?.id !== event.pointerId) return;
+          drag.current = null;
+          if (moved.current) {
+            try { localStorage.setItem('trainify.assistant.position', JSON.stringify(position)); } catch { /* Keep the position for this session. */ }
+          }
+        }}
+        onLostPointerCapture={() => { drag.current = null; }}
+        onClick={event => {
+          if (!moved.current || event.detail === 0) setIsOpen(true);
+          moved.current = false;
+        }}
+        title="Toque para abrir ou arraste para mover"
         aria-label="Abrir assistente Trainify"
-        className="sm:fixed sm:bottom-6 sm:right-6 p-3 sm:p-4 bg-primary-container text-white rounded-full shadow-lg hover:opacity-90 transition-opacity z-40"
+        className="pointer-events-auto absolute grid h-12 w-12 touch-none select-none cursor-grab place-items-center rounded-full bg-primary-container text-white shadow-lg hover:opacity-90 active:cursor-grabbing"
       >
         <MessageSquare size={24} />
       </button>
-
+      </div>
       </div>
 
       {/* Modal do Chat */}
