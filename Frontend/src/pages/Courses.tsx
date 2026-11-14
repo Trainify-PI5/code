@@ -306,6 +306,12 @@ export default function Courses() {
                   )}
                 </button>
 
+                {(isStaff || course.enrolled || course.completed) && (
+                  <button onClick={() => navigate(`/courses/${course.id}/forum`)}
+                    className="w-full rounded-xl border border-outline-variant px-4 py-2 text-sm font-medium text-primary">
+                    Fórum do curso
+                  </button>
+                )}
                 {isStaff && (
                   <button
                     onClick={() => navigate(`/courses/${course.id}/results`)}
