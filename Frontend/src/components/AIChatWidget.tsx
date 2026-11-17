@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
+import { MessageSquare, X, Send, Loader2, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useAulaAbertaStore } from '../store/aulaAbertaStore';
 import { montarHistorico, perguntarAssistente, type FonteIa } from '../lib/iaChat';
 import MarkdownText from './MarkdownText';
 
@@ -32,6 +33,8 @@ export default function AIChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuthStore();
+  // Aula aberta na tela, quando houver: a busca começa por ela (ver aulaAbertaStore)
+  const aula = useAulaAbertaStore((s) => s.aula);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,7 +57,11 @@ export default function AIChatWidget() {
 
     try {
       // Toda comunicação com a IA passa pelo backend, que decide o que o usuário pode consultar
-      const resposta = await perguntarAssistente(userMessage, historico);
+      const resposta = await perguntarAssistente(
+        userMessage,
+        historico,
+        aula ? { lessonId: aula.lessonId, courseId: aula.courseId } : {},
+      );
       setMessages(prev => [...prev, { role: 'ai', content: resposta.response, sources: resposta.sources }]);
     } catch {
       setMessages(prev => [...prev, {
@@ -140,11 +147,26 @@ export default function AIChatWidget() {
               </button>
             </div>
 
+            {/* Contexto: a pessoa precisa saber que a resposta parte da aula aberta */}
+            {aula && (
+              <div
+                className="flex items-center gap-2 px-4 py-2 text-xs bg-primary-fixed text-on-primary-fixed border-b border-outline-variant"
+                title={aula.titulo}
+              >
+                <BookOpen size={14} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">
+                  Sobre a aula: <strong>{aula.titulo}</strong>
+                </span>
+              </div>
+            )}
+
             {/* Mensagens */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-bright">
               {messages.length === 0 && (
                 <div className="text-center text-on-surface-variant text-sm mt-10">
-                  Olá! Como posso ajudar você no seu aprendizado hoje?
+                  {aula
+                    ? 'Pergunte sobre esta aula ou sobre os seus cursos.'
+                    : 'Olá! Como posso ajudar você no seu aprendizado hoje?'}
                 </div>
               )}
               {messages.map((msg, idx) => (
@@ -171,8 +193,8 @@ export default function AIChatWidget() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Pergunte sobre um curso..."
-                  aria-label="Pergunte sobre um curso"
+                  placeholder={aula ? 'Pergunte sobre esta aula...' : 'Pergunte sobre um curso...'}
+                  aria-label={aula ? 'Pergunte sobre esta aula' : 'Pergunte sobre um curso'}
                   className="flex-1 bg-surface-container border border-outline-variant rounded-xl px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
                 />
                 <button

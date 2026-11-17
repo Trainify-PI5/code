@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, Circle, List, Lock, MessageSquare } from 'luci
 import api from '../services/api';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 import { useAuthStore } from '../store/authStore';
+import { useAulaAbertaStore } from '../store/aulaAbertaStore';
 import { Button, Input } from '../components/ui';
 import { requestError } from '../lib/requestError';
 
@@ -121,6 +122,17 @@ function PlayerDoCurso({ id, referencia }: { id: string; referencia: string | nu
       setEnviandoIa(false);
     }
   };
+
+  // Avisa o balão do assistente qual aula está aberta, para ele responder sobre
+  // ela como o botão "Assistente IA" do topo já faz. Ao trocar de aula ou sair
+  // da tela, a aula anterior deixa de valer.
+  const abrirAula = useAulaAbertaStore((s) => s.abrir);
+  const fecharAula = useAulaAbertaStore((s) => s.fechar);
+  useEffect(() => {
+    if (!activeLesson?.id) return;
+    abrirAula({ lessonId: activeLesson.id, courseId: id, titulo: activeLesson.title });
+    return () => fecharAula(activeLesson.id);
+  }, [activeLesson?.id, activeLesson?.title, id, abrirAula, fecharAula]);
 
   useEffect(() => {
     let atual = true;
